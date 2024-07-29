@@ -1,4 +1,3 @@
-# app/models.py
 from sqlalchemy import Column, Integer, String, Date, Float
 from .database import Base
 
@@ -40,3 +39,4 @@ class Documento(Base):
     detalle = Column(String)
     estado = Column(String)
     empresa = Column(String)
+    archivo = Column(String)  # Nuevo campo para almacenar la ruta del archivo

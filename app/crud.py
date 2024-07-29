@@ -1,5 +1,3 @@
-# app/crud.py
-
 from sqlalchemy.future import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from . import models, schemas
@@ -51,4 +49,11 @@ async def delete_documento(db: AsyncSession, documento_id: int):
     db_documento = await get_documento(db, documento_id)
     await db.delete(db_documento)
     await db.commit()
+    return db_documento
+
+async def update_documento_file(db: AsyncSession, documento_id: int, file_location: str):
+    db_documento = await get_documento(db, documento_id)
+    db_documento.archivo = file_location
+    await db.commit()
+    await db.refresh(db_documento)
     return db_documento

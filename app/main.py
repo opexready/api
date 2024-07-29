@@ -1,10 +1,14 @@
 # app/main.py
 
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
 from datetime import timedelta
+import shutil
+import os
+import pandas as pd
+from fpdf import FPDF
 from . import crud, models, schemas, auth
 from .database import engine, SessionLocal
 
@@ -69,9 +73,73 @@ async def read_documentos(empresa: str, db: AsyncSession = Depends(get_db)):
     return documentos
 
 @app.put("/documentos/{documento_id}", response_model=schemas.Documento)
-async def update_documento(documento_id: int, documento: schemas.DocumentoCreate, db: AsyncSession = Depends(get_db)):
-    return await crud.update_documento(db=db, documento_id=documento_id, documento=documento)
+async def update_documento(documento_id: int, documento: schemas.DocumentoUpdate, db: AsyncSession = Depends(get_db)):
+    db_documento = await crud.get_documento(db, documento_id=documento_id)
+    if not db_documento:
+        raise HTTPException(status_code=404, detail="Documento not found")
+    
+    update_data = documento.dict(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(db_documento, key, value)
+    
+    await db.commit()
+    await db.refresh(db_documento)
+    return db_documento
 
 @app.delete("/documentos/{documento_id}", response_model=schemas.Documento)
 async def delete_documento(documento_id: int, db: AsyncSession = Depends(get_db)):
     return await crud.delete_documento(db=db, documento_id=documento_id)
+
+# API para subir archivos
+@app.post("/documentos/{documento_id}/upload", response_model=schemas.Documento)
+async def upload_file(documento_id: int, file: UploadFile = File(...), db: AsyncSession = Depends(get_db)):
+    file_location = f"C:/archivos/{file.filename}"
+    with open(file_location, "wb") as f:
+        shutil.copyfileobj(file.file, f)
+    
+    documento = await crud.get_documento(db, documento_id=documento_id)
+    documento.archivo = file_location
+    await db.commit()
+    await db.refresh(documento)
+    return documento
+
+# API para descargar un documento en Excel por ID
+@app.get("/documentos/{documento_id}/export/excel")
+async def export_documento_to_excel(documento_id: int, db: AsyncSession = Depends(get_db)):
+    documento = await crud.get_documento(db, documento_id=documento_id)
+    if not documento:
+        raise HTTPException(status_code=404, detail="Documento not found")
+    
+    df = pd.DataFrame([documento.__dict__])
+    excel_file = f"C:/archivos/documento_{documento_id}.xlsx"
+    df.to_excel(excel_file, index=False)
+    return {"file_location": excel_file}
+
+# API para descargar un documento en PDF por ID
+@app.get("/documentos/{documento_id}/export/pdf")
+async def export_documento_to_pdf(documento_id: int, db: AsyncSession = Depends(get_db)):
+    documento = await crud.get_documento(db, documento_id=documento_id)
+    if not documento:
+        raise HTTPException(status_code=404, detail="Documento not found")
+    
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", size=12)
+    
+    for key, value in documento.__dict__.items():
+        pdf.cell(200, 10, txt=f"{key}: {value}", ln=True)
+    
+    pdf_file = f"C:/archivos/documento_{documento_id}.pdf"
+    pdf.output(pdf_file)
+    return {"file_location": pdf_file}
+
+# API para eliminar un archivo asociado a un documento
+@app.delete("/documentos/{documento_id}/file", response_model=schemas.Documento)
+async def delete_documento_file(documento_id: int, db: AsyncSession = Depends(get_db)):
+    documento = await crud.get_documento(db, documento_id=documento_id)
+    if os.path.exists(documento.archivo):
+        os.remove(documento.archivo)
+    documento.archivo = None
+    await db.commit()
+    await db.refresh(documento)
+    return documento

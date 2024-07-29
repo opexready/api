@@ -1,6 +1,8 @@
 # app/schemas.py
+
 from pydantic import BaseModel
 from datetime import date
+from typing import Optional
 
 class UserBase(BaseModel):
     username: str
@@ -46,6 +48,7 @@ class DocumentoBase(BaseModel):
     detalle: str
     estado: str
     empresa: str
+    archivo: Optional[str] = None  # Cambiado a opcional
 
 class DocumentoCreate(DocumentoBase):
     pass
@@ -55,3 +58,7 @@ class Documento(DocumentoBase):
 
     class Config:
         from_attributes = True
+
+# Nuevo esquema para actualización parcial
+class DocumentoUpdate(BaseModel):
+    estado: Optional[str] = None
