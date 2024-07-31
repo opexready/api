@@ -1,6 +1,7 @@
 from sqlalchemy.future import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from . import models, schemas
+from . import auth
 
 # CRUD for User (existing code)
 async def get_user_by_email(db: AsyncSession, email: str):
@@ -8,11 +9,12 @@ async def get_user_by_email(db: AsyncSession, email: str):
     return result.scalars().first()
 
 async def create_user(db: AsyncSession, user: schemas.UserCreate):
+    hashed_password = auth.get_password_hash(user.password)
     db_user = models.User(
         email=user.email,
         username=user.username,
         full_name=user.full_name,
-        hashed_password=user.hashed_password,
+        hashed_password=hashed_password,
         role=user.role,
         company_name=user.company_name,
     )
