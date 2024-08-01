@@ -40,3 +40,10 @@ class Documento(Base):
     estado = Column(String)
     empresa = Column(String)
     archivo = Column(String)  # Nuevo campo para almacenar la ruta del archivo
+
+class Company(Base):
+    __tablename__ = "companies"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True, index=True)
+    description = Column(String, nullable=True)

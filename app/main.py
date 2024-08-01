@@ -1,6 +1,4 @@
-# app/main.py
-
-from fastapi import FastAPI, Depends, HTTPException, UploadFile, File
+from fastapi import FastAPI, Depends, HTTPException, UploadFile, File, Query
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
@@ -27,7 +25,6 @@ async def init_models():
     async with engine.begin() as conn:
         await conn.run_sync(models.Base.metadata.create_all)
 
-# Ejecutar la creación de tablas asíncronamente
 @app.on_event("startup")
 async def on_startup():
     await init_models()
@@ -35,13 +32,6 @@ async def on_startup():
 async def get_db():
     async with SessionLocal() as session:
         yield session
-
-@app.post("/users/", response_model=schemas.User)
-async def create_user(user: schemas.UserCreate, db: AsyncSession = Depends(get_db)):
-    db_user = await crud.get_user_by_email(db, email=user.email)
-    if db_user:
-        raise HTTPException(status_code=400, detail="Email already registered")
-    return await crud.create_user(db=db, user=user)
 
 @app.post("/token", response_model=dict)
 async def login_for_access_token(form_data: schemas.UserLogin, db: AsyncSession = Depends(get_db)):
@@ -56,6 +46,18 @@ async def login_for_access_token(form_data: schemas.UserLogin, db: AsyncSession 
 async def read_users_me(current_user: schemas.User = Depends(auth.get_current_user)):
     return current_user
 
+@app.post("/users/", response_model=schemas.User)
+async def create_user(user: schemas.UserCreate, db: AsyncSession = Depends(get_db)):
+    db_user = await crud.get_user_by_email(db, email=user.email)
+    if db_user:
+        raise HTTPException(status_code=400, detail="Email already registered")
+    return await crud.create_user(db=db, user=user)
+
+@app.get("/users/", response_model=List[schemas.User])
+async def read_users(db: AsyncSession = Depends(get_db)):
+    return await crud.get_users(db)
+
+# CRUD para documentos
 @app.post("/documentos/", response_model=schemas.Documento)
 async def create_documento(documento: schemas.DocumentoCreate, db: AsyncSession = Depends(get_db)):
     return await crud.create_documento(db=db, documento=documento)
@@ -68,9 +70,16 @@ async def read_documento(documento_id: int, db: AsyncSession = Depends(get_db)):
     return db_documento
 
 @app.get("/documentos/", response_model=List[schemas.Documento])
-async def read_documentos(empresa: str, db: AsyncSession = Depends(get_db)):
-    documentos = await crud.get_documentos_by_empresa(db, empresa=empresa)
-    return documentos
+async def read_documentos(
+    empresa: str = Query(None, alias="company_name"),
+    estado: str = Query(None),
+    username: str = Query(None),
+    db: AsyncSession = Depends(get_db)
+):
+    if username:
+        return await crud.get_documentos_by_username_estado(db, username=username, estado=estado)
+    else:
+        return await crud.get_documentos_by_empresa_estado(db, empresa=empresa, estado=estado)
 
 @app.put("/documentos/{documento_id}", response_model=schemas.Documento)
 async def update_documento(documento_id: int, documento: schemas.DocumentoUpdate, db: AsyncSession = Depends(get_db)):
@@ -143,3 +152,26 @@ async def delete_documento_file(documento_id: int, db: AsyncSession = Depends(ge
     await db.commit()
     await db.refresh(documento)
     return documento
+
+# CRUD para compañías
+@app.get("/companies/", response_model=List[schemas.Company])
+async def read_companies(db: AsyncSession = Depends(get_db)):
+    return await crud.get_companies(db)
+
+@app.post("/companies/", response_model=schemas.Company)
+async def create_company(company: schemas.CompanyCreate, db: AsyncSession = Depends(get_db)):
+    return await crud.create_company(db=db, company=company)
+
+@app.put("/companies/{company_id}", response_model=schemas.Company)
+async def update_company(company_id: int, company: schemas.CompanyCreate, db: AsyncSession = Depends(get_db)):
+    db_company = await crud.update_company(db, company_id, company)
+    if not db_company:
+        raise HTTPException(status_code=404, detail="Company not found")
+    return db_company
+
+@app.delete("/companies/{company_id}", response_model=schemas.Company)
+async def delete_company(company_id: int, db: AsyncSession = Depends(get_db)):
+    db_company = await crud.delete_company(db, company_id)
+    if not db_company:
+        raise HTTPException(status_code=404, detail="Company not found")
+    return db_company

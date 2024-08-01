@@ -1,5 +1,3 @@
-# app/schemas.py
-
 from pydantic import BaseModel
 from datetime import date
 from typing import Optional
@@ -62,3 +60,16 @@ class Documento(DocumentoBase):
 # Nuevo esquema para actualización parcial
 class DocumentoUpdate(BaseModel):
     estado: Optional[str] = None
+
+class CompanyBase(BaseModel):
+    name: str
+    description: Optional[str] = None
+
+class CompanyCreate(CompanyBase):
+    pass
+
+class Company(CompanyBase):
+    id: int
+
+    class Config:
+        from_attributes = True
