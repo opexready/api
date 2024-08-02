@@ -1,5 +1,6 @@
 from sqlalchemy.future import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import func
 from . import models, schemas
 from . import auth
 
@@ -26,6 +27,26 @@ async def create_user(db: AsyncSession, user: schemas.UserCreate):
 async def get_users(db: AsyncSession):
     result = await db.execute(select(models.User))
     return result.scalars().all()
+
+# Nueva función para obtener usuarios con documentos pendientes
+async def get_users_with_pending_documents(db: AsyncSession, empresa: str):
+    result = await db.execute(
+        select(
+            models.User.username,
+            models.User.full_name,
+            models.User.email,
+            models.User.company_name,
+            func.count(models.Documento.usuario).label('cantidad_documentos_pendientes')
+        )
+        .join(models.Documento, models.User.email == models.Documento.usuario)
+        .where(
+            models.Documento.estado == 'PENDIENTE',
+            models.User.company_name == models.Documento.empresa,
+            models.Documento.empresa == empresa
+        )
+        .group_by(models.User.username, models.User.full_name, models.User.email, models.User.company_name)
+    )
+    return result.all()
 
 # CRUD for Documento
 async def get_documento(db: AsyncSession, documento_id: int):

@@ -57,6 +57,11 @@ async def create_user(user: schemas.UserCreate, db: AsyncSession = Depends(get_d
 async def read_users(db: AsyncSession = Depends(get_db)):
     return await crud.get_users(db)
 
+# Nueva ruta para obtener usuarios con documentos pendientes filtrados por empresa
+@app.get("/users/with-pending-documents/", response_model=List[schemas.UserWithPendingDocuments])
+async def read_users_with_pending_documents(empresa: str = Query(...), db: AsyncSession = Depends(get_db)):
+    return await crud.get_users_with_pending_documents(db, empresa)
+
 # CRUD para documentos
 @app.post("/documentos/", response_model=schemas.Documento)
 async def create_documento(documento: schemas.DocumentoCreate, db: AsyncSession = Depends(get_db)):

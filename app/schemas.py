@@ -73,3 +73,10 @@ class Company(CompanyBase):
 
     class Config:
         from_attributes = True
+
+class UserWithPendingDocuments(BaseModel):
+    username: str
+    full_name: str
+    email: str
+    company_name: str
+    cantidad_documentos_pendientes: int
