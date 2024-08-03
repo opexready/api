@@ -28,6 +28,17 @@ async def get_users(db: AsyncSession):
     result = await db.execute(select(models.User))
     return result.scalars().all()
 
+# CRUD for User
+async def get_users_by_company_and_role(db: AsyncSession, company_name: str, role: str):
+    result = await db.execute(select(models.User).filter(models.User.company_name == company_name, models.User.role == role))
+    return result.scalars().all()
+
+async def get_user_by_email(db: AsyncSession, email: str):
+    result = await db.execute(select(models.User).filter(models.User.email == email))
+    return result.scalars().first()
+
+
+
 # Nueva función para obtener usuarios con documentos pendientes
 async def get_users_with_pending_documents(db: AsyncSession, empresa: str):
     result = await db.execute(

@@ -5,8 +5,8 @@ from typing import List
 from datetime import timedelta
 import shutil
 import os
-import pandas as pd
-from fpdf import FPDF
+from fastapi.responses import FileResponse, StreamingResponse
+from mimetypes import guess_type
 from . import crud, models, schemas, auth
 from .database import engine, SessionLocal
 
@@ -57,10 +57,23 @@ async def create_user(user: schemas.UserCreate, db: AsyncSession = Depends(get_d
 async def read_users(db: AsyncSession = Depends(get_db)):
     return await crud.get_users(db)
 
-# Nueva ruta para obtener usuarios con documentos pendientes filtrados por empresa
+@app.get("/users/by-company-and-role/", response_model=List[schemas.User])
+async def read_users_by_company_and_role(company_name: str = Query(...), role: str = Query(...), db: AsyncSession = Depends(get_db)):
+    users = await crud.get_users_by_company_and_role(db, company_name, role)
+    if not users:
+        raise HTTPException(status_code=404, detail="No users found for the specified company_name and role")
+    return users
+
 @app.get("/users/with-pending-documents/", response_model=List[schemas.UserWithPendingDocuments])
 async def read_users_with_pending_documents(empresa: str = Query(...), db: AsyncSession = Depends(get_db)):
     return await crud.get_users_with_pending_documents(db, empresa)
+
+@app.get("/users/by-email/", response_model=schemas.User)
+async def read_user_by_email(email: str = Query(...), db: AsyncSession = Depends(get_db)):
+    user = await crud.get_user_by_email(db, email=email)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user
 
 # CRUD para documentos
 @app.post("/documentos/", response_model=schemas.Documento)
@@ -104,7 +117,6 @@ async def update_documento(documento_id: int, documento: schemas.DocumentoUpdate
 async def delete_documento(documento_id: int, db: AsyncSession = Depends(get_db)):
     return await crud.delete_documento(db=db, documento_id=documento_id)
 
-# API para subir archivos
 @app.post("/documentos/{documento_id}/upload", response_model=schemas.Documento)
 async def upload_file(documento_id: int, file: UploadFile = File(...), db: AsyncSession = Depends(get_db)):
     file_location = f"C:/archivos/{file.filename}"
@@ -117,37 +129,19 @@ async def upload_file(documento_id: int, file: UploadFile = File(...), db: Async
     await db.refresh(documento)
     return documento
 
-# API para descargar un documento en Excel por ID
-@app.get("/documentos/{documento_id}/export/excel")
-async def export_documento_to_excel(documento_id: int, db: AsyncSession = Depends(get_db)):
-    documento = await crud.get_documento(db, documento_id=documento_id)
-    if not documento:
-        raise HTTPException(status_code=404, detail="Documento not found")
-    
-    df = pd.DataFrame([documento.__dict__])
-    excel_file = f"C:/archivos/documento_{documento_id}.xlsx"
-    df.to_excel(excel_file, index=False)
-    return {"file_location": excel_file}
+@app.get("/documentos/download/")
+async def download_file(file_location: str):
+    if not os.path.exists(file_location):
+        raise HTTPException(status_code=404, detail="File not found")
+    return FileResponse(path=file_location, filename=os.path.basename(file_location), media_type='application/octet-stream')
 
-# API para descargar un documento en PDF por ID
-@app.get("/documentos/{documento_id}/export/pdf")
-async def export_documento_to_pdf(documento_id: int, db: AsyncSession = Depends(get_db)):
-    documento = await crud.get_documento(db, documento_id=documento_id)
-    if not documento:
-        raise HTTPException(status_code=404, detail="Documento not found")
-    
-    pdf = FPDF()
-    pdf.add_page()
-    pdf.set_font("Arial", size=12)
-    
-    for key, value in documento.__dict__.items():
-        pdf.cell(200, 10, txt=f"{key}: {value}", ln=True)
-    
-    pdf_file = f"C:/archivos/documento_{documento_id}.pdf"
-    pdf.output(pdf_file)
-    return {"file_location": pdf_file}
+@app.get("/documentos/view/")
+async def view_file(file_location: str):
+    if not os.path.exists(file_location):
+        raise HTTPException(status_code=404, detail="File not found")
+    media_type, _ = guess_type(file_location)
+    return FileResponse(path=file_location, media_type=media_type)
 
-# API para eliminar un archivo asociado a un documento
 @app.delete("/documentos/{documento_id}/file", response_model=schemas.Documento)
 async def delete_documento_file(documento_id: int, db: AsyncSession = Depends(get_db)):
     documento = await crud.get_documento(db, documento_id=documento_id)
@@ -158,7 +152,6 @@ async def delete_documento_file(documento_id: int, db: AsyncSession = Depends(ge
     await db.refresh(documento)
     return documento
 
-# CRUD para compañías
 @app.get("/companies/", response_model=List[schemas.Company])
 async def read_companies(db: AsyncSession = Depends(get_db)):
     return await crud.get_companies(db)
