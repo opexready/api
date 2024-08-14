@@ -18,6 +18,9 @@ async def create_user(db: AsyncSession, user: schemas.UserCreate):
         hashed_password=hashed_password,
         role=user.role,
         company_name=user.company_name,
+        cargo=user.cargo,  # Agregando campo cargo
+        dni=user.dni,
+        zona_venta=user.zona_venta  # Agregando campo dni
     )
     db.add(db_user)
     await db.commit()

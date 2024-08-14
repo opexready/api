@@ -8,6 +8,10 @@ class UserBase(BaseModel):
     full_name: str
     role: str
     company_name: str
+    cargo: Optional[str] = None  # Nuevo campo
+    dni: Optional[str] = None  # Nuevo campo
+    zona_venta: Optional[str] = None
+    jefe_id: Optional[int] = None  # Nuevo campo
 
 class UserCreate(UserBase):
     password: str
@@ -46,7 +50,13 @@ class DocumentoBase(BaseModel):
     detalle: str
     estado: str
     empresa: str
-    archivo: Optional[str] = None  # Cambiado a opcional
+    archivo: Optional[str] = None
+    tipo_cambio: Optional[float] = None  # Nuevo campo agregado
+    afecto: Optional[float] = None  # Nuevo campo agregado
+    inafecto: Optional[float] = None  # Nuevo campo agregado
+    rubro: Optional[str] = None  # Nuevo campo agregado
+    cuenta_contable: Optional[int] = None  # Nuevo campo agregado
+
 
 class DocumentoCreate(DocumentoBase):
     pass

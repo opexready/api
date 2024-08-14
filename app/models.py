@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, String, Date, Float
+from sqlalchemy import Column, Integer, String, Date, Float,ForeignKey
+from sqlalchemy.orm import relationship
 from .database import Base
 
 class User(Base):
@@ -11,6 +12,11 @@ class User(Base):
     hashed_password = Column(String)
     role = Column(String)
     company_name = Column(String)
+    cargo = Column(String)
+    dni = Column(String) 
+    zona_venta = Column(String) 
+    jefe_id = Column(Integer, ForeignKey('users.id'))  # Nueva columna para el jefe
+    jefe = relationship("User", remote_side=[id])
 
 class Documento(Base):
     __tablename__ = "documentos"
@@ -39,7 +45,13 @@ class Documento(Base):
     detalle = Column(String)
     estado = Column(String)
     empresa = Column(String)
-    archivo = Column(String)  # Nuevo campo para almacenar la ruta del archivo
+    archivo = Column(String)
+    tipo_cambio = Column(Float)  # Nuevo campo agregado
+    afecto = Column(Float)  # Nuevo campo agregado
+    inafecto = Column(Float)  # Nuevo campo agregado
+    rubro = Column(String)  # Nuevo campo agregado
+    cuenta_contable = Column(Integer)  # Nuevo campo agregado
+
 
 class Company(Base):
     __tablename__ = "companies"
