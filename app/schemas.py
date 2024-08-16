@@ -57,7 +57,6 @@ class DocumentoBase(BaseModel):
     rubro: Optional[str] = None  # Nuevo campo agregado
     cuenta_contable: Optional[int] = None  # Nuevo campo agregado
 
-
 class DocumentoCreate(DocumentoBase):
     pass
 
@@ -90,3 +89,10 @@ class UserWithPendingDocuments(BaseModel):
     email: str
     company_name: str
     cantidad_documentos_pendientes: int
+
+# Nuevo esquema para la respuesta de tipo de cambio
+class TipoCambioResponse(BaseModel):
+    precioCompra: float
+    precioVenta: float
+    moneda: str
+    fecha: str
