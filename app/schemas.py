@@ -8,10 +8,10 @@ class UserBase(BaseModel):
     full_name: str
     role: str
     company_name: str
-    cargo: Optional[str] = None  # Nuevo campo
-    dni: Optional[str] = None  # Nuevo campo
+    cargo: Optional[str] = None
+    dni: Optional[str] = None
     zona_venta: Optional[str] = None
-    jefe_id: Optional[int] = None  # Nuevo campo
+    jefe_id: Optional[int] = None
 
 class UserCreate(UserBase):
     password: str
@@ -27,35 +27,48 @@ class UserLogin(BaseModel):
     password: str
 
 class DocumentoBase(BaseModel):
-    fecha_solicitud: date
-    dni: str
-    usuario: str
-    gerencia: str
-    ruc: str
-    proveedor: str
-    fecha_emision: date
-    moneda: str
-    tipo_documento: str
-    serie: str
-    correlativo: str
-    tipo_gasto: str
-    sub_total: float
-    igv: float
-    no_gravadas: float
-    importe_facturado: float
-    tc: float
-    anticipo: float
-    total: float
-    pago: float
-    detalle: str
-    estado: str
-    empresa: str
+    fecha_solicitud: Optional[date] = None
+    dni: Optional[str] = None
+    usuario: Optional[str] = None
+    gerencia: Optional[str] = None
+    ruc: Optional[str] = None
+    proveedor: Optional[str] = None
+    fecha_emision: Optional[date] = None
+    moneda: Optional[str] = None
+    tipo_documento: Optional[str] = None
+    serie: Optional[str] = None
+    correlativo: Optional[str] = None
+    tipo_gasto: Optional[str] = None
+    sub_total: Optional[float] = None
+    igv: Optional[float] = None
+    no_gravadas: Optional[float] = None
+    importe_facturado: Optional[float] = None
+    tc: Optional[float] = None
+    anticipo: Optional[float] = None
+    total: Optional[float] = None
+    pago: Optional[float] = None
+    detalle: Optional[str] = None
+    estado: Optional[str] = None
+    empresa: Optional[str] = None
     archivo: Optional[str] = None
-    tipo_cambio: Optional[float] = None  # Nuevo campo agregado
-    afecto: Optional[float] = None  # Nuevo campo agregado
-    inafecto: Optional[float] = None  # Nuevo campo agregado
-    rubro: Optional[str] = None  # Nuevo campo agregado
-    cuenta_contable: Optional[int] = None  # Nuevo campo agregado
+    tipo_cambio: Optional[float] = None
+    afecto: Optional[float] = None
+    inafecto: Optional[float] = None
+    rubro: Optional[str] = None
+    cuenta_contable: Optional[int] = None
+
+    # Nuevos campos añadidos
+    responsable: Optional[str] = None
+    area: Optional[str] = None
+    ceco: Optional[str] = None
+    tipo_anticipo: Optional[str] = None
+    motivo: Optional[str] = None
+    fecha_viaje: Optional[date] = None
+    dias: Optional[int] = None
+    presupuesto: Optional[float] = None
+    banco: Optional[str] = None
+    numero_cuenta: Optional[str] = None
+    destino: Optional[str] = None
 
 class DocumentoCreate(DocumentoBase):
     pass
@@ -66,7 +79,6 @@ class Documento(DocumentoBase):
     class Config:
         from_attributes = True
 
-# Nuevo esquema para actualización parcial
 class DocumentoUpdate(BaseModel):
     estado: Optional[str] = None
 
@@ -90,7 +102,6 @@ class UserWithPendingDocuments(BaseModel):
     company_name: str
     cantidad_documentos_pendientes: int
 
-# Nuevo esquema para la respuesta de tipo de cambio
 class TipoCambioResponse(BaseModel):
     precioCompra: float
     precioVenta: float

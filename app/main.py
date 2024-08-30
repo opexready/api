@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from typing import List
-from datetime import timedelta
+from datetime import date, timedelta
 import shutil
 import os
 import pandas as pd
@@ -408,18 +408,49 @@ async def read_documento(documento_id: int, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Documento not found")
     return db_documento
 
-@app.get("/documentos/", response_model=List[schemas.Documento])
+# @app.get("/documentos/", response_model=List[schemas.Documento])
+# async def read_documentos(
+#     empresa: str = Query(None, alias="company_name"),
+#     estado: str = Query(None),
+#     username: str = Query(None),
+#     db: AsyncSession = Depends(get_db)
+# ):
+#     query = select(models.Documento).filter(models.Documento.empresa == empresa)
+#     if estado:
+#         query = query.filter(models.Documento.estado == estado)
+#     if username:
+#         query = query.filter(models.Documento.usuario == username)
+#     result = await db.execute(query)
+#     return result.scalars().all()
+
+@app.get("/documentos/", response_model=List[schemas.DocumentoBase])
 async def read_documentos(
     empresa: str = Query(None, alias="company_name"),
     estado: str = Query(None),
     username: str = Query(None),
+    tipo_gasto: str = Query(None, description="Filtrar por tipo de gasto"),
+    tipo_documento: str = Query(None, description="Filtrar por tipo de documento"),
+    tipo_anticipo: str = Query(None, description="Filtrar por tipo de anticipo"),
+    fecha_solicitud_from: date = Query(None, description="Fecha de solicitud desde"),
+    fecha_solicitud_to: date = Query(None, description="Fecha de solicitud hasta"),
     db: AsyncSession = Depends(get_db)
 ):
-    query = select(models.Documento).filter(models.Documento.empresa == empresa)
+    query = select(models.Documento).where(models.Documento.empresa == empresa)
     if estado:
-        query = query.filter(models.Documento.estado == estado)
+        query = query.where(models.Documento.estado == estado)
     if username:
-        query = query.filter(models.Documento.usuario == username)
+        query = query.where(models.Documento.usuario == username)
+    if tipo_gasto:
+        query = query.where(models.Documento.tipo_gasto == tipo_gasto)
+    if tipo_documento:
+        query = query.where(models.Documento.tipo_documento == tipo_documento)
+    if tipo_anticipo:
+        query = query.where(models.Documento.tipo_anticipo == tipo_anticipo)
+    if fecha_solicitud_from:
+        query = query.where(models.Documento.fecha_solicitud >= fecha_solicitud_from)
+    if fecha_solicitud_to:
+        query = query.where(models.Documento.fecha_solicitud <= fecha_solicitud_to)
+
     result = await db.execute(query)
     return result.scalars().all()
 
@@ -677,4 +708,50 @@ async def upload_file(file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al guardar el archivo: {str(e)}")
     
-    
+ # Definir la ruta de almacenamiento de los PDFs
+PDF_DIRECTORY = "C:\\boleta"
+if not os.path.exists(PDF_DIRECTORY):
+    os.makedirs(PDF_DIRECTORY)
+
+async def get_db():
+    async with SessionLocal() as session:
+        yield session
+
+# Clase para generar el PDF
+class DocumentoPDF(FPDF):
+    def header(self):
+        self.set_font('Arial', 'B', 12)
+        self.cell(0, 10, 'Detalles del Documento', 0, 1, 'C')
+
+    def add_document_details(self, documento: schemas.DocumentoCreate):
+        self.set_font('Arial', '', 10)
+        for field, value in documento.dict().items():
+            self.cell(0, 10, f'{field}: {value}', 0, 1)
+
+# Endpoint para crear un nuevo documento y generar un PDF
+@app.post("/documentos/crear-con-pdf/", response_model=schemas.Documento)
+async def create_documento_con_pdf(
+    documento: schemas.DocumentoCreate,
+    db: AsyncSession = Depends(get_db)
+):
+    # Crear el documento en la base de datos
+    db_documento = await crud.create_documento(db=db, documento=documento)
+
+    # Generar el PDF con los detalles del documento
+    pdf = DocumentoPDF()
+    pdf.add_page()
+    pdf.add_document_details(documento)
+
+    # Definir la ruta del archivo PDF
+    pdf_filename = f"documento_{db_documento.id}.pdf"
+    pdf_filepath = os.path.join(PDF_DIRECTORY, pdf_filename)
+
+    # Guardar el PDF en la ruta especificada
+    pdf.output(pdf_filepath)
+
+    # Actualizar la ruta del archivo PDF en el documento
+    db_documento.archivo = pdf_filepath
+    await db.commit()
+    await db.refresh(db_documento)
+
+    return db_documento   

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Date, Float,ForeignKey
+from sqlalchemy import Column, Integer, String, Date, Float, ForeignKey
 from sqlalchemy.orm import relationship
 from .database import Base
 
@@ -13,10 +13,10 @@ class User(Base):
     role = Column(String)
     company_name = Column(String)
     cargo = Column(String)
-    dni = Column(String) 
-    zona_venta = Column(String) 
-    jefe_id = Column(Integer, ForeignKey('users.id'))  # Nueva columna para el jefe
-    jefe = relationship("User", remote_side=[id])
+    dni = Column(String)
+    zona_venta = Column(String)
+    jefe_id = Column(Integer, ForeignKey('users.id'))  # Relación de ForeignKey
+    jefe = relationship("User", remote_side=[id])  # Relación para referenciar al jefe
 
 class Documento(Base):
     __tablename__ = "documentos"
@@ -46,12 +46,26 @@ class Documento(Base):
     estado = Column(String)
     empresa = Column(String)
     archivo = Column(String)
-    tipo_cambio = Column(Float)  # Nuevo campo agregado
-    afecto = Column(Float)  # Nuevo campo agregado
-    inafecto = Column(Float)  # Nuevo campo agregado
-    rubro = Column(String)  # Nuevo campo agregado
-    cuenta_contable = Column(Integer)  # Nuevo campo agregado
+    tipo_cambio = Column(Float)
+    afecto = Column(Float)
+    inafecto = Column(Float)
+    rubro = Column(String)
+    cuenta_contable = Column(Integer)
 
+    # Nuevos campos añadidos
+    responsable = Column(String)
+    area = Column(String)
+    ceco = Column(String)
+    tipo_anticipo = Column(String)
+    motivo = Column(String)
+    fecha_viaje = Column(Date)
+    dias = Column(Integer)
+    presupuesto = Column(Float)
+    banco = Column(String)
+    numero_cuenta = Column(String)
+
+    destino = Column(String)
+  
 
 class Company(Base):
     __tablename__ = "companies"
