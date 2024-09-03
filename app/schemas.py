@@ -27,6 +27,7 @@ class UserLogin(BaseModel):
     password: str
 
 class DocumentoBase(BaseModel):
+    id: Optional[int] = None
     fecha_solicitud: Optional[date] = None
     dni: Optional[str] = None
     usuario: Optional[str] = None
