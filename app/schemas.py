@@ -51,6 +51,7 @@ class DocumentoBase(BaseModel):
     estado: Optional[str] = None
     empresa: Optional[str] = None
     archivo: Optional[str] = None
+    tipo_solicitud: Optional[str] = None
     tipo_cambio: Optional[float] = None
     afecto: Optional[float] = None
     inafecto: Optional[float] = None
@@ -69,6 +70,7 @@ class DocumentoBase(BaseModel):
     banco: Optional[str] = None
     numero_cuenta: Optional[str] = None
     destino: Optional[str] = None
+    origen: Optional[str] = None
 
 class DocumentoCreate(DocumentoBase):
     pass

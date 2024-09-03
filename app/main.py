@@ -429,7 +429,7 @@ async def read_documentos(
     estado: str = Query(None),
     username: str = Query(None),
     tipo_gasto: str = Query(None, description="Filtrar por tipo de gasto"),
-    tipo_documento: str = Query(None, description="Filtrar por tipo de documento"),
+    tipo_solicitud: str = Query(None, description="Filtrar por tipo de documento"),
     tipo_anticipo: str = Query(None, description="Filtrar por tipo de anticipo"),
     fecha_solicitud_from: date = Query(None, description="Fecha de solicitud desde"),
     fecha_solicitud_to: date = Query(None, description="Fecha de solicitud hasta"),
@@ -442,8 +442,8 @@ async def read_documentos(
         query = query.where(models.Documento.usuario == username)
     if tipo_gasto:
         query = query.where(models.Documento.tipo_gasto == tipo_gasto)
-    if tipo_documento:
-        query = query.where(models.Documento.tipo_documento == tipo_documento)
+    if tipo_solicitud:
+        query = query.where(models.Documento.tipo_solicitud == tipo_solicitud)
     if tipo_anticipo:
         query = query.where(models.Documento.tipo_anticipo == tipo_anticipo)
     if fecha_solicitud_from:
@@ -539,7 +539,7 @@ async def export_documentos_excel(
         "Cuenta Contable": doc.cuenta_contable,
         "Serie": doc.serie,
         "Correlativo": doc.correlativo,
-        "Rubro": doc.rubro,
+        #"Rubro": doc.rubro,
         "Moneda": doc.moneda,
         "Tipo de Cambio": doc.tc,
         "Afecto": doc.afecto,
@@ -667,11 +667,11 @@ async def export_documentos_pdf(
 
     pdf.add_page()
 
-    table_header = ["Item", "Fecha", "RUC", "TipoDoc", "Cuenta Contable", "Serie", "Correlativo", 
-                    "Rubro", "Moneda", "Tipo de Cambio", "Afecto", "IGV", "Inafecto", "Total"]
+    table_header = ["Item", "Fecha", "RUC", "Tip. Doc", "Cta Contable", "Serie", "Correlativo", 
+                    "Moneda", "Tip. Cambio", "Afecto", "IGV", "Inafecto", "Total"]
     table_data = [
         [i + 1, doc.fecha_emision, doc.ruc, doc.tipo_documento, doc.cuenta_contable, doc.serie, doc.correlativo, 
-         doc.rubro, doc.moneda, doc.tc, doc.afecto, doc.igv, doc.inafecto, doc.total]
+          doc.moneda, doc.tc, doc.afecto, doc.igv, doc.inafecto, doc.total]
         for i, doc in enumerate(documentos)
     ]
     pdf.add_table(table_header, table_data)
@@ -755,3 +755,226 @@ async def create_documento_con_pdf(
     await db.refresh(db_documento)
 
     return db_documento   
+
+
+
+
+# Definir la ruta de almacenamiento de los PDFs
+PDF_DIRECTORY = "C:\\boleta"
+if not os.path.exists(PDF_DIRECTORY):
+    os.makedirs(PDF_DIRECTORY)
+
+async def get_db():
+    async with SessionLocal() as session:
+        yield session
+
+# Clase para generar el PDF personalizado
+class DocumentoPDFCustom(FPDF):
+    def header(self):
+        self.set_font('Arial', 'B', 14)
+        self.cell(0, 10, 'Solicitud de Anticipo - Viajes', 0, 1, 'C')
+        self.ln(10)
+
+    def add_document_details(self, documento):
+        self.set_font('Arial', '', 10)
+
+        # Añadir información general
+        self.cell(40, 10, 'DNI:', 1)
+        self.cell(60, 10, documento.dni, 1)
+        self.cell(40, 10, 'Solicitado el:', 1)
+        self.cell(60, 10, str(documento.fecha_solicitud), 1)
+        self.ln(10)
+
+        self.cell(40, 10, 'Responsable:', 1)
+        self.cell(60, 10, documento.responsable, 1)
+        self.cell(40, 10, 'Gerencia:', 1)
+        self.cell(60, 10, documento.gerencia, 1)
+        self.ln(10)
+
+        self.cell(40, 10, 'Área:', 1)
+        self.cell(60, 10, documento.area, 1)
+        self.cell(40, 10, 'CeCo:', 1)
+        self.cell(60, 10, documento.ceco, 1)
+        self.ln(10)
+
+        self.cell(40, 10, 'Tipo de Anticipo:', 1)
+        self.cell(60, 10, documento.tipo_anticipo, 1)
+        self.cell(40, 10, 'Destino:', 1)
+        self.cell(60, 10, documento.destino, 1)
+        self.ln(10)
+
+        self.cell(40, 10, 'Fecha de Viaje:', 1)
+        self.cell(60, 10, str(documento.fecha_viaje), 1)
+        self.cell(40, 10, 'Días:', 1)
+        self.cell(60, 10, str(documento.dias), 1)
+        self.ln(10)
+
+        self.cell(40, 10, 'Presupuesto:', 1)
+        self.cell(60, 10, f"{documento.presupuesto:.2f}", 1)
+        self.cell(40, 10, 'Banco:', 1)
+        self.cell(60, 10, documento.banco, 1)
+        self.ln(10)
+
+        self.cell(40, 10, 'N° de Cuenta:', 1)
+        self.cell(60, 10, documento.numero_cuenta, 1)
+        self.cell(40, 10, 'Motivo:', 1)
+        self.cell(60, 10, documento.motivo, 1)
+        self.ln(10)
+
+        self.cell(40, 10, 'Total:', 1)
+        self.cell(60, 10, f"{documento.total:.2f}", 1)
+        self.ln(20)
+
+        # Añadir sección de firmas
+        self.set_font('Arial', 'B', 12)
+        self.cell(0, 10, 'Firmas', 0, 1, 'C')
+        self.set_font('Arial', '', 10)
+        self.cell(40, 10, 'Usuario Responsable:', 1)
+        self.cell(60, 10, '', 1)
+        self.cell(40, 10, 'Aprobado por:', 1)
+        self.cell(60, 10, '', 1)
+        self.ln(10)
+
+        self.cell(40, 10, 'Recibido por:', 1)
+        self.cell(60, 10, '', 1)
+        self.cell(40, 10, 'Ejecutado por:', 1)
+        self.cell(60, 10, '', 1)
+        self.ln(10)
+
+# Endpoint para crear un nuevo documento y generar un PDF
+@app.post("/documentos/crear-con-pdf-custom/", response_model=schemas.Documento)
+async def create_documento_con_pdf_custom(
+    documento: schemas.DocumentoCreate,
+    db: AsyncSession = Depends(get_db)
+):
+    # Crear el documento en la base de datos
+    db_documento = await crud.create_documento(db=db, documento=documento)
+
+    # Generar el PDF con los detalles del documento
+    pdf = DocumentoPDFCustom()
+    pdf.add_page()
+    pdf.add_document_details(documento)
+
+    # Definir la ruta del archivo PDF
+    pdf_filename = f"documento_{db_documento.id}.pdf"
+    pdf_filepath = os.path.join(PDF_DIRECTORY, pdf_filename)
+
+    # Guardar el PDF en la ruta especificada
+    pdf.output(pdf_filepath)
+
+    # Actualizar la ruta del archivo PDF en el documento
+    db_documento.archivo = pdf_filepath
+    await db.commit()
+    await db.refresh(db_documento)
+
+    return db_documento
+
+
+# Definir la ruta de almacenamiento de los PDFs
+PDF_DIRECTORY = "C:\\boleta"
+if not os.path.exists(PDF_DIRECTORY):
+    os.makedirs(PDF_DIRECTORY)
+
+async def get_db():
+    async with SessionLocal() as session:
+        yield session
+
+# Clase para generar el PDF personalizado basado en el diseño HTML proporcionado
+class DocumentoPDFLocal(FPDF):
+    def header(self):
+        self.set_font('Arial', 'B', 14)
+        self.cell(0, 10, 'Solicitud de Anticipo - Gasto Local', 0, 1, 'C')
+        self.ln(10)
+
+    def add_document_details(self, documento):
+        self.set_font('Arial', '', 10)
+        
+        # Cabecera del documento
+        self.cell(40, 10, 'ANTICIPO', 1)
+        self.cell(60, 10, '1', 1)
+        self.cell(0, 10, 'OPEX READY SAC', 0, 1, 'R')
+        self.ln(10)
+        
+        # Información del documento
+        self.cell(40, 10, 'DNI:', 1)
+        self.cell(60, 10, documento.dni, 1)
+        self.cell(40, 10, 'Solicitado el:', 1)
+        self.cell(60, 10, str(documento.fecha_solicitud), 1)
+        self.ln(10)
+
+        self.cell(40, 10, 'Responsable:', 1)
+        self.cell(60, 10, documento.responsable, 1)
+        self.cell(40, 10, 'Gerencia:', 1)
+        self.cell(60, 10, documento.gerencia, 1)
+        self.ln(10)
+
+        self.cell(40, 10, 'Área:', 1)
+        self.cell(60, 10, documento.area, 1)
+        self.cell(40, 10, 'CeCo:', 1)
+        self.cell(60, 10, documento.ceco, 1)
+        self.ln(10)
+
+        self.cell(40, 10, 'Breve motivo:', 1)
+        self.cell(60, 10, documento.motivo, 1)
+        self.ln(10)
+
+        self.cell(40, 10, 'Moneda:', 1)
+        self.cell(60, 10, documento.moneda, 1)
+        self.cell(40, 10, 'Presupuesto:', 1)
+        self.cell(60, 10, f"{documento.presupuesto:.2f}" if documento.presupuesto is not None else "0.00", 1)
+        self.ln(10)
+
+        self.cell(40, 10, 'Total:', 1)
+        self.cell(60, 10, f"{documento.total:.2f}" if documento.total is not None else "0.00", 1)
+        self.cell(40, 10, 'Banco y N° de Cuenta:', 1)
+        self.cell(60, 10, documento.numero_cuenta, 1)
+        self.ln(20)
+
+        # Motivo del anticipo
+        self.cell(40, 10, 'Motivo del Anticipo', 1, 1, 'L')
+        self.cell(0, 10, documento.motivo, 1)
+        self.ln(20)
+
+        # Firmas
+        self.set_font('Arial', 'B', 12)
+        self.cell(0, 10, 'Firmas electrónicas desde la Plataforma', 0, 1, 'C')
+        self.set_font('Arial', '', 10)
+        self.cell(40, 10, 'Usuario Responsable:', 1)
+        self.cell(60, 10, '', 1)
+        self.cell(40, 10, 'Aprobado por:', 1)
+        self.cell(60, 10, '', 1)
+        self.ln(10)
+
+        self.cell(40, 10, 'Recibido por:', 1)
+        self.cell(60, 10, '', 1)
+        self.cell(40, 10, 'Ejecutado por:', 1)
+        self.cell(60, 10, '', 1)
+        self.ln(10)
+
+# Endpoint para crear un nuevo documento y generar un PDF con el formato local
+@app.post("/documentos/crear-con-pdf-local/", response_model=schemas.Documento)
+async def create_documento_con_pdf_local(
+    documento: schemas.DocumentoCreate,
+    db: AsyncSession = Depends(get_db)
+):
+    # Crear el documento en la base de datos
+    db_documento = await crud.create_documento(db=db, documento=documento)
+
+    # Generar el PDF con los detalles del documento
+    pdf = DocumentoPDFLocal()
+    pdf.add_page()
+    pdf.add_document_details(documento)
+
+    # Definir la ruta del archivo PDF
+    pdf_filename = f"documento_local_{db_documento.id}.pdf"
+    pdf_filepath = os.path.join(PDF_DIRECTORY, pdf_filename)
+
+    # Guardar el PDF en la ruta especificada
+    pdf.output(pdf_filepath)
+
+    # Actualizar la ruta del archivo PDF en el documento
+    db_documento.archivo = pdf_filepath
+    await db.commit()
+    await db.refresh(db_documento)
+
+    return db_documento

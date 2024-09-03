@@ -46,6 +46,7 @@ class Documento(Base):
     estado = Column(String)
     empresa = Column(String)
     archivo = Column(String)
+    tipo_solicitud = Column(String)
     tipo_cambio = Column(Float)
     afecto = Column(Float)
     inafecto = Column(Float)
@@ -63,7 +64,7 @@ class Documento(Base):
     presupuesto = Column(Float)
     banco = Column(String)
     numero_cuenta = Column(String)
-
+    origen = Column(String)
     destino = Column(String)
   
 
