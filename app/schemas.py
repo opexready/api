@@ -3,18 +3,21 @@ from datetime import date
 from typing import Optional
 
 class UserBase(BaseModel):
-    username: str
-    email: str
-    full_name: str
-    role: str
-    company_name: str
+    username: Optional[str] = None
+    email: Optional[str] = None
+    full_name: Optional[str] = None
+    role: Optional[str] = None
+    company_name: Optional[str] = None
     cargo: Optional[str] = None
     dni: Optional[str] = None
     zona_venta: Optional[str] = None
+    area: Optional[str] = None
+    ceco: Optional[str] = None
+    gerencia:Optional[str] = None
     jefe_id: Optional[int] = None
 
 class UserCreate(UserBase):
-    password: str
+    password: Optional[str] = None
 
 class User(UserBase):
     id: int
@@ -29,6 +32,7 @@ class UserLogin(BaseModel):
 class DocumentoBase(BaseModel):
     id: Optional[int] = None
     fecha_solicitud: Optional[date] = None
+    fecha_rendicion: Optional[date] = None
     dni: Optional[str] = None
     usuario: Optional[str] = None
     gerencia: Optional[str] = None
@@ -72,6 +76,7 @@ class DocumentoBase(BaseModel):
     numero_cuenta: Optional[str] = None
     destino: Optional[str] = None
     origen: Optional[str] = None
+    numero_rendicion: Optional[str] = None
 
 class DocumentoCreate(DocumentoBase):
     pass

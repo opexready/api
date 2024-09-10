@@ -978,3 +978,357 @@ async def create_documento_con_pdf_local(
     await db.refresh(db_documento)
 
     return db_documento
+
+
+
+
+PDF_DIRECTORY = "C:\\boleta"
+if not os.path.exists(PDF_DIRECTORY):
+    os.makedirs(PDF_DIRECTORY)
+
+# Función para obtener la sesión de la base de datos
+# async def get_db():
+#     async with SessionLocal() as session:
+#         yield session
+
+# # Clase para generar el PDF personalizado
+# class DocumentoPDFLocal(FPDF):
+#     def header(self):
+#         self.set_font('Arial', 'B', 14)
+#         self.cell(0, 10, 'Solicitud de Anticipo - Gasto Local', 0, 1, 'C')
+#         self.ln(10)
+
+#     def add_document_details(self, documento):
+#         self.set_font('Arial', '', 10)
+        
+#         # Cabecera del documento
+#         self.cell(40, 10, 'DNI:', 1)
+#         self.cell(60, 10, str(documento.get('dni', 'N/A')), 1)  # Convertir a cadena y verificar existencia
+#         self.cell(40, 10, 'Solicitado el:', 1)
+#         self.cell(60, 10, documento.get('fecha_solicitud', 'N/A'), 1)  # Verificar existencia
+#         self.ln(10)
+
+#         # Detalles adicionales
+#         self.cell(40, 10, 'Responsable:', 1)
+#         self.cell(60, 10, documento.get('usuario', 'N/A'), 1)  # Verificar existencia
+#         self.cell(40, 10, 'Gerencia:', 1)
+#         self.cell(60, 10, documento.get('gerencia', 'N/A'), 1)  # Verificar existencia
+#         self.ln(10)
+
+#         # Más detalles
+#         self.cell(40, 10, 'Área:', 1)
+#         self.cell(60, 10, documento.get('rubro', 'N/A'), 1)  # Verificar existencia
+#         self.cell(40, 10, 'CeCo:', 1)
+#         self.cell(60, 10, str(documento.get('cuenta_contable', 'N/A')), 1)  # Convertir a cadena y verificar existencia
+#         self.ln(10)
+
+#         # Motivo
+#         self.cell(40, 10, 'Motivo del Anticipo:', 1)
+#         self.cell(0, 10, documento.get('motivo', 'N/A'), 1)  # Verificar existencia
+#         self.ln(20)
+
+# # Endpoint para generar el PDF y guardar la ruta en la base de datos
+# @app.post("/generar-pdf-movilidad/")
+# async def generar_pdf(data: dict, db: AsyncSession = Depends(get_db)):
+
+#     # Verificar si el directorio PDF existe
+#     if not os.path.exists(PDF_DIRECTORY):
+#         os.makedirs(PDF_DIRECTORY)
+
+#     # Crear el nombre del archivo PDF
+#     pdf_filename = os.path.join(PDF_DIRECTORY, f"reporte_movilidad_{data['correlativo']}.pdf")
+
+#     # Generar el PDF
+#     pdf = DocumentoPDFLocal()
+#     pdf.add_page()
+#     pdf.add_document_details(data)
+#     pdf.output(pdf_filename)
+
+#     # Crear el documento en la base de datos
+#     documento_data = schemas.DocumentoCreate(
+#         usuario=data['usuario'],
+#         dni=data['dni'],
+#         # ceco=data['cuenta_contable'],
+#         gerencia=data['gerencia'],
+#         # moneda=data['moneda'],
+#         # correlativo=data['correlativo'],
+#         archivo=pdf_filename,  # Guardar la ruta del archivo PDF
+#         estado="GENERADO"
+#     )
+
+#     # Guardar el documento en la base de datos
+#     db_documento = await crud.create_documento(db=db, documento=documento_data)
+
+#     # Actualizar el campo 'archivo' con la ruta del archivo PDF generado
+#     db_documento.archivo = pdf_filename
+#     await db.commit()
+#     await db.refresh(db_documento)
+
+#     # Retornar el archivo generado como respuesta
+#     return FileResponse(pdf_filename, media_type='application/pdf', filename=f"reporte_movilidad_{data['correlativo']}.pdf")
+
+
+
+# class DocumentoPDFLocal(FPDF):
+#     def header(self):
+#         self.set_font('Arial', 'B', 12)
+#         self.cell(0, 10, 'Reporte de Gastos movilidad / Local', 0, 1, 'L')
+#         self.set_font('Arial', '', 10)
+#         self.cell(0, 5, 'OPEX READY SAC', 0, 1, 'L')
+#         self.cell(0, 5, '20XXXXXXXXX', 0, 1, 'L')
+#         self.ln(5)
+
+#     def add_document_details(self, documento):
+#         self.set_font('Arial', '', 10)
+
+#         # Información principal
+#         self.cell(0, 5, 'Solicitante: ' + documento.get('usuario', 'N/A'), 0, 1, 'L')
+#         self.cell(0, 5, 'DNI: ' + str(documento.get('dni', 'N/A')), 0, 1, 'L')
+#         self.cell(0, 5, 'CeCo: ' + documento.get('ceco', 'N/A'), 0, 1, 'R')
+#         self.cell(0, 5, 'Gerencia: ' + documento.get('gerencia', 'N/A'), 0, 1, 'R')
+#         self.cell(0, 5, 'Moneda: ' + documento.get('moneda', 'N/A'), 0, 1, 'R')
+#         self.cell(0, 5, 'Correlativo: ' + str(documento.get('correlativo', 'N/A')), 0, 1, 'R')
+#         self.ln(10)
+
+#         # Título de la tabla
+#         self.set_font('Arial', 'B', 10)
+#         self.cell(0, 5, 'DETALLE DE GASTOS DE MOVILIDAD (en el lugar habitual del trabajo)', 0, 1, 'C')
+#         self.ln(5)
+
+#         # Cabecera de la tabla
+#         self.set_font('Arial', 'B', 8)
+#         self.cell(10, 6, 'N°', 1, 0, 'C')
+#         self.cell(30, 6, 'FECHA', 1, 0, 'C')
+#         self.cell(30, 6, 'ORIGEN', 1, 0, 'C')
+#         self.cell(30, 6, 'DESTINO', 1, 0, 'C')
+#         self.cell(50, 6, 'MOTIVO', 1, 0, 'C')
+#         self.cell(30, 6, 'GASTO DEDUCIBLE', 1, 0, 'C')
+#         self.cell(30, 6, 'NO DEDUCIBLE', 1, 0, 'C')
+#         self.cell(30, 6, 'TOTAL', 1, 1, 'C')
+
+#         # Detalle de gastos
+#         self.set_font('Arial', '', 8)
+#         for idx, item in enumerate(documento.get('gastos', []), start=1):
+#             self.cell(10, 6, str(idx), 1, 0, 'C')
+#             self.cell(30, 6, item.get('fecha', 'N/A'), 1, 0, 'C')
+#             self.cell(30, 6, item.get('origen', 'N/A'), 1, 0, 'C')
+#             self.cell(30, 6, item.get('destino', 'N/A'), 1, 0, 'C')
+#             self.cell(50, 6, item.get('motivo', 'N/A'), 1, 0, 'C')
+#             self.cell(30, 6, 'S/ ' + str(item.get('gasto_deducible', '0.00')), 1, 0, 'C')
+#             self.cell(30, 6, 'S/ ' + str(item.get('gasto_no_deducible', '0.00')), 1, 0, 'C')
+#             self.cell(30, 6, 'S/ ' + str(item.get('total', '0.00')), 1, 1, 'C')
+
+#         # Resumen de total
+#         self.set_font('Arial', 'B', 10)
+#         self.cell(210, 6, 'Total', 1, 0, 'R')
+#         self.cell(30, 6, 'S/ ' + str(documento.get('total', '0.00')), 1, 1, 'C')
+
+#         # Pie de página
+#         self.ln(10)
+#         self.cell(0, 5, 'Son: ' + documento.get('total_letras', 'N/A'), 0, 1, 'L')
+#         self.ln(5)
+#         self.cell(0, 5, 'Firmas electrónicas desde Plataforma', 0, 1, 'L')
+#         self.ln(10)
+
+#         # Firmas
+#         self.cell(90, 6, 'Solicitante', 1, 0, 'C')
+#         self.cell(90, 6, 'Validado y Registrado', 1, 1, 'C')
+#         self.cell(90, 6, documento.get('usuario', 'N/A'), 1, 0, 'C')
+#         self.cell(90, 6, 'Gerencia de Adm. Y Finanzas', 1, 1, 'C')
+
+# # Endpoint para generar el PDF y guardar la ruta en la base de datos
+# @app.post("/generar-pdf-movilidad/")
+# async def generar_pdf(data: dict, db: AsyncSession = Depends(get_db)):
+
+#     # Verificar si el directorio PDF existe
+#     if not os.path.exists(PDF_DIRECTORY):
+#         os.makedirs(PDF_DIRECTORY)
+
+#     # Crear el nombre del archivo PDF
+#     pdf_filename = os.path.join(PDF_DIRECTORY, f"reporte_movilidad_{data['correlativo']}.pdf")
+
+#     # Generar el PDF
+#     pdf = DocumentoPDFLocal()
+#     pdf.add_page()
+#     pdf.add_document_details(data)
+#     pdf.output(pdf_filename)
+
+#     # Crear el documento en la base de datos
+#     documento_data = schemas.DocumentoCreate(
+#         usuario=data['usuario'],
+#         dni=data['dni'],
+#         gerencia=data['gerencia'],
+#         archivo=pdf_filename,  # Guardar la ruta del archivo PDF
+#         estado="GENERADO"
+#     )
+
+#     # Guardar el documento en la base de datos
+#     db_documento = await crud.create_documento(db=db, documento=documento_data)
+
+#     # Actualizar el campo 'archivo' con la ruta del archivo PDF generado
+#     db_documento.archivo = pdf_filename
+#     await db.commit()
+#     await db.refresh(db_documento)
+
+#     # Retornar el archivo generado como respuesta
+#     return FileResponse(pdf_filename, media_type='application/pdf', filename=f"reporte_movilidad_{data['correlativo']}.pdf")
+
+
+
+
+class DocumentoPDFLocal(FPDF):
+
+    def __init__(self):
+        super().__init__('L')
+
+    def header(self):
+        self.set_font('Arial', 'B', 12)
+        self.cell(0, 10, 'Reporte de Gastos movilidad / Local', 0, 1, 'L')
+        self.set_font('Arial', '', 10)
+        self.cell(0, 5, 'OPEX READY SAC', 0, 1, 'L')
+        self.cell(0, 5, '20XXXXXXXXX', 0, 1, 'L')
+        self.ln(5)
+
+    def add_document_details(self, documento):
+        self.set_font('Arial', '', 10)
+
+        # Información principal
+        self.cell(0, 5, 'Solicitante: ' + documento.get('usuario', 'N/A'), 0, 1, 'L')
+        self.cell(0, 5, 'DNI: ' + str(documento.get('dni', 'N/A')), 0, 1, 'L')
+        self.cell(0, 5, 'CeCo: ' + documento.get('ceco', 'N/A'), 0, 1, 'R')
+        self.cell(0, 5, 'Gerencia: ' + documento.get('gerencia', 'N/A'), 0, 1, 'R')
+        self.cell(0, 5, 'Moneda: ' + documento.get('moneda', 'N/A'), 0, 1, 'R')
+        # self.cell(0, 5, 'Correlativo: ' + str(documento.get('correlativo', 'N/A')), 0, 1, 'R')
+        self.ln(10)
+
+        # Título de la tabla
+        self.set_font('Arial', 'B', 10)
+        self.cell(0, 5, 'DETALLE DE GASTOS DE MOVILIDAD (en el lugar habitual del trabajo)', 0, 1, 'C')
+        self.ln(5)
+
+        # Cabecera de la tabla
+        self.set_font('Arial', 'B', 8)
+        self.cell(10, 6, 'N°', 1, 0, 'C')
+        self.cell(30, 6, 'FECHA', 1, 0, 'C')
+        self.cell(30, 6, 'ORIGEN', 1, 0, 'C')
+        self.cell(30, 6, 'DESTINO', 1, 0, 'C')
+        self.cell(50, 6, 'MOTIVO', 1, 0, 'C')
+        self.cell(30, 6, 'GASTO DEDUCIBLE', 1, 0, 'C')
+        self.cell(30, 6, 'NO DEDUCIBLE', 1, 0, 'C')
+        self.cell(30, 6, 'TOTAL', 1, 1, 'C')
+
+        # Detalle de gastos: Aquí se añaden los datos del request
+        self.set_font('Arial', '', 8)
+        self.cell(10, 6, '01', 1, 0, 'C')  # Número de la fila
+        self.cell(30, 6, documento.get('fecha_solicitud', 'N/A'), 1, 0, 'C')  # Fecha
+        self.cell(30, 6, documento.get('origen', 'N/A'), 1, 0, 'C')  # Origen
+        self.cell(30, 6, documento.get('destino', 'N/A'), 1, 0, 'C')  # Destino
+        self.cell(50, 6, documento.get('motivo', 'N/A'), 1, 0, 'C')  # Motivo
+        self.cell(30, 6, 'S/ ' + str(documento.get('gasto_deducible', '0.00')), 1, 0, 'C')  # Gasto deducible
+        self.cell(30, 6, 'S/ ' + str(documento.get('gasto_no_deducible', '0.00')), 1, 0, 'C')  # Gasto no deducible (en este caso no hay datos)
+        self.cell(30, 6, 'S/ ' + str(documento.get('total', '0.00')), 1, 1, 'C')  # Total
+
+        # Resumen de total
+        self.set_font('Arial', 'B', 10)
+        self.cell(210, 6, 'Total', 1, 0, 'R')
+        self.cell(30, 6, 'S/ ' + str(documento.get('total', '0.00')), 1, 1, 'C')
+
+        # Pie de página
+        self.ln(10)
+        self.cell(0, 5, 'Son: ' + documento.get('total_letras', 'N/A'), 0, 1, 'L')
+        self.ln(5)
+        self.cell(0, 5, 'Firmas electrónicas desde Plataforma', 0, 1, 'L')
+        self.ln(10)
+
+        # Firmas
+        self.cell(90, 6, 'Solicitante', 1, 0, 'C')
+        self.cell(90, 6, 'Validado y Registrado', 1, 1, 'C')
+        self.cell(90, 6, documento.get('usuario', 'N/A'), 1, 0, 'C')
+        self.cell(90, 6, 'Gerencia de Adm. Y Finanzas', 1, 1, 'C')
+
+# Endpoint para generar el PDF y guardar la ruta en la base de datos
+# @app.post("/generar-pdf-movilidad/")
+# async def generar_pdf(data: dict, db: AsyncSession = Depends(get_db)):
+
+#     # Verificar si el directorio PDF existe
+#     if not os.path.exists(PDF_DIRECTORY):
+#         os.makedirs(PDF_DIRECTORY)
+
+#     # Crear el nombre del archivo PDF
+#     pdf_filename = os.path.join(PDF_DIRECTORY, f"reporte_movilidad_{data['1']}.pdf")
+
+#     # Generar el PDF
+#     pdf = DocumentoPDFLocal()
+#     pdf.add_page()
+#     pdf.add_document_details(data)
+#     pdf.output(pdf_filename)
+
+#     # Crear el documento en la base de datos
+#     documento_data = schemas.DocumentoCreate(
+#         # usuario=data['usuario'],
+#         # dni=data['dni'],
+#         # gerencia=data['gerencia'],
+#         archivo=pdf_filename,  # Guardar la ruta del archivo PDF
+#         estado="GENERADO"
+#     )
+
+#     # Guardar el documento en la base de datos
+#     db_documento = await crud.create_documento(db=db, documento=documento_data)
+
+#     # Actualizar el campo 'archivo' con la ruta del archivo PDF generado
+#     db_documento.archivo = pdf_filename
+#     await db.commit()
+#     await db.refresh(db_documento)
+
+#     # Retornar el archivo generado como respuesta
+#     return FileResponse(pdf_filename, media_type='application/pdf', filename=f"reporte_movilidad_{data['1']}.pdf")
+
+@app.post("/generar-pdf-movilidad/")
+async def generar_pdf(data: dict, db: AsyncSession = Depends(get_db)):
+
+    # # Validar que 'correlativo' esté presente en los datos
+    # if 'correlativo' not in data:
+    #     raise HTTPException(status_code=400, detail="El campo 'correlativo' es obligatorio")
+
+    # Verificar si el directorio PDF existe
+    if not os.path.exists(PDF_DIRECTORY):
+        os.makedirs(PDF_DIRECTORY)
+    correlativo = "eee"
+    # Crear el nombre del archivo PDF usando el campo 'correlativo'
+    pdf_filename = os.path.join(PDF_DIRECTORY, f"reporte_movilidad_{data['correlativo']}.pdf")
+
+    # Generar el PDF
+    pdf = DocumentoPDFLocal()
+    pdf.add_page()
+    pdf.add_document_details(data)
+    pdf.output(pdf_filename)
+
+    documento_data = schemas.DocumentoCreate(
+        fecha_solicitud = data['fecha_solicitud'],
+        fecha_emision = data['fecha_emision'],
+        usuario=data['usuario'],
+        dni=data['dni'],
+        gerencia=data['gerencia'],
+        correlativo=data['correlativo'],  
+        archivo=pdf_filename,  
+        estado="PENDIENTE2",
+        empresa = "innova",
+        moneda = "PEN",
+        tipo_documento = "Boleta de Venta",
+      
+    )
+
+    # Guardar el documento en la base de datos
+    db_documento = await crud.create_documento(db=db, documento=documento_data)
+
+    # Actualizar el campo 'archivo' con la ruta del archivo PDF generado
+    db_documento.archivo = pdf_filename
+    await db.commit()
+    await db.refresh(db_documento)
+
+    # Retornar el archivo generado como respuesta
+    return FileResponse(pdf_filename, media_type='application/pdf', filename=f"reporte_movilidad_{data['correlativo']}.pdf")
+
+
+
+

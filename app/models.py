@@ -15,6 +15,9 @@ class User(Base):
     cargo = Column(String)
     dni = Column(String)
     zona_venta = Column(String)
+    area = Column(String)
+    ceco = Column(String)
+    gerencia = Column(String)
     jefe_id = Column(Integer, ForeignKey('users.id'))  # Relación de ForeignKey
     jefe = relationship("User", remote_side=[id])  # Relación para referenciar al jefe
 
@@ -23,6 +26,7 @@ class Documento(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     fecha_solicitud = Column(Date)
+    fecha_rendicion = Column(Date)
     dni = Column(String)
     usuario = Column(String)
     gerencia = Column(String)
@@ -66,6 +70,7 @@ class Documento(Base):
     numero_cuenta = Column(String)
     origen = Column(String)
     destino = Column(String)
+    numero_rendicion = Column(String)
   
 
 class Company(Base):
