@@ -15,6 +15,8 @@ class UserBase(BaseModel):
     ceco: Optional[str] = None
     gerencia:Optional[str] = None
     jefe_id: Optional[int] = None
+    cuenta_bancaria:Optional[str] = None
+    banco :Optional[str] = None
 
 class UserCreate(UserBase):
     password: Optional[str] = None
@@ -89,6 +91,7 @@ class Documento(DocumentoBase):
 
 class DocumentoUpdate(BaseModel):
     estado: Optional[str] = None
+    fecha_rendicion: Optional[date] = None
 
 class CompanyBase(BaseModel):
     name: str

@@ -20,6 +20,8 @@ class User(Base):
     gerencia = Column(String)
     jefe_id = Column(Integer, ForeignKey('users.id'))  # Relación de ForeignKey
     jefe = relationship("User", remote_side=[id])  # Relación para referenciar al jefe
+    cuenta_bancaria = Column(String) 
+    banco = Column(String) 
 
 class Documento(Base):
     __tablename__ = "documentos"
