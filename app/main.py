@@ -1048,17 +1048,17 @@ class PDF(FPDF):
         self.cell(0, 10, f'Zona: {self.zona}', 0, 1, 'L')
 
         # Área responsable y otros datos
-        self.set_xy(-95, 30)
-        self.cell(0, 10, f'Área responsable: {
-                  self.area_responsable}', 0, 1, 'R')
-        self.set_xy(-95, 40)
-        self.cell(0, 10, f'Fecha de solicitud: {
-                  self.fecha_solicitud}', 0, 1, 'R')
-        self.set_xy(-95, 50)
-        self.cell(0, 10, f'Fecha de rendición: {
-                  self.fecha_rendicion}', 0, 1, 'R')
-        self.set_xy(-95, 60)
-        self.cell(0, 10, f'Tipo de gasto: {self.tipo_gasto}', 0, 1, 'R')
+        # self.set_xy(-95, 30)
+        # self.cell(0, 10, f'Área responsable: {
+        #           self.area_responsable}', 0, 1, 'R')
+        # self.set_xy(-95, 40)
+        # self.cell(0, 10, f'Fecha de solicitud: {
+        #           self.fecha_solicitud}', 0, 1, 'R')
+        # self.set_xy(-95, 50)
+        # self.cell(0, 10, f'Fecha de rendición: {
+        #           self.fecha_rendicion}', 0, 1, 'R')
+        # self.set_xy(-95, 60)
+        # self.cell(0, 10, f'Tipo de gasto: {self.tipo_gasto}', 0, 1, 'R')
 
         self.ln(20)
 
