@@ -2142,3 +2142,11 @@ async def get_distinct_numero_rendicion(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al obtener los números de rendición: {str(e)}")
 
+
+
+# Esto va al final del archivo
+if __name__ == "__main__":
+    import os
+    import uvicorn
+    port = int(os.getenv("PORT", 8000))
+    uvicorn.run("app.main:app", host="0.0.0.0", port=port, reload=True)
