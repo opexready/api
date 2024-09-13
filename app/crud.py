@@ -9,19 +9,49 @@ async def get_user_by_email(db: AsyncSession, email: str):
     result = await db.execute(select(models.User).filter(models.User.email == email))
     return result.scalars().first()
 
+# async def create_user(db: AsyncSession, user: schemas.UserCreate):
+#     hashed_password = auth.get_password_hash(user.password)
+#     db_user = models.User(
+#         email=user.email,
+#         username=user.username,
+#         full_name=user.full_name,
+#         hashed_password=hashed_password,
+#         role=user.role,
+#         company_name=user.company_name,
+#         cargo=user.cargo,  # Agregando campo cargo
+#         dni=user.dni,
+#         zona_venta=user.zona_venta  # Agregando campo dni
+        
+#     )
+#     db.add(db_user)
+#     await db.commit()
+#     await db.refresh(db_user)
+#     return db_user
+
 async def create_user(db: AsyncSession, user: schemas.UserCreate):
+    # Hash de la contraseña
     hashed_password = auth.get_password_hash(user.password)
+    
+    # Crear el objeto del nuevo usuario con todos los campos
     db_user = models.User(
-        email=user.email,
-        username=user.username,
-        full_name=user.full_name,
-        hashed_password=hashed_password,
-        role=user.role,
-        company_name=user.company_name,
-        cargo=user.cargo,  # Agregando campo cargo
-        dni=user.dni,
-        zona_venta=user.zona_venta  # Agregando campo dni
+        email=user.email,  # Email (único)
+        username=user.username,  # Nombre de usuario (único)
+        full_name=user.full_name,  # Nombre completo
+        hashed_password=hashed_password,  # Contraseña hasheada
+        role=user.role,  # Rol del usuario
+        company_name=user.company_name,  # Nombre de la empresa
+        cargo=user.cargo,  # Cargo del usuario
+        dni=user.dni,  # DNI del usuario
+        zona_venta=user.zona_venta,  # Zona de ventas
+        area=user.area,  # Área del usuario
+        ceco=user.ceco,  # Centro de costos (CeCo)
+        gerencia=user.gerencia,  # Gerencia del usuario
+        jefe_id=user.jefe_id,  # Relación con el jefe (ForeignKey)
+        cuenta_bancaria=user.cuenta_bancaria,  # Cuenta bancaria
+        banco=user.banco  # Banco asociado a la cuenta bancaria
     )
+    
+    # Guardar el nuevo usuario en la base de datos
     db.add(db_user)
     await db.commit()
     await db.refresh(db_user)
