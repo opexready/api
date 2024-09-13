@@ -169,7 +169,7 @@ async def obtener_tipo_cambio(fecha: str):
 #         raise HTTPException(
 #             status_code=500, detail=f"Failed to extract text: {str(e)}")
 
-# RegEx para encontrar tipos de moneda
+# # RegEx para encontrar tipos de moneda
 # currency_pattern = re.compile(
 #     r'(\bS\./|\bS/|\bS\s\./|\bS\s/|\$|\$/|\$\s/|\$\s)'
 # )
@@ -1337,35 +1337,35 @@ async def export_documentos_pdf(
 
 # guardar archivo
 # Asegúrate de que la ruta de destino exista
-# UPLOAD_DIRECTORY = "C:\\archivos"
-# if not os.path.exists(UPLOAD_DIRECTORY):
-#     os.makedirs(UPLOAD_DIRECTORY)
+UPLOAD_DIRECTORY = "C:\\archivos"
+if not os.path.exists(UPLOAD_DIRECTORY):
+    os.makedirs(UPLOAD_DIRECTORY)
 
 
-# @app.post("/upload-file/")
-# async def upload_file(file: UploadFile = File(...)):
-#     try:
-#         # Define la ruta completa del archivo
-#         file_location = os.path.join(UPLOAD_DIRECTORY, file.filename)
+@app.post("/upload-file/")
+async def upload_file(file: UploadFile = File(...)):
+    try:
+        # Define la ruta completa del archivo
+        file_location = os.path.join(UPLOAD_DIRECTORY, file.filename)
 
-#         # Guarda el archivo en la ruta especificada
-#         with open(file_location, "wb") as buffer:
-#             shutil.copyfileobj(file.file, buffer)
+        # Guarda el archivo en la ruta especificada
+        with open(file_location, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
 
-#         # Normaliza la ruta para Windows
-#         normalized_path = file_location.replace("\\", "/")
+        # Normaliza la ruta para Windows
+        normalized_path = file_location.replace("\\", "/")
 
-#         # Devuelve la ruta del archivo guardado
-#         return {"file_location": normalized_path}
+        # Devuelve la ruta del archivo guardado
+        return {"file_location": normalized_path}
 
-#     except Exception as e:
-#         raise HTTPException(
-#             status_code=500, detail=f"Error al guardar el archivo: {str(e)}")
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Error al guardar el archivo: {str(e)}")
 
-#  # Definir la ruta de almacenamiento de los PDFs
-# PDF_DIRECTORY = "C:\\boleta"
-# if not os.path.exists(PDF_DIRECTORY):
-#     os.makedirs(PDF_DIRECTORY)
+ # Definir la ruta de almacenamiento de los PDFs
+PDF_DIRECTORY = "C:\\boleta"
+if not os.path.exists(PDF_DIRECTORY):
+    os.makedirs(PDF_DIRECTORY)
 
 
 async def get_db():
@@ -1417,9 +1417,9 @@ async def create_documento_con_pdf(
 
 
 # Definir la ruta de almacenamiento de los PDFs
-# PDF_DIRECTORY = "C:\\boleta"
-# if not os.path.exists(PDF_DIRECTORY):
-#     os.makedirs(PDF_DIRECTORY)
+PDF_DIRECTORY = "C:\\boleta"
+if not os.path.exists(PDF_DIRECTORY):
+    os.makedirs(PDF_DIRECTORY)
 
 
 async def get_db():
@@ -1546,9 +1546,9 @@ async def create_documento_con_pdf_custom(
 
 
 # Definir la ruta de almacenamiento de los PDFs
-# PDF_DIRECTORY = "C:\\boleta"
-# if not os.path.exists(PDF_DIRECTORY):
-#     os.makedirs(PDF_DIRECTORY)
+PDF_DIRECTORY = "C:\\boleta"
+if not os.path.exists(PDF_DIRECTORY):
+    os.makedirs(PDF_DIRECTORY)
 
 
 async def get_db():
