@@ -14,7 +14,6 @@ import requests
 import cv2
 import numpy as np
 from fastapi.responses import JSONResponse, StreamingResponse
-from pyzbar.pyzbar import decode
 from PIL import Image, ImageEnhance, ImageOps
 import re
 import io
@@ -30,7 +29,6 @@ import pytesseract
 import io 
 from io import BytesIO
 from PIL import Image, ImageOps
-from pyzbar.pyzbar import decode
 from datetime import datetime
 import re
 import cv2
@@ -44,7 +42,6 @@ import cv2
 import numpy as np
 from fastapi import UploadFile, HTTPException, File
 from fastapi.responses import JSONResponse
-from pyzbar.pyzbar import decode
 import io
 from PIL import Image
 from pyzxing import BarCodeReader
