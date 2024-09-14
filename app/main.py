@@ -1,56 +1,35 @@
-from fastapi import FastAPI, Depends, HTTPException, UploadFile, File, Query,HTTPException
+from fastapi import FastAPI, Depends, HTTPException, UploadFile, File, Query, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from typing import List
-from datetime import date, timedelta
+from typing import List, Optional
+from datetime import date, timedelta, datetime
 from sqlalchemy import distinct
 import shutil
 import os
 import random
 import string
-from fastapi import APIRouter, HTTPException
 import requests
 import cv2
 import numpy as np
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse, FileResponse, RedirectResponse
 from PIL import Image, ImageEnhance, ImageOps
 import re
 import io
-from fastapi import UploadFile, HTTPException, File
+from io import BytesIO
 import logging
 import pandas as pd
 from fpdf import FPDF
-from fastapi.responses import FileResponse, JSONResponse
 from mimetypes import guess_type
+import pytesseract
+import httpx
+import uuid
+from pyzbar.pyzbar import decode # type: ignore
+from pyzxing import BarCodeReader # type: ignore
 from . import crud, models, schemas, auth
 from .database import engine, SessionLocal
-import pytesseract
-import io 
-from io import BytesIO
-from PIL import Image, ImageOps
-from datetime import datetime
-import re
-import cv2
-import numpy as np
-import httpx
-import uuid 
-from app.firebase_service import upload_file_to_firebase, download_file_from_firebase,upload_file_to_firebase_pdf
-from fastapi import HTTPException
-from fastapi.responses import RedirectResponse
-import cv2
-import numpy as np
-from fastapi import UploadFile, HTTPException, File
-from fastapi.responses import JSONResponse
-import io
-from PIL import Image
-from pyzxing import BarCodeReader
-from fastapi import UploadFile, HTTPException, File
-from fastapi.responses import JSONResponse
-import io
-from PIL import Image
-from typing import Optional
-from datetime import datetime
+from app.firebase_service import upload_file_to_firebase, download_file_from_firebase, upload_file_to_firebase_pdf
+
 
 app = FastAPI()
 
@@ -126,316 +105,24 @@ async def obtener_tipo_cambio(fecha: str):
                                 detail="Error al consultar el tipo de cambio")
 
 
-# Aquí añadimos el nuevo endpoint para OCR
-# @app.post("/extract-text/")
-# async def extract_text(file: UploadFile = File(...)):
-#     if file.content_type not in ['image/jpeg', 'image/png']:
-#         raise HTTPException(status_code=400, detail="Invalid file format")
-
-#     try:
-#         image_data = await file.read()
-#         image = Image.open(io.BytesIO(image_data))
-#         text = pytesseract.image_to_string(image)
-
-#         return JSONResponse(content={"extracted_text": text})
-#     except Exception as e:
-#         raise HTTPException(
-#             status_code=500, detail=f"Failed to extract text: {str(e)}")
-
-
-# @app.post("/extract-text6/")
-# async def extract_text6(file: UploadFile = File(...)):
-#     if file.content_type not in ['image/jpeg', 'image/png']:
-#         raise HTTPException(status_code=400, detail="Invalid file format")
-
-#     try:
-#         image_data = await file.read()
-#         np_arr = np.frombuffer(image_data, np.uint8)
-#         image = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
-
-#         if image is None:
-#             raise ValueError("Error al leer la imagen")
-
-#         # Convertir la imagen a escala de grises (opcional pero recomendado para OCR)
-#         gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-
-#         text = pytesseract.image_to_string(gray_image)
-
-#         return JSONResponse(content={"extracted_text": text})
-#     except Exception as e:
-#         raise HTTPException(
-#             status_code=500, detail=f"Failed to extract text: {str(e)}")
-
-# # RegEx para encontrar tipos de moneda
-# currency_pattern = re.compile(
-#     r'(\bS\./|\bS/|\bS\s\./|\bS\s/|\$|\$/|\$\s/|\$\s)'
-# )
-
-
-# @app.post("/extract-dates-and-currencies/")
-# async def extract_dates_and_currencies(file: UploadFile = File(...)):
-#     if file.content_type not in ['image/jpeg', 'image/png']:
-#         raise HTTPException(status_code=400, detail="Invalid file format")
-
-#     try:
-#         image = Image.open(file.file)
-#         text = pytesseract.image_to_string(image)
-
-#         # Buscar la primera fecha
-#         date_match = date_pattern.search(text)
-#         date = date_match.group(0) if date_match else "No encontrado"
-
-#         # Buscar la primera moneda
-#         currency_match = currency_pattern.search(text)
-#         if currency_match:
-#             currency = currency_match.group(0)
-#             if 'S' in currency:
-#                 currency = "PEN"
-#             elif '$' in currency:
-#                 currency = "DOL"
-#         else:
-#             currency = "No encontrado"
-
-#         return JSONResponse(content={"date": date, "currency": currency})
-#     except Exception as e:
-#         return JSONResponse(content={"error": str(e)}, status_code=500)
-
-# # RegEx para encontrar fechas (formato dd/mm/yyyy, dd-mm-yyyy, yyyy/mm/dd, yyyy-mm-dd)
-# date_pattern = re.compile(
-#     r'(\b\d{1,2}[-/]\d{1,2}[-/]\d{2,4}\b|\b\d{2,4}[-/]\d{1,2}[-/]\d{1,2}\b)'
-# )
-
-
-# @app.post("/extract-dates/")
-# async def extract_dates(file: UploadFile = File(...)):
-#     try:
-#         image = Image.open(file.file)
-#         text = pytesseract.image_to_string(image)
-#         dates = date_pattern.findall(text)
-#         return JSONResponse(content={"dates": dates})
-#     except Exception as e:
-#         return JSONResponse(content={"error": str(e)}, status_code=500)
-
-# # Decodificación de QR
-
-
-# @app.post("/decode-qr-other/")
-# async def decode_qr_other(file: UploadFile = File(...)):
-#     if not file.content_type in ['image/jpeg', 'image/png']:
-#         raise HTTPException(
-#             status_code=400, detail="Invalid file format. Please upload a JPEG or PNG image.")
-
-#     try:
-#         contents = await file.read()
-#         nparr = np.frombuffer(contents, np.uint8)
-#         img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-
-#         if img is None:
-#             raise HTTPException(
-#                 status_code=400, detail="Failed to decode image")
-
-#         gray_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-#         thresh_img = cv2.adaptiveThreshold(
-#             gray_img, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
-#         decoded_objects = decode(thresh_img)
-
-#         if not decoded_objects:
-#             decoded_objects = decode(gray_img)
-
-#         if not decoded_objects:
-#             return JSONResponse(content={"detail": "No QR code found in the image"}, status_code=404)
-
-#         qr_data = [obj.data.decode("utf-8") for obj in decoded_objects]
-#         return JSONResponse(content={"qr_data": qr_data})
-
-#     except Exception as e:
-#         raise HTTPException(
-#             status_code=500, detail=f"Failed to decode QR code: {str(e)}")
-
-
-# def preprocess_for_ocr2(image):
-#     image = image.convert('L')
-#     image = ImageOps.autocontrast(image)
-#     base_width = 600
-#     w_percent = (base_width / float(image.size[0]))
-#     h_size = int((float(image.size[1]) * float(w_percent)))
-#     image = image.resize((base_width, h_size), Image.Resampling.LANCZOS)
-#     return image
-
-
-# @app.post("/extract-finance-details/")
-# async def extract_finance_details(file: UploadFile = File(...)):
-#     if file.content_type not in ['image/jpeg', 'image/png']:
-#         raise HTTPException(status_code=400, detail="Invalid file format")
-
-#     try:
-#         image_data = await file.read()
-#         image = Image.open(io.BytesIO(image_data))
-#         processed_image = preprocess_for_ocr2(image)
-#         text = pytesseract.image_to_string(processed_image, config='--psm 4')
-
-#         ruc_match = re.search(r'RUC\s*:\s*([\d\s]+)', text)
-#         ruc = ''.join(ruc_match.group(1).split()
-#                       ) if ruc_match else "No encontrado"
-
-#         fecha_emision_match = re.search(
-#             r'F\.Emision:(\d{2}/\d{2}/\d{2})', text)
-#         fecha_emision = fecha_emision_match.group(
-#             1) if fecha_emision_match else "No encontrado"
-
-#         numero_boleta_match = re.search(
-#             r'BOLETA DE[\w\s]*\nNumeros”\s*([\w\s\-]+)', text)
-#         numero_boleta = numero_boleta_match.group(
-#             1).strip() if numero_boleta_match else "No encontrado"
-
-#         importe_total_match = re.search(
-#             r'IMPORTE TOTAL S/\s*(\d+\.\d{2})', text)
-#         total = importe_total_match.group(
-#             1) if importe_total_match else "No encontrado"
-#         moneda = "PEN" if importe_total_match else "No encontrado"
-
-#         return JSONResponse(content={
-#             "ruc": ruc,
-#             "fechaEmision": fecha_emision,
-#             "numeroBoleta": numero_boleta,
-#             "total": total,
-#             "moneda": moneda
-#         })
-#     except Exception as e:
-#         raise HTTPException(
-#             status_code=500, detail=f"Failed to extract financial details: {str(e)}")
-
-
-# @app.post("/extract-finance-data/")
-# async def extract_finance_data(file: UploadFile = File(...)):
-#     if file.content_type not in ['image/jpeg', 'image/png']:
-#         raise HTTPException(status_code=400, detail="Invalid file format")
-
-#     try:
-#         image_data = await file.read()
-#         image = Image.open(io.BytesIO(image_data))
-#         processed_image = preprocess_for_ocr2(image)
-#         text = pytesseract.image_to_string(processed_image, config='--psm 4')
-
-#         ruc = re.search(r'RUC:\s*(\d{11})', text)
-#         fecha_emision = re.search(
-#             r'Fecha Emisión:\s*(\d{2}/\d{2}/\d{4})', text)
-#         moneda_match = re.search(r'\b(S/|PEN|\$|DOL)', text)
-
-#         if moneda_match:
-#             if 'S/' in moneda_match.group() or 'PEN' in moneda_match.group():
-#                 moneda = 'PEN'
-#             elif '$' in moneda_match.group() or 'DOL' in moneda_match.group():
-#                 moneda = 'USD'
-#         else:
-#             moneda = "No encontrado"
-
-#         response_content = {
-#             "fecha_solicitud": str(datetime.now().date()),
-#             "dni": "",
-#             "usuario": "",
-#             "gerencia": "",
-#             "ruc": ruc.group(1) if ruc else "No encontrado",
-#             "proveedor": "",
-#             "fecha_emision": fecha_emision.group(1) if fecha_emision else "No encontrado",
-#             "moneda": moneda,
-#             "tipo_documento": "",
-#             "serie": "03",
-#             "correlativo": "",
-#             "tipo_gasto": "",
-#             "sub_total": 0,
-#             "igv": 0,
-#             "no_gravadas": 0,
-#             "importe_facturado": 0,
-#             "tc": 0,
-#             "anticipo": 0,
-#             "total": 200,
-#             "pago": 0,
-#             "detalle": "",
-#             "estado": "",
-#             "empresa": "",
-#             "archivo": ""
-#         }
-
-#         return JSONResponse(content=response_content)
-#     except Exception as e:
-#         raise HTTPException(
-#             status_code=500, detail=f"Failed to extract financial data: {str(e)}")
-
-
-# @app.post("/decode-qr/")
-# async def decode_qr(file: UploadFile = File(...)):
-#     if file.content_type not in ['image/jpeg', 'image/png']:
-#         raise HTTPException(status_code=400, detail="Invalid file format")
-
-#     try:
-#         image_data = await file.read()
-#         image = Image.open(io.BytesIO(image_data))
-
-#         decoded_objects = decode(image)
-#         if not decoded_objects:
-#             return JSONResponse(content={"detail": "No QR code found in the image"})
-
-#         qr_data = decoded_objects[0].data.decode("utf-8").split("|")
-
-#         result = {}
-
-#         for data in qr_data:
-#             if re.match(r'^\d{8}$', data):  # Dato de 8 dígitos (DNI)
-#                 result["dni"] = data
-#             elif re.match(r'^\d{11}$', data):  # Dato de 11 dígitos (RUC)
-#                 result["ruc"] = data
-#             elif re.match(r'^\d{2}$', data):  # Dato de 2 dígitos (Tipo de Documento)
-#                 tipo_doc_map = {
-#                     "01": "Factura",
-#                     "02": "Recibo por Honorarios",
-#                     "03": "Boleta de Venta",
-#                     "05": "Boleto Aéreo",
-#                     "07": "Nota de Crédito",
-#                     "08": "Nota de Débito",
-#                     "12": "Ticket o cinta emitido por máquina registradora",
-#                     "14": "Recibo Servicio Público"
-#                 }
-#                 result["tipo"] = tipo_doc_map.get(data, "Desconocido")
-#             # Dato con formato xxxx-aaaaaaaa (Serie-Número)
-#             elif re.match(r'^[A-Za-z0-9]{4}-\d{7,8}$', data):
-#                 serie, numero = data.split('-')
-#                 result["serie"] = serie
-#                 result["numero"] = numero
-#             elif re.match(r'^\d+\.\d{2}$', data):  # Dato de valor decimal
-#                 if "total" not in result or float(data) > float(result["total"]):
-#                     if "total" in result:
-#                         result["igv"] = result["total"]
-#                     result["total"] = data
-#                 else:
-#                     result["igv"] = data
-#             elif re.match(r'^\d{4}-\d{2}-\d{2}$', data) or re.match(r'^\d{2}/\d{2}/\d{4}$', data):  # Fecha
-#                 result["fecha"] = data
-
-#         return JSONResponse(content=result)
-
-#     except Exception as e:
-#         raise HTTPException(
-#             status_code=500, detail=f"Failed to decode QR code: {str(e)}")
-
-
-
 # Preprocesamiento de imagen para mejorar la lectura de códigos QR
 def preprocess_image(image):
     # Convertir a escala de grises
     gray_image = ImageOps.grayscale(image)
-    
+
     # Aumentar el contraste
     enhancer = ImageEnhance.Contrast(gray_image)
     contrast_image = enhancer.enhance(2)
-    
+
     # Convertir a formato OpenCV para aplicar más preprocesamientos si es necesario
     open_cv_image = np.array(contrast_image)
-    
+
     # Aplicar un umbral adaptativo
-    processed_image = cv2.adaptiveThreshold(open_cv_image, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
-    
+    processed_image = cv2.adaptiveThreshold(
+        open_cv_image, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
+
     return processed_image
+
 
 @app.post("/decode-qr/")
 async def decode_qr(file: UploadFile = File(...)):
@@ -501,9 +188,6 @@ async def decode_qr(file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Failed to decode QR code: {str(e)}")
-    
-
-
 
 
 @app.post("/token", response_model=dict)
@@ -557,87 +241,6 @@ async def read_user_by_email(email: str = Query(...), db: AsyncSession = Depends
         raise HTTPException(status_code=404, detail="User not found")
     return user
 
-# CRUD para documentos
-
-
-# @app.post("/documentos/", response_model=schemas.Documento)
-# async def create_documento(documento: schemas.DocumentoCreate, db: AsyncSession = Depends(get_db)):
-#     return await crud.create_documento(db=db, documento=documento)
-
-# Modificar el CRUD para manejar la generación de `numero_rendicion`
-# @app.post("/documentos/", response_model=schemas.Documento)
-# async def create_documento(documento: schemas.DocumentoCreate, db: AsyncSession = Depends(get_db)):
-
-#     # Comprobar cuántos documentos ya existen para este usuario y fecha_solicitud
-#     result = await db.execute(
-#         select(models.Documento)
-#         .filter(models.Documento.usuario == documento.usuario)
-#         .filter(models.Documento.fecha_solicitud == documento.fecha_solicitud)
-#     )
-    
-#     documentos_existentes = result.scalars().all()
-
-#     # Determinar el número de rendición. Si no hay documentos, comenzamos con rendicion_1
-#     rendicion_num = len(documentos_existentes) + 1
-#     numero_rendicion = f"rendicion_{rendicion_num}"
-
-#     # Crear el documento con el numero_rendicion generado
-#     db_documento = models.Documento(
-#         fecha_solicitud=documento.fecha_solicitud,
-#         fecha_rendicion=documento.fecha_rendicion,
-#         dni=documento.dni,
-#         usuario=documento.usuario,
-#         gerencia=documento.gerencia,
-#         ruc=documento.ruc,
-#         proveedor=documento.proveedor,
-#         fecha_emision=documento.fecha_emision,
-#         moneda=documento.moneda,
-#         tipo_documento=documento.tipo_documento,
-#         serie=documento.serie,
-#         correlativo=documento.correlativo,
-#         tipo_gasto=documento.tipo_gasto,
-#         sub_total=documento.sub_total,
-#         igv=documento.igv,
-#         no_gravadas=documento.no_gravadas,
-#         importe_facturado=documento.importe_facturado,
-#         tc=documento.tc,
-#         anticipo=documento.anticipo,
-#         total=documento.total,
-#         pago=documento.pago,
-#         detalle=documento.detalle,
-#         estado=documento.estado,
-#         empresa=documento.empresa,
-#         archivo=documento.archivo,
-#         tipo_solicitud=documento.tipo_solicitud,
-#         tipo_cambio=documento.tipo_cambio,
-#         afecto=documento.afecto,
-#         inafecto=documento.inafecto,
-#         rubro=documento.rubro,
-#         cuenta_contable=documento.cuenta_contable,
-#         responsable=documento.responsable,
-#         area=documento.area,
-#         ceco=documento.ceco,
-#         tipo_anticipo=documento.tipo_anticipo,
-#         motivo=documento.motivo,
-#         fecha_viaje=documento.fecha_viaje,
-#         dias=documento.dias,
-#         presupuesto=documento.presupuesto,
-#         banco=documento.banco,
-#         numero_cuenta=documento.numero_cuenta,
-#         destino=documento.destino,
-#         origen=documento.origen,
-#         numero_rendicion=numero_rendicion  # Aquí añadimos el número de rendición
-#     )
-
-#     db.add(db_documento)
-#     await db.commit()
-#     await db.refresh(db_documento)
-#     return db_documento
-
-
-
-
-
 
 @app.post("/documentos/", response_model=schemas.Documento)
 async def create_documento(documento: schemas.DocumentoCreate, db: AsyncSession = Depends(get_db)):
@@ -647,7 +250,8 @@ async def create_documento(documento: schemas.DocumentoCreate, db: AsyncSession 
         select(models.Documento)
         .filter(models.Documento.usuario == documento.usuario)
         .filter(models.Documento.fecha_solicitud == documento.fecha_solicitud)
-        .filter(models.Documento.tipo_solicitud == 'GASTO')  # Filtro adicional para 'GASTO'
+        # Filtro adicional para 'GASTO'
+        .filter(models.Documento.tipo_solicitud == 'GASTO')
         .limit(1)  # Solo necesitamos el primer resultado
     )
 
@@ -661,7 +265,8 @@ async def create_documento(documento: schemas.DocumentoCreate, db: AsyncSession 
         result = await db.execute(
             select(models.Documento.numero_rendicion)
             .filter(models.Documento.usuario == documento.usuario)
-            .filter(models.Documento.tipo_solicitud == 'GASTO')  # Filtro adicional para 'GASTO'
+            # Filtro adicional para 'GASTO'
+            .filter(models.Documento.tipo_solicitud == 'GASTO')
             .order_by(models.Documento.numero_rendicion.desc())
             .limit(1)  # Solo necesitamos el mayor valor
         )
@@ -731,9 +336,6 @@ async def create_documento(documento: schemas.DocumentoCreate, db: AsyncSession 
     return db_documento
 
 
-
-
-
 @app.get("/documentos/{documento_id}", response_model=schemas.Documento)
 async def read_documento(documento_id: int, db: AsyncSession = Depends(get_db)):
     db_documento = await crud.get_documento(db, documento_id=documento_id)
@@ -741,109 +343,6 @@ async def read_documento(documento_id: int, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Documento not found")
     return db_documento
 
-# @app.get("/documentos/", response_model=List[schemas.Documento])
-# async def read_documentos(
-#     empresa: str = Query(None, alias="company_name"),
-#     estado: str = Query(None),
-#     username: str = Query(None),
-#     db: AsyncSession = Depends(get_db)
-# ):
-#     query = select(models.Documento).filter(models.Documento.empresa == empresa)
-#     if estado:
-#         query = query.filter(models.Documento.estado == estado)
-#     if username:
-#         query = query.filter(models.Documento.usuario == username)
-#     result = await db.execute(query)
-#     return result.scalars().all()
-
-
-# @app.get("/documentos/", response_model=List[schemas.DocumentoBase])
-# async def read_documentos(
-#     empresa: str = Query(None, alias="company_name"),
-#     estado: str = Query(None),
-#     username: str = Query(None),
-#     tipo_solicitud: str = Query(
-#         None, description="Filtrar por tipo_solicitud"),
-#     tipo_anticipo: str = Query(
-#         None, description="Filtrar por tipo de anticipo"),
-#     numero_rendicion: str = Query(
-#         None, description="Filtrar por tipo de anticipo"),
-#     fecha_solicitud_from: date = Query(
-#         None, description="Fecha de solicitud desde"),
-#     fecha_solicitud_to: date = Query(
-#         None, description="Fecha de solicitud hasta"),
-#     db: AsyncSession = Depends(get_db)
-# ):
-#     query = select(models.Documento).where(models.Documento.empresa == empresa)
-#     if estado:
-#         query = query.where(models.Documento.estado == estado)
-#     if username:
-#         query = query.where(models.Documento.usuario == username)
-#     if tipo_anticipo:
-#         query = query.where(models.Documento.tipo_anticipo == tipo_anticipo)
-#     if tipo_solicitud:
-#         query = query.where(models.Documento.tipo_solicitud == tipo_solicitud)
-#     if numero_rendicion:
-#         query = query.where(models.Documento.numero_rendicion == numero_rendicion)
-#     if fecha_solicitud_from:
-#         query = query.where(
-#             models.Documento.fecha_solicitud >= fecha_solicitud_from)
-#     if fecha_solicitud_to:
-#         query = query.where(
-#             models.Documento.fecha_solicitud <= fecha_solicitud_to)
-
-#     result = await db.execute(query)
-#     return result.scalars().all()
-
-
-
-
-
-
-# @app.get("/documentos/", response_model=List[schemas.DocumentoBase])
-# async def read_documentos(
-#     empresa: str = Query(None, alias="company_name"),
-#     estado: str = Query(None),
-#     username: str = Query(None),
-#     tipo_solicitud: str = Query(None, description="Filtrar por tipo_solicitud"),
-#     tipo_anticipo: str = Query(None, description="Filtrar por tipo de anticipo"),
-#     numero_rendicion: str = Query(None, description="Filtrar por número de rendición"),
-#     fecha_solicitud_from: date = Query(None, description="Fecha de solicitud desde"),
-#     fecha_solicitud_to: date = Query(None, description="Fecha de solicitud hasta"),
-#     fecha_rendicion_from: date = Query(None, description="Fecha de rendición desde"),
-#     fecha_rendicion_to: date = Query(None, description="Fecha de rendición hasta"),
-#     db: AsyncSession = Depends(get_db)
-# ):
-#     # Inicializar la consulta base
-#     query = select(models.Documento).where(models.Documento.empresa == empresa)
-
-#     # Filtros opcionales
-#     if estado:
-#         query = query.where(models.Documento.estado == estado)
-#     if username:
-#         query = query.where(models.Documento.usuario == username)
-#     if tipo_anticipo:
-#         query = query.where(models.Documento.tipo_anticipo == tipo_anticipo)
-#     if tipo_solicitud:
-#         query = query.where(models.Documento.tipo_solicitud == tipo_solicitud)
-#     if numero_rendicion:
-#         query = query.where(models.Documento.numero_rendicion == numero_rendicion)
-    
-#     # Filtros de rango de fechas
-#     if fecha_solicitud_from:
-#         query = query.where(models.Documento.fecha_solicitud >= fecha_solicitud_from)
-#     if fecha_solicitud_to:
-#         query = query.where(models.Documento.fecha_solicitud <= fecha_solicitud_to)
-    
-#     # Filtros para el rango de fechas de rendición
-#     if fecha_rendicion_from:
-#         query = query.where(models.Documento.fecha_rendicion >= fecha_rendicion_from)
-#     if fecha_rendicion_to:
-#         query = query.where(models.Documento.fecha_rendicion <= fecha_rendicion_to)
-
-#     # Ejecutar la consulta
-#     result = await db.execute(query)
-#     return result.scalars().all()
 
 @app.get("/documentos/", response_model=List[schemas.DocumentoBase])
 async def read_documentos(
@@ -872,24 +371,27 @@ async def read_documentos(
     if tipo_solicitud:
         query = query.where(models.Documento.tipo_solicitud == tipo_solicitud)
     if numero_rendicion:
-        query = query.where(models.Documento.numero_rendicion == numero_rendicion)
+        query = query.where(
+            models.Documento.numero_rendicion == numero_rendicion)
 
     # Filtros de rango de fechas con conversión manual
     if fecha_solicitud_from:
-        query = query.where(models.Documento.fecha_solicitud >= datetime.strptime(fecha_solicitud_from, "%Y-%m-%d").date())
+        query = query.where(models.Documento.fecha_solicitud >= datetime.strptime(
+            fecha_solicitud_from, "%Y-%m-%d").date())
     if fecha_solicitud_to:
-        query = query.where(models.Documento.fecha_solicitud <= datetime.strptime(fecha_solicitud_to, "%Y-%m-%d").date())
+        query = query.where(models.Documento.fecha_solicitud <= datetime.strptime(
+            fecha_solicitud_to, "%Y-%m-%d").date())
 
     if fecha_rendicion_from:
-        query = query.where(models.Documento.fecha_rendicion >= datetime.strptime(fecha_rendicion_from, "%Y-%m-%d").date())
+        query = query.where(models.Documento.fecha_rendicion >= datetime.strptime(
+            fecha_rendicion_from, "%Y-%m-%d").date())
     if fecha_rendicion_to:
-        query = query.where(models.Documento.fecha_rendicion <= datetime.strptime(fecha_rendicion_to, "%Y-%m-%d").date())
+        query = query.where(models.Documento.fecha_rendicion <= datetime.strptime(
+            fecha_rendicion_to, "%Y-%m-%d").date())
 
     # Ejecutar la consulta
     result = await db.execute(query)
     return result.scalars().all()
-
-
 
 
 @app.put("/documentos/{documento_id}", response_model=schemas.Documento)
@@ -944,13 +446,6 @@ async def create_documento_con_archivo(
     return db_documento
 
 
-# @app.get("/documentos/download/")
-# async def download_file(file_location: str):
-#     if not os.path.exists(file_location):
-#         raise HTTPException(status_code=404, detail="File not found")
-#     return FileResponse(path=file_location, filename=os.path.basename(file_location), media_type='application/octet-stream')
-
-
 @app.get("/documentos/download/")
 async def download_file(file_location: str):
     try:
@@ -964,20 +459,13 @@ async def download_file(file_location: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# @app.get("/documentos/view/")
-# async def view_file(file_location: str):
-#     if not os.path.exists(file_location):
-#         raise HTTPException(status_code=404, detail="File not found")
-#     media_type, _ = guess_type(file_location)
-#     return FileResponse(path=file_location, media_type=media_type)
-
 @app.get("/documentos/view/")
 async def view_file(file_location: str):
     # Verificamos si es una URL de Firebase (u otra URL remota) en lugar de una ruta local
     if file_location.startswith("http"):
         # Redirigimos al usuario a la URL del archivo en Firebase
         return RedirectResponse(url=file_location)
-    
+
     # Si el archivo es local, verificamos si existe
     if not os.path.exists(file_location):
         raise HTTPException(status_code=404, detail="File not found")
@@ -1045,17 +533,14 @@ class PDF(FPDF):
         self.cell(0, 10, f'Zona: {self.zona}', 0, 1, 'L')
 
         # Área responsable y otros datos
-        # self.set_xy(-95, 30)
-        # self.cell(0, 10, f'Área responsable: {
-        #           self.area_responsable}', 0, 1, 'R')
-        # self.set_xy(-95, 40)
-        # self.cell(0, 10, f'Fecha de solicitud: {
-        #           self.fecha_solicitud}', 0, 1, 'R')
-        # self.set_xy(-95, 50)
-        # self.cell(0, 10, f'Fecha de rendición: {
-        #           self.fecha_rendicion}', 0, 1, 'R')
-        # self.set_xy(-95, 60)
-        # self.cell(0, 10, f'Tipo de gasto: {self.tipo_gasto}', 0, 1, 'R')
+        self.set_xy(-95, 30)
+        self.cell(0, 10, f'Área responsable: {self.area_responsable}', 0, 1, 'R')
+        self.set_xy(-95, 40)
+        self.cell(0, 10, f'Fecha de solicitud: {self.fecha_solicitud}', 0, 1, 'R')
+        self.set_xy(-95, 50)
+        self.cell(0, 10, f'Fecha de rendición: {self.fecha_rendicion}', 0, 1, 'R')
+        self.set_xy(-95, 60)
+        self.cell(0, 10, f'Tipo de gasto: {self.tipo_gasto}', 0, 1, 'R')
 
         self.ln(20)
 
@@ -1091,17 +576,14 @@ class PDF(FPDF):
         self.cell(spacing, 10, '', border=0, ln=0)
         self.cell(col_width, 10, 'Recibido por:', border=1, ln=0, align='L')
         self.cell(spacing, 10, '', border=0, ln=0)
-        # self.cell(col_width, 10, f'Total Anticipo: {
-        #           total_anticipo}', border=1, ln=1, align='L')
-
+        self.cell(col_width, 10, f'Total Anticipo: {total_anticipo}', border=1, ln=1, align='L')
         self.cell(col_width, 10, 'Nombre', border=1, ln=0, align='R')
         self.cell(spacing, 10, '', border=0, ln=0)
         self.cell(col_width, 10, 'Nombre', border=1, ln=0, align='R')
         self.cell(spacing, 10, '', border=0, ln=0)
         self.cell(col_width, 10, 'Nombre', border=1, ln=0, align='R')
         self.cell(spacing, 10, '', border=0, ln=0)
-        # self.cell(col_width, 10, f'Total Gasto: {
-        #           total_gasto}', border=1, ln=1, align='L')
+        self.cell(col_width, 10, f'Total Gasto: {total_gasto}', border=1, ln=1, align='L')
 
         self.cell(col_width, 10, ' ', border=0, ln=0, align='L')
         self.cell(spacing, 10, '', border=0, ln=0)
@@ -1113,145 +595,20 @@ class PDF(FPDF):
             col_width, 10, f'Reembolsar / (-)Devolver: {reembolso}', border=1, ln=1, align='L')
 
 
-# @app.get("/documentos/export/pdf")
-# async def export_documentos_pdf(
-#     empresa: str = Query(None, alias="company_name"),
-#     estado: str = Query(None),
-#     username: str = Query(None),
-#     db: AsyncSession = Depends(get_db)
-# ):
-#     query = select(models.Documento).filter(
-#         models.Documento.empresa == empresa)
-#     if estado:
-#         query = query.filter(models.Documento.estado == estado)
-#     if username:
-#         query = query.filter(models.Documento.usuario == username)
-
-#     result = await db.execute(query)
-#     documentos = result.scalars().all()
-
-#     total_gasto = sum(doc.total for doc in documentos)
-#     total_anticipo = 3000.00
-#     reembolso = total_anticipo - total_gasto
-
-#     pdf = PDF(orientation='L')
-#     pdf.usuario = "Nombre del usuario"
-#     pdf.dni = "DNI del usuario"
-#     pdf.cargo = "Cargo del usuario"
-#     pdf.zona = "Zona del usuario"
-#     pdf.area_responsable = "Área Responsable"
-#     pdf.fecha_solicitud = "Fecha de Solicitud"
-#     pdf.fecha_rendicion = "Fecha de Rendición"
-#     pdf.tipo_gasto = "Tipo de Gasto"
-#     pdf.total_anticipo = total_anticipo
-#     pdf.total_gasto = total_gasto
-#     pdf.reembolso = reembolso
-
-#     pdf.add_page()
-
-#     table_header = ["Item", "Fecha", "RUC", "Tip. Doc", "Cta Contable", "Serie", "Correlativo",
-#                     "Moneda", "Tip. Cambio", "Afecto", "IGV", "Inafecto", "Total"]
-#     table_data = [
-#         [i + 1, doc.fecha_emision, doc.ruc, doc.tipo_documento, doc.cuenta_contable, doc.serie, doc.correlativo,
-#          doc.moneda, doc.tc, doc.afecto, doc.igv, doc.inafecto, doc.total]
-#         for i, doc in enumerate(documentos)
-#     ]
-#     pdf.add_table(table_header, table_data)
-
-#     pdf.add_firmas(pdf.total_anticipo, pdf.total_gasto, pdf.reembolso)
-
-#     pdf_file = f"documentos.pdf"
-#     pdf.output(pdf_file)
-#     return FileResponse(path=pdf_file, filename="documentos.pdf")
-
-# @app.get("/documentos/export/pdf")
-# async def export_documentos_pdf(
-#     empresa: str = Query(..., alias="company_name"),  # Obligatorio
-#     estado: str = Query(None),  # Opcional
-#     username: str = Query(None),  # Opcional
-#     numero_rendicion: str = Query(..., description="Número de rendición (obligatorio)"),  # Obligatorio
-#     db: AsyncSession = Depends(get_db)
-# ):
-#     # Verificar que numero_rendicion no esté vacío
-#     if not numero_rendicion:
-#         raise HTTPException(status_code=400, detail="El campo 'numero_rendicion' es obligatorio.")
-
-#     # Construir la consulta base con el filtro de empresa y número de rendición obligatorio
-#     query = select(models.Documento).filter(
-#         models.Documento.empresa == empresa,
-#         models.Documento.numero_rendicion == numero_rendicion  # Obligatorio
-#     )
-
-#     # Filtros adicionales opcionales
-#     if estado:
-#         query = query.filter(models.Documento.estado == estado)
-#     if username:
-#         query = query.filter(models.Documento.usuario == username)
-
-#     # Ejecutar la consulta
-#     result = await db.execute(query)
-#     documentos = result.scalars().all()
-
-#     # Verificar si se encontraron documentos
-#     if not documentos:
-#         raise HTTPException(status_code=404, detail="No se encontraron documentos para la rendición proporcionada.")
-
-#     # Calcular el total de gastos
-#     total_gasto = sum(doc.total for doc in documentos)
-#     total_anticipo = 3000.00  # Este valor podría ser dinámico según sea necesario
-#     reembolso = total_anticipo - total_gasto
-
-#     # Crear el PDF
-#     pdf = PDF(orientation='L')
-#     pdf.usuario = "Nombre del usuario"
-#     pdf.dni = "DNI del usuario"
-#     pdf.cargo = "Cargo del usuario"
-#     pdf.zona = "Zona del usuario"
-#     pdf.area_responsable = "Área Responsable"
-#     pdf.fecha_solicitud = "Fecha de Solicitud"
-#     pdf.fecha_rendicion = "Fecha de Rendición"
-#     pdf.tipo_gasto = "Tipo de Gasto"
-#     pdf.total_anticipo = total_anticipo
-#     pdf.total_gasto = total_gasto
-#     pdf.reembolso = reembolso
-
-#     # Añadir una página al PDF
-#     pdf.add_page()
-
-#     # Definir el encabezado de la tabla
-#     table_header = ["Item", "Fecha", "RUC", "Tip. Doc", "Cta Contable", "Serie", "Correlativo",
-#                     "Moneda", "Tip. Cambio", "Afecto", "IGV", "Inafecto", "Total"]
-    
-#     # Definir los datos de la tabla
-#     table_data = [
-#         [i + 1, doc.fecha_emision, doc.ruc, doc.tipo_documento, doc.cuenta_contable, doc.serie, doc.correlativo,
-#          doc.moneda, doc.tc, doc.afecto, doc.igv, doc.inafecto, doc.total]
-#         for i, doc in enumerate(documentos)
-#     ]
-#     pdf.add_table(table_header, table_data)
-
-#     # Añadir las firmas
-#     pdf.add_firmas(pdf.total_anticipo, pdf.total_gasto, pdf.reembolso)
-
-#     # Generar el archivo PDF
-#     pdf_file = f"documentos_{numero_rendicion}.pdf"
-#     pdf.output(pdf_file)
-
-#     return FileResponse(path=pdf_file, filename=f"documentos_{numero_rendicion}.pdf")
-
-
-
 @app.get("/documentos/export/pdf")
 async def export_documentos_pdf(
     empresa: str = Query(..., alias="company_name"),  # Obligatorio
     estado: str = Query(None),  # Opcional
     username: str = Query(...),  # Obligatorio
-    numero_rendicion: str = Query(..., description="Número de rendición (obligatorio)"),  # Obligatorio
+    # Obligatorio
+    numero_rendicion: str = Query(...,
+                                  description="Número de rendición (obligatorio)"),
     db: AsyncSession = Depends(get_db)
 ):
     # Verificar que numero_rendicion no esté vacío
     if not numero_rendicion:
-        raise HTTPException(status_code=400, detail="El campo 'numero_rendicion' es obligatorio.")
+        raise HTTPException(
+            status_code=400, detail="El campo 'numero_rendicion' es obligatorio.")
 
     # Construir la consulta base con el filtro de empresa y número de rendición obligatorio
     query = select(models.Documento).filter(
@@ -1271,7 +628,8 @@ async def export_documentos_pdf(
 
     # Verificar si se encontraron documentos
     if not documentos:
-        raise HTTPException(status_code=404, detail="No se encontraron documentos para la rendición proporcionada.")
+        raise HTTPException(
+            status_code=404, detail="No se encontraron documentos para la rendición proporcionada.")
 
     # Calcular el total de gastos
     total_gasto = sum(doc.total for doc in documentos)
@@ -1283,11 +641,14 @@ async def export_documentos_pdf(
         models.Documento.usuario == username,
         models.Documento.empresa == empresa
     )
-    
+
     result_anticipo = await db.execute(query_anticipo)
     documentos_anticipo = result_anticipo.scalars().all()
-    
-    total_anticipo = sum(doc.total for doc in documentos_anticipo)
+
+    # total_anticipo = sum(doc.total for doc in documentos_anticipo)
+
+    total_anticipo = sum(doc.total if doc.total is not None else 0 for doc in documentos_anticipo)
+
 
     reembolso = total_anticipo - total_gasto
 
@@ -1328,41 +689,6 @@ async def export_documentos_pdf(
     pdf.output(pdf_file)
 
     return FileResponse(path=pdf_file, filename=f"documentos_{numero_rendicion}.pdf")
-
-
-
-
-# guardar archivo
-# Asegúrate de que la ruta de destino exista
-UPLOAD_DIRECTORY = "C:\\archivos"
-if not os.path.exists(UPLOAD_DIRECTORY):
-    os.makedirs(UPLOAD_DIRECTORY)
-
-
-@app.post("/upload-file/")
-async def upload_file(file: UploadFile = File(...)):
-    try:
-        # Define la ruta completa del archivo
-        file_location = os.path.join(UPLOAD_DIRECTORY, file.filename)
-
-        # Guarda el archivo en la ruta especificada
-        with open(file_location, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
-
-        # Normaliza la ruta para Windows
-        normalized_path = file_location.replace("\\", "/")
-
-        # Devuelve la ruta del archivo guardado
-        return {"file_location": normalized_path}
-
-    except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Error al guardar el archivo: {str(e)}")
-
- # Definir la ruta de almacenamiento de los PDFs
-PDF_DIRECTORY = "C:\\boleta"
-if not os.path.exists(PDF_DIRECTORY):
-    os.makedirs(PDF_DIRECTORY)
 
 
 async def get_db():
@@ -1517,150 +843,31 @@ async def create_documento_con_pdf_custom(
 
     try:
         # Guardar el contenido del PDF en el objeto BytesIO
-        pdf_output = pdf.output(dest='S').encode('latin1')  # El argumento 'S' devuelve el PDF como una cadena
+        # El argumento 'S' devuelve el PDF como una cadena
+        pdf_output = pdf.output(dest='S').encode('latin1')
         pdf_data.write(pdf_output)
-        pdf_data.seek(0)  # Asegúrate de que el puntero esté al inicio del archivo
+        # Asegúrate de que el puntero esté al inicio del archivo
+        pdf_data.seek(0)
 
         # Crear un nombre de archivo aleatorio usando UUID
         unique_filename = f"documento_{str(uuid.uuid4())}.pdf"
 
         # Subir el archivo PDF a Firebase
-        public_url = upload_file_to_firebase_pdf(pdf_data, unique_filename, content_type="application/pdf")
+        public_url = upload_file_to_firebase_pdf(
+            pdf_data, unique_filename, content_type="application/pdf")
 
     except Exception as e:
         logging.error(f"Error al generar o subir el PDF: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Error al generar o subir el archivo a Firebase: {str(e)}")
-
-    # Actualizar la ruta del archivo en la base de datos con la URL pública de Firebase
+        raise HTTPException(
+            status_code=500, detail=f"Error al generar o subir el archivo a Firebase: {str(e)}")
     db_documento.archivo = public_url
     await db.commit()
     await db.refresh(db_documento)
-
     return db_documento
-
-
-
-
-
-# Definir la ruta de almacenamiento de los PDFs
-PDF_DIRECTORY = "C:\\boleta"
-if not os.path.exists(PDF_DIRECTORY):
-    os.makedirs(PDF_DIRECTORY)
-
 
 async def get_db():
     async with SessionLocal() as session:
         yield session
-
-# Clase para generar el PDF personalizado basado en el diseño HTML proporcionado
-
-
-# class DocumentoPDFLocal(FPDF):
-#     def header(self):
-#         self.set_font('Arial', 'B', 14)
-#         self.cell(0, 10, 'Solicitud de Anticipo - Gasto Local', 0, 1, 'C')
-#         self.ln(10)
-
-#     def add_document_details(self, documento):
-#         self.set_font('Arial', '', 10)
-
-#         # Cabecera del documento
-#         self.cell(40, 10, 'ANTICIPO', 1)
-#         self.cell(60, 10, '1', 1)
-#         self.cell(0, 10, 'OPEX READY SAC', 0, 1, 'R')
-#         self.ln(10)
-
-#         # Información del documento
-#         self.cell(40, 10, 'DNI:', 1)
-#         self.cell(60, 10, documento.dni, 1)
-#         self.cell(40, 10, 'Solicitado el:', 1)
-#         self.cell(60, 10, str(documento.fecha_solicitud), 1)
-#         self.ln(10)
-
-#         self.cell(40, 10, 'Responsable:', 1)
-#         self.cell(60, 10, documento.responsable, 1)
-#         self.cell(40, 10, 'Gerencia:', 1)
-#         self.cell(60, 10, documento.gerencia, 1)
-#         self.ln(10)
-
-#         self.cell(40, 10, 'Área:', 1)
-#         self.cell(60, 10, documento.area, 1)
-#         self.cell(40, 10, 'CeCo:', 1)
-#         self.cell(60, 10, documento.ceco, 1)
-#         self.ln(10)
-
-#         self.cell(40, 10, 'Breve motivo:', 1)
-#         self.cell(60, 10, documento.motivo, 1)
-#         self.ln(10)
-
-#         self.cell(40, 10, 'Moneda:', 1)
-#         self.cell(60, 10, documento.moneda, 1)
-#         self.cell(40, 10, 'Presupuesto:', 1)
-#         self.cell(60, 10, f"{
-#                   documento.presupuesto:.2f}" if documento.presupuesto is not None else "0.00", 1)
-#         self.ln(10)
-
-#         self.cell(40, 10, 'Total:', 1)
-#         self.cell(
-#             60, 10, f"{documento.total:.2f}" if documento.total is not None else "0.00", 1)
-#         self.cell(40, 10, 'Banco y N° de Cuenta:', 1)
-#         self.cell(60, 10, documento.numero_cuenta, 1)
-#         self.ln(20)
-
-#         # Motivo del anticipo
-#         self.cell(40, 10, 'Motivo del Anticipo', 1, 1, 'L')
-#         self.cell(0, 10, documento.motivo, 1)
-#         self.ln(20)
-
-#         # Firmas
-#         self.set_font('Arial', 'B', 12)
-#         self.cell(0, 10, 'Firmas electrónicas desde la Plataforma', 0, 1, 'C')
-#         self.set_font('Arial', '', 10)
-#         self.cell(40, 10, 'Usuario Responsable:', 1)
-#         self.cell(60, 10, '', 1)
-#         self.cell(40, 10, 'Aprobado por:', 1)
-#         self.cell(60, 10, '', 1)
-#         self.ln(10)
-
-#         self.cell(40, 10, 'Recibido por:', 1)
-#         self.cell(60, 10, '', 1)
-#         self.cell(40, 10, 'Ejecutado por:', 1)
-#         self.cell(60, 10, '', 1)
-#         self.ln(10)
-
-# # Endpoint para crear un nuevo documento y generar un PDF con el formato local
-
-
-# @app.post("/documentos/crear-con-pdf-local/", response_model=schemas.Documento)
-# async def create_documento_con_pdf_local(
-#     documento: schemas.DocumentoCreate,
-#     db: AsyncSession = Depends(get_db)
-# ):
-#     # Crear el documento en la base de datos
-#     db_documento = await crud.create_documento(db=db, documento=documento)
-
-#     # Generar el PDF con los detalles del documento
-#     pdf = DocumentoPDFLocal()
-#     pdf.add_page()
-#     pdf.add_document_details(documento)
-
-#     # Definir la ruta del archivo PDF
-#     pdf_filename = f"documento_local_{db_documento.id}.pdf"
-#     pdf_filepath = os.path.join(PDF_DIRECTORY, pdf_filename)
-
-#     # Guardar el PDF en la ruta especificada
-#     pdf.output(pdf_filepath)
-
-#     # Actualizar la ruta del archivo PDF en el documento
-#     db_documento.archivo = pdf_filepath
-#     await db.commit()
-#     await db.refresh(db_documento)
-
-#     return db_documento
-
-
-
-
 
 # Clase para generar el PDF personalizado para el modelo local
 class DocumentoPDFLocal(FPDF):
@@ -1682,11 +889,13 @@ class DocumentoPDFLocal(FPDF):
         self.cell(40, 10, 'DNI:', 1)
         self.cell(60, 10, documento.dni if documento.dni else 'N/A', 1)
         self.cell(40, 10, 'Solicitado el:', 1)
-        self.cell(60, 10, str(documento.fecha_solicitud) if documento.fecha_solicitud else 'N/A', 1)
+        self.cell(60, 10, str(documento.fecha_solicitud)
+                  if documento.fecha_solicitud else 'N/A', 1)
         self.ln(10)
 
         self.cell(40, 10, 'Responsable:', 1)
-        self.cell(60, 10, documento.responsable if documento.responsable else 'N/A', 1)
+        self.cell(
+            60, 10, documento.responsable if documento.responsable else 'N/A', 1)
         self.cell(40, 10, 'Gerencia:', 1)
         self.cell(60, 10, documento.gerencia if documento.gerencia else 'N/A', 1)
         self.ln(10)
@@ -1704,13 +913,16 @@ class DocumentoPDFLocal(FPDF):
         self.cell(40, 10, 'Moneda:', 1)
         self.cell(60, 10, documento.moneda if documento.moneda else 'N/A', 1)
         self.cell(40, 10, 'Presupuesto:', 1)
-        self.cell(60, 10, f"{documento.presupuesto:.2f}" if documento.presupuesto else "0.00", 1)
+        self.cell(
+            60, 10, f"{documento.presupuesto:.2f}" if documento.presupuesto else "0.00", 1)
         self.ln(10)
 
         self.cell(40, 10, 'Total:', 1)
-        self.cell(60, 10, f"{documento.total:.2f}" if documento.total else "0.00", 1)
+        self.cell(
+            60, 10, f"{documento.total:.2f}" if documento.total else "0.00", 1)
         self.cell(40, 10, 'Banco y N° de Cuenta:', 1)
-        self.cell(60, 10, documento.numero_cuenta if documento.numero_cuenta else 'N/A', 1)
+        self.cell(
+            60, 10, documento.numero_cuenta if documento.numero_cuenta else 'N/A', 1)
         self.ln(20)
 
         # Motivo del anticipo
@@ -1734,50 +946,36 @@ class DocumentoPDFLocal(FPDF):
         self.cell(60, 10, '', 1)
         self.ln(10)
 
+
 @app.post("/documentos/crear-con-pdf-local/", response_model=schemas.Documento)
 async def create_documento_con_pdf_local(
     documento: schemas.DocumentoCreate,
     db: AsyncSession = Depends(get_db)
 ):
-    # Crear el documento en la base de datos
     db_documento = await crud.create_documento(db=db, documento=documento)
 
-    # Generar el PDF con los detalles del documento
     pdf = DocumentoPDFLocal()  # Instancia de la clase correctamente
     pdf.add_page()
     pdf.add_document_details(documento)  # Pasar el objeto documento
 
-    # Crear un objeto BytesIO para almacenar el PDF
     pdf_data = BytesIO()
 
     try:
-        # Guardar el contenido del PDF en el objeto BytesIO
-        pdf_output = pdf.output(dest='S').encode('latin1')  # El argumento 'S' devuelve el PDF como una cadena
+        pdf_output = pdf.output(dest='S').encode('latin1')
         pdf_data.write(pdf_output)
-        pdf_data.seek(0)  # Asegúrate de que el puntero esté al inicio del archivo
-
-        # Crear un nombre de archivo aleatorio usando UUID
+        pdf_data.seek(0)
         unique_filename = f"documento_local_{str(uuid.uuid4())}.pdf"
-
-        # Subir el archivo PDF a Firebase
-        public_url = upload_file_to_firebase_pdf(pdf_data, unique_filename, content_type="application/pdf")
+        public_url = upload_file_to_firebase_pdf(
+            pdf_data, unique_filename, content_type="application/pdf")
 
     except Exception as e:
         logging.error(f"Error al generar o subir el PDF: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Error al generar o subir el archivo a Firebase: {str(e)}")
-
-    # Actualizar la ruta del archivo en la base de datos con la URL pública de Firebase
+        raise HTTPException(
+            status_code=500, detail=f"Error al generar o subir el archivo a Firebase: {str(e)}")
     db_documento.archivo = public_url
     await db.commit()
     await db.refresh(db_documento)
-
     return db_documento
-
-
-
-
-
-
 
 
 class DocumentoPDFMovilidad(FPDF):
@@ -1823,8 +1021,6 @@ class DocumentoPDFMovilidad(FPDF):
         self.cell(30, 6, 'GASTO DEDUCIBLE', 1, 0, 'C')
         self.cell(30, 6, 'NO DEDUCIBLE', 1, 0, 'C')
         self.cell(30, 6, 'TOTAL', 1, 1, 'C')
-
-        # Detalle de gastos: Aquí se añaden los datos del request
         self.set_font('Arial', '', 8)
         self.cell(10, 6, '01', 1, 0, 'C')  # Número de la fila
         self.cell(30, 6, documento.get(
@@ -1833,132 +1029,58 @@ class DocumentoPDFMovilidad(FPDF):
         self.cell(30, 6, documento.get('destino', 'N/A'), 1, 0, 'C')  # Destino
         self.cell(50, 6, documento.get('motivo', 'N/A'), 1, 0, 'C')  # Motivo
         self.cell(30, 6, 'S/ ' + str(documento.get('gasto_deducible',
-                  '0.00')), 1, 0, 'C')  # Gasto deducible
-        # Gasto no deducible (en este caso no hay datos)
+                  '0.00')), 1, 0, 'C')  
         self.cell(30, 6, 'S/ ' +
                   str(documento.get('gasto_no_deducible', '0.00')), 1, 0, 'C')
         self.cell(30, 6, 'S/ ' + str(documento.get('total', '0.00')),
-                  1, 1, 'C')  # Total
-
-        # Resumen de total
+                  1, 1, 'C')  
         self.set_font('Arial', 'B', 10)
         self.cell(210, 6, 'Total', 1, 0, 'R')
         self.cell(30, 6, 'S/ ' + str(documento.get('total', '0.00')), 1, 1, 'C')
-
-        # Pie de página
         self.ln(10)
         self.cell(0, 5, 'Son: ' + documento.get('total_letras', 'N/A'), 0, 1, 'L')
         self.ln(5)
         self.cell(0, 5, 'Firmas electrónicas desde Plataforma', 0, 1, 'L')
         self.ln(10)
-
-        # Firmas
         self.cell(90, 6, 'Solicitante', 1, 0, 'C')
         self.cell(90, 6, 'Validado y Registrado', 1, 1, 'C')
         self.cell(90, 6, documento.get('usuario', 'N/A'), 1, 0, 'C')
         self.cell(90, 6, 'Gerencia de Adm. Y Finanzas', 1, 1, 'C')
 
-# @app.post("/generar-pdf-movilidad/")
-# async def generar_pdf(data: dict, db: AsyncSession = Depends(get_db)):
-
-#     # Generar el PDF
-#     pdf = DocumentoPDFMovilidad()
-#     pdf.add_page()
-#     pdf.add_document_details(data)
-    
-#     # Crear un objeto BytesIO para almacenar el PDF
-#     pdf_data = BytesIO()
-
-#     try:
-#         # Guardar el contenido del PDF en el objeto BytesIO
-#         pdf_output = pdf.output(dest='S').encode('latin1')  # El argumento 'S' devuelve el PDF como una cadena
-#         pdf_data.write(pdf_output)
-#         pdf_data.seek(0)  # Asegúrate de que el puntero esté al inicio del archivo
-
-#         # Crear un nombre de archivo aleatorio usando UUID
-#         pdf_filename = f"reporte_movilidad_{str(uuid.uuid4())}.pdf"
-
-#         # Llama a la función para subir el archivo a Firebase
-#         public_url = upload_file_to_firebase_pdf(pdf_data, pdf_filename, content_type="application/pdf")
-        
-#     except Exception as e:
-#         logging.error(f"Error al generar o subir el PDF: {str(e)}")
-#         raise HTTPException(status_code=500, detail=f"Error al generar o subir el archivo a Firebase: {str(e)}")
-
-#     # Crear el documento en la base de datos con la URL pública del archivo PDF
-#     documento_data = schemas.DocumentoCreate(
-#         fecha_solicitud=data['fecha_solicitud'],
-#         fecha_emision=data['fecha_emision'],
-#         usuario=data['usuario'],
-#         dni=data['dni'],
-#         gerencia=data['gerencia'],
-#         archivo=public_url,  # Guardamos la URL pública
-#         estado="PENDIENTE",
-#         empresa="innova",
-#         moneda="PEN",
-#         tipo_documento="Recibo de Movilidad",
-#         total=['total'],
-#         rubro="Movilidad",
-#         cuenta_contable=['cuenta_contable'],
-#         motivo=['motivo'],
-#         origen=['origen'],
-#         destino=['destino'],
-#         tipo_solicitud=['GASTO']
-
-
-#     )
-
-#     # Guardar el documento en la base de datos
-#     db_documento = await crud.create_documento(db=db, documento=documento_data)
-
-#     # Actualizar el campo 'archivo' con la URL pública del archivo PDF generado
-#     db_documento.archivo = public_url
-#     await db.commit()
-#     await db.refresh(db_documento)
-
-#     # Retornar la URL pública del archivo PDF generado como respuesta
-#     return {"file_url": public_url}
-
 @app.post("/generar-pdf-movilidad/")
 async def generar_pdf(data: dict, db: AsyncSession = Depends(get_db)):
 
-    # Generar el PDF
     pdf = DocumentoPDFMovilidad()
     pdf.add_page()
     pdf.add_document_details(data)
-    
-    # Crear un objeto BytesIO para almacenar el PDF
+
     pdf_data = BytesIO()
 
     try:
-        # Guardar el contenido del PDF en el objeto BytesIO
-        pdf_output = pdf.output(dest='S').encode('latin1')  # El argumento 'S' devuelve el PDF como una cadena
+        pdf_output = pdf.output(dest='S').encode('latin1')
         pdf_data.write(pdf_output)
-        pdf_data.seek(0)  # Asegúrate de que el puntero esté al inicio del archivo
-
-        # Crear un nombre de archivo aleatorio usando UUID
+        pdf_data.seek(0)
         pdf_filename = f"reporte_movilidad_{str(uuid.uuid4())}.pdf"
+        public_url = upload_file_to_firebase_pdf(
+            pdf_data, pdf_filename, content_type="application/pdf")
 
-        # Llama a la función para subir el archivo a Firebase
-        public_url = upload_file_to_firebase_pdf(pdf_data, pdf_filename, content_type="application/pdf")
-        
     except Exception as e:
         logging.error(f"Error al generar o subir el PDF: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Error al generar o subir el archivo a Firebase: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Error al generar o subir el archivo a Firebase: {str(e)}")
 
-    # Crear el documento en la base de datos con la URL pública del archivo PDF
     documento_data = schemas.DocumentoCreate(
         fecha_solicitud=data['fecha_solicitud'],
         fecha_emision=data['fecha_emision'],
         usuario=data['usuario'],
         dni=data['dni'],
         gerencia=data['gerencia'],
-        archivo=public_url,  # Guardamos la URL pública
+        archivo=public_url, 
         estado="PENDIENTE",
         empresa="innova",
         moneda="PEN",
         tipo_documento="Recibo de Movilidad",
-        total=data['total'],  # Accedemos directamente al valor
+        total=data['total'],  
         rubro=data['rubro'],
         cuenta_contable=data['cuenta_contable'],
         motivo=data['motivo'],
@@ -1966,28 +1088,16 @@ async def generar_pdf(data: dict, db: AsyncSession = Depends(get_db)):
         destino=data['destino'],
         tipo_solicitud="GASTO"
     )
-
-    # Guardar el documento en la base de datos
     db_documento = await crud.create_documento(db=db, documento=documento_data)
-
-    # Actualizar el campo 'archivo' con la URL pública del archivo PDF generado
     db_documento.archivo = public_url
     await db.commit()
     await db.refresh(db_documento)
-
-    # Retornar la URL pública del archivo PDF generado como respuesta
     return {"file_url": public_url}
 
-
-
-# Ruta temporal para guardar archivos descargados localmente
 DOWNLOAD_DIRECTORY = "downloads"
 
-# Crear el directorio de descargas si no existe
 if not os.path.exists(DOWNLOAD_DIRECTORY):
     os.makedirs(DOWNLOAD_DIRECTORY)
-
-# API para subir archivos a Firebase (JPG, PNG, PDF)
 
 
 @app.post("/upload-file-firebase/")
@@ -2004,122 +1114,55 @@ async def upload_file(file: UploadFile = File(...)):
             status_code=500, detail=f"Error al subir el archivo: {str(e)}")
 
 
-# @app.get("/download-file/")
-# async def download_file(filename: str):
-#     try:
-#         # Ruta temporal local para descargar el archivo
-#         local_path = os.path.join(DOWNLOAD_DIRECTORY, filename)
-
-#         # Descargar el archivo desde Firebase
-#         download_file_from_firebase(filename, local_path)
-
-#         return FileResponse(path=local_path, filename=filename, media_type='application/octet-stream')
-#     except Exception as e:
-#         raise HTTPException(
-#             status_code=500, detail=f"Error al descargar el archivo: {str(e)}")
-
-
 @app.get("/download-file/")
 async def download_file(filename: str):
     try:
-        # Verifica si el archivo es remoto (Firebase) o local
         if filename.startswith("http"):
-            # Si el archivo está en Firebase, simplemente redirige al enlace público
             return RedirectResponse(url=filename)
-
-        # Ruta temporal local para descargar el archivo
         local_path = os.path.join(DOWNLOAD_DIRECTORY, filename)
-
-        # Descargar el archivo desde Firebase si es un archivo local
         download_file_from_firebase(filename, local_path)
-
         return FileResponse(path=local_path, filename=filename, media_type='application/octet-stream')
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Error al descargar el archivo: {str(e)}")
 
 
-
-
-    
-
-
 @app.post("/decode-qr-opencv/")
 async def decode_qr_opencv(file: UploadFile = File(...)):
     if file.content_type not in ['image/jpeg', 'image/png']:
         raise HTTPException(status_code=400, detail="Invalid file format")
-
     try:
-        # Leer la imagen usando OpenCV
         image_data = await file.read()
         image = np.array(Image.open(io.BytesIO(image_data)))
-
-        # Convertir la imagen a escala de grises
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-
-        # Usar OpenCV para detectar códigos QR
         qr_detector = cv2.QRCodeDetector()
         data, points, _ = qr_detector.detectAndDecode(gray)
-
         if data:
-            # Procesar la salida de OpenCV
             result = {"data": data}
             return JSONResponse(content=result)
         else:
             return JSONResponse(content={"detail": "No QR code found in the image"})
-    
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to decode QR code using OpenCV: {str(e)}")
-    
+        raise HTTPException(
+            status_code=500, detail=f"Failed to decode QR code using OpenCV: {str(e)}")
 
-
-
-
-# ZXing reader
 reader = BarCodeReader()
-
 @app.post("/decode-qr-zxing/")
 async def decode_qr_zxing(file: UploadFile = File(...)):
     if file.content_type not in ['image/jpeg', 'image/png']:
         raise HTTPException(status_code=400, detail="Invalid file format")
-    
     try:
-        # Leer la imagen usando PIL
         image_data = await file.read()
         image = Image.open(io.BytesIO(image_data))
-        image.save("temp_qr_image.png")  # Guardar la imagen temporalmente para ZXing
-        
-        # Usar ZXing para decodificar
+        image.save("temp_qr_image.png")
         result = reader.decode("temp_qr_image.png")
-
         if result and 'parsed' in result[0]:
             return JSONResponse(content={"data": result[0]['parsed']})
         else:
             return JSONResponse(content={"detail": "No QR code found in the image"})
-    
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to decode QR code using ZXing: {str(e)}")
-    
-
-
-# @app.get("/documentos/numero-rendicion/", response_model=List[str])
-# async def get_distinct_numero_rendicion(
-#     usuario: str = Query(..., description="Filtrar por usuario"),
-#     db: AsyncSession = Depends(get_db)
-# ):
-#     try:
-#         # Consulta para obtener los números de rendición distintos por usuario
-#         query = select(distinct(models.Documento.numero_rendicion)).where(
-#             models.Documento.usuario == usuario
-#         )
-
-#         result = await db.execute(query)
-#         numeros_rendicion = result.scalars().all()
-
-#         return numeros_rendicion
-#     except Exception as e:
-#         raise HTTPException(status_code=500, detail=f"Error al obtener los números de rendición: {str(e)}")
-
+        raise HTTPException(
+            status_code=500, detail=f"Failed to decode QR code using ZXing: {str(e)}")
 
 @app.get("/documentos/numero-rendicion/", response_model=List[str])
 async def get_distinct_numero_rendicion(
@@ -2127,26 +1170,14 @@ async def get_distinct_numero_rendicion(
     db: AsyncSession = Depends(get_db)
 ):
     try:
-        # Consulta para obtener los números de rendición distintos por usuario
         query = select(distinct(models.Documento.numero_rendicion)).where(
             models.Documento.usuario == usuario
         )
-
         result = await db.execute(query)
         numeros_rendicion = result.scalars().all()
-
-        # Filtrar los valores que sean None
-        numeros_rendicion = [str(num) for num in numeros_rendicion if num is not None]
-
+        numeros_rendicion = [str(num)
+                             for num in numeros_rendicion if num is not None]
         return numeros_rendicion
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al obtener los números de rendición: {str(e)}")
-
-
-
-# Esto va al final del archivo
-if __name__ == "__main__":
-    import os
-    import uvicorn
-    port = int(os.getenv("PORT", 8000))
-    uvicorn.run("app.main:app", host="0.0.0.0", port=port, reload=True)
+        raise HTTPException(
+            status_code=500, detail=f"Error al obtener los números de rendición: {str(e)}")
