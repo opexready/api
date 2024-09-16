@@ -24,7 +24,7 @@ from mimetypes import guess_type
 import pytesseract
 import httpx
 import uuid
-# from pyzbar.pyzbar import decode # type: ignore
+from pyzbar.pyzbar import decode # type: ignore
 from pyzxing import BarCodeReader # type: ignore
 from . import crud, models, schemas, auth
 from .database import engine, SessionLocal
@@ -124,70 +124,70 @@ def preprocess_image(image):
     return processed_image
 
 
-# @app.post("/decode-qr/")
-# async def decode_qr(file: UploadFile = File(...)):
-#     if file.content_type not in ['image/jpeg', 'image/png']:
-#         raise HTTPException(status_code=400, detail="Invalid file format")
+@app.post("/decode-qr/")
+async def decode_qr(file: UploadFile = File(...)):
+    if file.content_type not in ['image/jpeg', 'image/png']:
+        raise HTTPException(status_code=400, detail="Invalid file format")
 
-#     try:
-#         image_data = await file.read()
-#         image = Image.open(io.BytesIO(image_data))
+    try:
+        image_data = await file.read()
+        image = Image.open(io.BytesIO(image_data))
 
-#         # Preprocesar la imagen para mejorar la posibilidad de lectura
-#         processed_image = preprocess_image(image)
+        # Preprocesar la imagen para mejorar la posibilidad de lectura
+        processed_image = preprocess_image(image)
 
-#         # Intentar la decodificación varias veces
-#         decoded_objects = decode(processed_image)
+        # Intentar la decodificación varias veces
+        decoded_objects = decode(processed_image)
 
-#         if not decoded_objects:
-#             # Si no funciona con la imagen preprocesada, intentamos con la imagen original
-#             decoded_objects = decode(image)
+        if not decoded_objects:
+            # Si no funciona con la imagen preprocesada, intentamos con la imagen original
+            decoded_objects = decode(image)
 
-#         if not decoded_objects:
-#             return JSONResponse(content={"detail": "No QR code found in the image"})
+        if not decoded_objects:
+            return JSONResponse(content={"detail": "No QR code found in the image"})
 
-#         # Extraer la data del primer código QR encontrado
-#         qr_data = decoded_objects[0].data.decode("utf-8").split("|")
+        # Extraer la data del primer código QR encontrado
+        qr_data = decoded_objects[0].data.decode("utf-8").split("|")
 
-#         result = {}
+        result = {}
 
-#         for data in qr_data:
-#             if re.match(r'^\d{8}$', data):  # Dato de 8 dígitos (DNI)
-#                 result["dni"] = data
-#             elif re.match(r'^\d{11}$', data):  # Dato de 11 dígitos (RUC)
-#                 result["ruc"] = data
-#             elif re.match(r'^\d{2}$', data):  # Dato de 2 dígitos (Tipo de Documento)
-#                 tipo_doc_map = {
-#                     "01": "Factura",
-#                     "02": "Recibo por Honorarios",
-#                     "03": "Boleta de Venta",
-#                     "05": "Boleto Aéreo",
-#                     "07": "Nota de Crédito",
-#                     "08": "Nota de Débito",
-#                     "12": "Ticket o cinta emitido por máquina registradora",
-#                     "14": "Recibo Servicio Público"
-#                 }
-#                 result["tipo"] = tipo_doc_map.get(data, "Desconocido")
-#             # Dato con formato xxxx-aaaaaaaa (Serie-Número)
-#             elif re.match(r'^[A-Za-z0-9]{4}-\d{7,8}$', data):
-#                 serie, numero = data.split('-')
-#                 result["serie"] = serie
-#                 result["numero"] = numero
-#             elif re.match(r'^\d+\.\d{2}$', data):  # Dato de valor decimal
-#                 if "total" not in result or float(data) > float(result["total"]):
-#                     if "total" in result:
-#                         result["igv"] = result["total"]
-#                     result["total"] = data
-#                 else:
-#                     result["igv"] = data
-#             elif re.match(r'^\d{4}-\d{2}-\d{2}$', data) or re.match(r'^\d{2}/\d{2}/\d{4}$', data):  # Fecha
-#                 result["fecha"] = data
+        for data in qr_data:
+            if re.match(r'^\d{8}$', data):  # Dato de 8 dígitos (DNI)
+                result["dni"] = data
+            elif re.match(r'^\d{11}$', data):  # Dato de 11 dígitos (RUC)
+                result["ruc"] = data
+            elif re.match(r'^\d{2}$', data):  # Dato de 2 dígitos (Tipo de Documento)
+                tipo_doc_map = {
+                    "01": "Factura",
+                    "02": "Recibo por Honorarios",
+                    "03": "Boleta de Venta",
+                    "05": "Boleto Aéreo",
+                    "07": "Nota de Crédito",
+                    "08": "Nota de Débito",
+                    "12": "Ticket o cinta emitido por máquina registradora",
+                    "14": "Recibo Servicio Público"
+                }
+                result["tipo"] = tipo_doc_map.get(data, "Desconocido")
+            # Dato con formato xxxx-aaaaaaaa (Serie-Número)
+            elif re.match(r'^[A-Za-z0-9]{4}-\d{7,8}$', data):
+                serie, numero = data.split('-')
+                result["serie"] = serie
+                result["numero"] = numero
+            elif re.match(r'^\d+\.\d{2}$', data):  # Dato de valor decimal
+                if "total" not in result or float(data) > float(result["total"]):
+                    if "total" in result:
+                        result["igv"] = result["total"]
+                    result["total"] = data
+                else:
+                    result["igv"] = data
+            elif re.match(r'^\d{4}-\d{2}-\d{2}$', data) or re.match(r'^\d{2}/\d{2}/\d{4}$', data):  # Fecha
+                result["fecha"] = data
 
-#         return JSONResponse(content=result)
+        return JSONResponse(content=result)
 
-#     except Exception as e:
-#         raise HTTPException(
-#             status_code=500, detail=f"Failed to decode QR code: {str(e)}")
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to decode QR code: {str(e)}")
 
 
 
