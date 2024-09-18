@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from typing import List, Optional
 from datetime import date, timedelta, datetime
+from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
 from sqlalchemy import distinct
 import shutil
 import os
@@ -32,6 +33,8 @@ from app.firebase_service import upload_file_to_firebase, download_file_from_fir
 import cv2
 
 app = FastAPI()
+
+app.add_middleware(HTTPSRedirectMiddleware)
 
 # Configuración de Tesseract-OCR
 # pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
