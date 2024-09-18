@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, UploadFile, File, Query, APIRouter
+from fastapi import FastAPI, Depends, HTTPException, UploadFile, File, Query, APIRouter,Request
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -45,6 +45,15 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "DELETE"],  # Solo los métodos HTTP que uses
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def https_redirect(request: Request, call_next):
+    # Si la solicitud es HTTP y el encabezado indica que la solicitud original fue HTTPS
+    if request.headers.get("X-Forwarded-Proto") == "http":
+        https_url = request.url.replace(scheme="https")
+        return RedirectResponse(url=str(https_url))
+    return await call_next(request)
 
 
 async def init_models():
