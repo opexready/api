@@ -37,11 +37,12 @@ app = FastAPI()
 # pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 
 # Configurar CORS
+# Configurar CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
+    allow_origins=["https://rendicionfront.onrender.com"],  # Permitir solo el dominio de tu frontend
+    allow_credentials=True,  # Permitir credenciales (cookies, autenticación)
+    allow_methods=["GET", "POST", "PUT", "DELETE"],  # Solo los métodos HTTP que uses
     allow_headers=["*"],
 )
 
@@ -65,7 +66,7 @@ API_TOKEN = "apis-token-9806.XVdywB8B1e4rdsDlPuTSZZ6D9RLx2sBX"
 API_URL = "https://api.apis.net.pe/v2/sunat/tipo-cambio"
 
 
-@app.post("/consulta-ruc/")
+@app.get("/consulta-ruc/")
 async def consulta_ruc(ruc: str = Query(..., min_length=11, max_length=11)):
     headers = {
         "Authorization": f"Bearer {API_TOKEN}"
