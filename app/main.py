@@ -40,7 +40,7 @@ app = FastAPI()
 # Configurar CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://rendicionfront.onrender.com"],  # Permitir solo el dominio de tu frontend
+    allow_origins=["*"],  # Permitir solo el dominio de tu frontend
     allow_credentials=True,  # Permitir credenciales (cookies, autenticación)
     allow_methods=["GET", "POST", "PUT", "DELETE"],  # Solo los métodos HTTP que uses
     allow_headers=["*"],
