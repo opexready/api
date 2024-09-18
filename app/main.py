@@ -65,7 +65,7 @@ API_TOKEN = "apis-token-9806.XVdywB8B1e4rdsDlPuTSZZ6D9RLx2sBX"
 API_URL = "https://api.apis.net.pe/v2/sunat/tipo-cambio"
 
 
-@app.get("/consulta-ruc/")
+@app.post("/consulta-ruc/")
 async def consulta_ruc(ruc: str = Query(..., min_length=11, max_length=11)):
     headers = {
         "Authorization": f"Bearer {API_TOKEN}"
@@ -86,7 +86,7 @@ async def consulta_ruc(ruc: str = Query(..., min_length=11, max_length=11)):
 # Aquí añadimos el nuevo endpoint para obtener el tipo de cambio
 
 
-@app.get("/tipo-cambio/", response_model=schemas.TipoCambioResponse)
+@app.post("/tipo-cambio/", response_model=schemas.TipoCambioResponse)
 async def obtener_tipo_cambio(fecha: str):
     headers = {
         "Authorization": f"Bearer {API_TOKEN}"
@@ -521,9 +521,25 @@ async def export_documentos_excel(
 
 class PDF(FPDF):
     def header(self):
-        # Logo
-        logo_path = 'C:\\logo\\logo.png'
-        self.image(logo_path, 10, 8, 33)
+        # URL del logo
+        logo_url = 'https://firebasestorage.googleapis.com/v0/b/hawejin-files.appspot.com/o/logo.png?alt=media&token=a58583c4-fed3-468d-abe6-92252a1c1fff'
+
+        # Descargar la imagen
+        response = requests.get(logo_url)
+        if response.status_code == 200:
+            logo_path = 'temp_logo.png'
+            # Guardar la imagen temporalmente
+            with open(logo_path, 'wb') as f:
+                f.write(response.content)
+            
+            # Agregar la imagen al PDF
+            self.image(logo_path, 10, 8, 33)
+            
+            # Eliminar la imagen después de usarla para liberar espacio
+            os.remove(logo_path)
+        else:
+            print("No se pudo descargar la imagen.")
+
         self.ln(20)
 
         # Usuario y datos asociados
