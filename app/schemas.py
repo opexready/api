@@ -79,6 +79,7 @@ class DocumentoBase(BaseModel):
     destino: Optional[str] = None
     origen: Optional[str] = None
     numero_rendicion: Optional[str] = None
+    tipo_viaje: Optional[str] = None
 
 class DocumentoCreate(DocumentoBase):
     pass

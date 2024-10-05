@@ -67,7 +67,7 @@ async def get_users_with_pending_documents(db: AsyncSession, empresa: str):
         )
         .join(models.Documento, models.User.email == models.Documento.usuario)
         .where(
-            models.Documento.estado == 'PENDIENTE',
+            models.Documento.estado == 'POR APROBAR',
             models.User.company_name == models.Documento.empresa,
             models.Documento.empresa == empresa
         )

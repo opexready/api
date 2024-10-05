@@ -73,6 +73,7 @@ class Documento(Base):
     origen = Column(String)
     destino = Column(String)
     numero_rendicion = Column(String)
+    tipo_viaje = Column(String)
   
 
 class Company(Base):
