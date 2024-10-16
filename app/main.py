@@ -665,6 +665,7 @@ async def export_documentos_pdf(
     # Construir la consulta base con el filtro de empresa y número de rendición obligatorio
     query = select(models.Documento).filter(
         models.Documento.empresa == empresa,
+        models.Documento.tipo_solicitud == "RENDICION",
         models.Documento.numero_rendicion == numero_rendicion
     )
 
@@ -689,7 +690,7 @@ async def export_documentos_pdf(
     # Calcular el total de anticipo basado en tipo_solicitud=ANTICIPO, estado=APROBADO y username
     query_anticipo = select(models.Documento).filter(
         models.Documento.tipo_solicitud == "ANTICIPO",
-        models.Documento.estado == "APROBADO",
+        models.Documento.estado == "CERRADO",
         models.Documento.usuario == username,
         models.Documento.empresa == empresa
     )
@@ -706,14 +707,14 @@ async def export_documentos_pdf(
 
     # Crear el PDF
     pdf = PDF(orientation='L')
-    pdf.usuario = "Nombre del usuario"
-    pdf.dni = "DNI del usuario"
-    pdf.cargo = "Cargo del usuario"
-    pdf.zona = "Zona del usuario"
-    pdf.area_responsable = "Área Responsable"
-    pdf.fecha_solicitud = "Fecha de Solicitud"
-    pdf.fecha_rendicion = "Fecha de Rendición"
-    pdf.tipo_gasto = "Tipo de Gasto"
+    pdf.usuario = "Cesar Loyola"
+    pdf.dni = "456215242"
+    pdf.cargo = "Vendedor"
+    pdf.zona = "Zona Norte"
+    pdf.area_responsable = "Finanzas"
+    pdf.fecha_solicitud = "16-10-2024"
+    pdf.fecha_rendicion = "16-10-2024"
+    pdf.tipo_gasto = "Rendición de Gastos"
     pdf.total_anticipo = total_anticipo
     pdf.total_gasto = total_gasto
     pdf.reembolso = reembolso
@@ -1095,7 +1096,14 @@ async def generar_pdf(data: dict, db: AsyncSession = Depends(get_db)):
         fecha_solicitud=data['fecha_solicitud'],
         fecha_emision=data['fecha_emision'],
         usuario=data['usuario'],
+        correlativo=data['correlativo'] ,
+        ruc=data['ruc'] ,
         dni=data['dni'],
+        tipo_cambio=data['tipo_cambio'],
+        afecto=data['afecto'],
+        inafecto=data['inafecto'],
+        igv=data['igv'],
+        serie=data['serie'],
         gerencia=data['gerencia'],
         archivo=public_url,
         estado="POR APROBAR",
@@ -1109,7 +1117,8 @@ async def generar_pdf(data: dict, db: AsyncSession = Depends(get_db)):
         origen=data['origen'],
         destino=data['destino'],
         tipo_solicitud="RENDICION",
-        numero_rendicion=data['numero_rendicion'] 
+        numero_rendicion=data['numero_rendicion'] ,
+        
         
     )
     db_documento = await crud.create_documento(db=db, documento=documento_data)
