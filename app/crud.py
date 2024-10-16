@@ -1,6 +1,6 @@
 from sqlalchemy.future import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import func
+from sqlalchemy import func, desc
 from . import models, schemas
 from . import auth
 
@@ -154,3 +154,49 @@ async def delete_company(db: AsyncSession, company_id: int):
 async def get_company_by_id(db: AsyncSession, company_id: int):
     result = await db.execute(select(models.Company).filter(models.Company.id == company_id))
     return result.scalars().first()
+
+async def create_rendicion(db: AsyncSession, rendicion: schemas.RendicionCreate):
+    db_rendicion = models.Rendicion(idUser=rendicion.idUser, nombre=rendicion.nombre)
+    db.add(db_rendicion)
+    await db.commit()
+    await db.refresh(db_rendicion)
+    return db_rendicion
+
+async def get_rendiciones(db: AsyncSession):
+    result = await db.execute(select(models.Rendicion))
+    return result.scalars().all()
+
+
+# Método para crear una rendición con incremento en el nombre
+async def create_rendicion_with_increment(db: AsyncSession, user_id: int) -> models.Rendicion:
+    # Buscar el último registro de rendición del usuario
+    result = await db.execute(
+        select(models.Rendicion)
+        .filter(models.Rendicion.idUser == user_id, models.Rendicion.nombre.like("R%"))
+        .order_by(desc(models.Rendicion.id))
+    )
+    
+    last_rendicion = result.scalars().first()
+
+    # Si no existe ningún registro previo, el primer valor será R00001
+    if not last_rendicion:
+        new_nombre = "R00001"
+    else:
+        # Extraer el número del último 'nombre' y sumarle 1
+        last_number = int(last_rendicion.nombre[1:])  # Ignorar la letra 'R'
+        new_number = last_number + 1
+        new_nombre = f"R{new_number:05d}"  # Formatear con 5 dígitos, ejemplo: R00002
+
+    # Crear una nueva rendición
+    new_rendicion = models.Rendicion(
+        idUser=user_id,
+        nombre=new_nombre
+    )
+
+    # Guardar en la base de datos
+    db.add(new_rendicion)
+    await db.commit()
+    await db.refresh(new_rendicion)
+
+    return new_rendicion
+

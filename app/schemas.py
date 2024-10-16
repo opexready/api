@@ -119,3 +119,25 @@ class TipoCambioResponse(BaseModel):
     precioVenta: float
     moneda: str
     fecha: str
+
+class RendicionBase(BaseModel):
+    nombre: str
+
+class RendicionCreate(RendicionBase):
+    idUser: int
+
+class Rendicion(RendicionBase):
+    id: int
+    idUser: int
+
+    class Config:
+        from_attributes = True
+
+class RendicionCreateResponse(BaseModel):
+    id: int
+    idUser: int
+    nombre: str
+
+    class Config:
+        from_attributes = True
+

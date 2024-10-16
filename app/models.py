@@ -82,3 +82,13 @@ class Company(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, index=True)
     description = Column(String, nullable=True)
+
+class Rendicion(Base):
+    __tablename__ = "rendicion"
+
+    id = Column(Integer, primary_key=True, index=True)
+    idUser = Column(Integer, ForeignKey('users.id'), nullable=False)  # Llave foránea a la tabla users
+    nombre = Column(String, nullable=False)
+
+    # Relación con la tabla users
+    user = relationship("User")

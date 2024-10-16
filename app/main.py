@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Depends, HTTPException, UploadFile, File, Query, APIRouter, Request
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from typing import List, Optional
@@ -28,6 +29,11 @@ from . import crud, models, schemas, auth
 from .database import engine, SessionLocal
 from app.firebase_service import upload_file_to_firebase, download_file_from_firebase, upload_file_to_firebase_pdf
 import cv2
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.ext.asyncio import AsyncSession
+from .database import get_db
+from .crud import create_rendicion_with_increment
+from .schemas import RendicionCreateResponse
 
 app = FastAPI()
 
@@ -268,34 +274,99 @@ async def read_user_by_email(email: str = Query(...), db: AsyncSession = Depends
         raise HTTPException(status_code=404, detail="User not found")
     return user
 
+# @app.post("/documentos/", response_model=schemas.Documento)
+# async def create_documento(documento: schemas.DocumentoCreate, db: AsyncSession = Depends(get_db)):
+
+#     result = await db.execute(
+#         select(models.Documento)
+#         .filter(models.Documento.usuario == documento.usuario)
+#         .filter(models.Documento.fecha_solicitud == documento.fecha_solicitud)
+#         .filter(models.Documento.tipo_solicitud == 'GASTO')
+#         .limit(1)  
+#     )
+#     documento_existente = result.scalar_one_or_none()
+#     if documento_existente:
+#         numero_rendicion = documento_existente.numero_rendicion
+#     else:
+#         result = await db.execute(
+#             select(models.Documento.numero_rendicion)
+#             .filter(models.Documento.usuario == documento.usuario)
+#             .filter(models.Documento.tipo_solicitud == 'GASTO')
+#             .order_by(models.Documento.numero_rendicion.desc())
+#             .limit(1)  
+#         )
+#         mayor_rendicion = result.scalar_one_or_none()
+
+#         if mayor_rendicion:
+#             rendicion_num = int(mayor_rendicion.replace("rendicion_", "")) + 1
+#             numero_rendicion = f"rendicion_{rendicion_num}"
+#         else:
+#             numero_rendicion = "rendicion_1"
+
+#     db_documento = models.Documento(
+#         fecha_solicitud=documento.fecha_solicitud,
+#         fecha_rendicion=documento.fecha_rendicion,
+#         dni=documento.dni,
+#         usuario=documento.usuario,
+#         gerencia=documento.gerencia,
+#         ruc=documento.ruc,
+#         proveedor=documento.proveedor,
+#         fecha_emision=documento.fecha_emision,
+#         moneda=documento.moneda,
+#         tipo_documento=documento.tipo_documento,
+#         serie=documento.serie,
+#         correlativo=documento.correlativo,
+#         tipo_gasto=documento.tipo_gasto,
+#         sub_total=documento.sub_total,
+#         igv=documento.igv,
+#         no_gravadas=documento.no_gravadas,
+#         importe_facturado=documento.importe_facturado,
+#         tc=documento.tc,
+#         anticipo=documento.anticipo,
+#         total=documento.total,
+#         pago=documento.pago,
+#         detalle=documento.detalle,
+#         estado=documento.estado,
+#         empresa=documento.empresa,
+#         archivo=documento.archivo,
+#         tipo_solicitud=documento.tipo_solicitud,
+#         tipo_cambio=documento.tipo_cambio,
+#         afecto=documento.afecto,
+#         inafecto=documento.inafecto,
+#         rubro=documento.rubro,
+#         cuenta_contable=documento.cuenta_contable,
+#         responsable=documento.responsable,
+#         area=documento.area,
+#         ceco=documento.ceco,
+#         tipo_anticipo=documento.tipo_anticipo,
+#         motivo=documento.motivo,
+#         fecha_viaje=documento.fecha_viaje,
+#         dias=documento.dias,
+#         presupuesto=documento.presupuesto,
+#         banco=documento.banco,
+#         numero_cuenta=documento.numero_cuenta,
+#         destino=documento.destino,
+#         origen=documento.origen,
+#         numero_rendicion=numero_rendicion  
+#     )
+
+#     db.add(db_documento)
+#     await db.commit()
+#     await db.refresh(db_documento)
+#     return db_documento
+
 @app.post("/documentos/", response_model=schemas.Documento)
 async def create_documento(documento: schemas.DocumentoCreate, db: AsyncSession = Depends(get_db)):
+    # Log para verificar los datos recibidos
+    print(f"Datos recibidos en el request: {documento}")
 
     result = await db.execute(
         select(models.Documento)
         .filter(models.Documento.usuario == documento.usuario)
         .filter(models.Documento.fecha_solicitud == documento.fecha_solicitud)
-        .filter(models.Documento.tipo_solicitud == 'GASTO')
-        .limit(1)  
+        .filter(models.Documento.tipo_solicitud == 'RENDICION')
+        .limit(1)
     )
-    documento_existente = result.scalar_one_or_none()
-    if documento_existente:
-        numero_rendicion = documento_existente.numero_rendicion
-    else:
-        result = await db.execute(
-            select(models.Documento.numero_rendicion)
-            .filter(models.Documento.usuario == documento.usuario)
-            .filter(models.Documento.tipo_solicitud == 'GASTO')
-            .order_by(models.Documento.numero_rendicion.desc())
-            .limit(1)  
-        )
-        mayor_rendicion = result.scalar_one_or_none()
-
-        if mayor_rendicion:
-            rendicion_num = int(mayor_rendicion.replace("rendicion_", "")) + 1
-            numero_rendicion = f"rendicion_{rendicion_num}"
-        else:
-            numero_rendicion = "rendicion_1"
 
     db_documento = models.Documento(
         fecha_solicitud=documento.fecha_solicitud,
@@ -341,13 +412,20 @@ async def create_documento(documento: schemas.DocumentoCreate, db: AsyncSession 
         numero_cuenta=documento.numero_cuenta,
         destino=documento.destino,
         origen=documento.origen,
-        numero_rendicion=numero_rendicion  
+        numero_rendicion=documento.numero_rendicion  # Usamos numero_rendicion aquí
     )
+
+    print(f"Guardando el documento en la base de datos: {db_documento}")
 
     db.add(db_documento)
     await db.commit()
     await db.refresh(db_documento)
+
+    print(f"Documento guardado exitosamente con ID: {db_documento.id}")
+    
     return db_documento
+
+
 
 
 @app.get("/documentos/{documento_id}", response_model=schemas.Documento)
@@ -860,11 +938,42 @@ class DocumentoPDFLocal(FPDF):
         self.ln(10)
 
 
+# @app.post("/documentos/crear-con-pdf-local/", response_model=schemas.Documento)
+# async def create_documento_con_pdf_local(
+#     documento: schemas.DocumentoCreate,
+#     db: AsyncSession = Depends(get_db)
+# ):
+#     db_documento = await crud.create_documento(db=db, documento=documento)
+
+#     pdf = DocumentoPDFLocal()  # Instancia de la clase correctamente
+#     pdf.add_page()
+#     pdf.add_document_details(documento)  # Pasar el objeto documento
+
+#     pdf_data = BytesIO()
+
+#     try:
+#         pdf_output = pdf.output(dest='S').encode('latin1')
+#         pdf_data.write(pdf_output)
+#         pdf_data.seek(0)
+#         unique_filename = f"documento_local_{str(uuid.uuid4())}.pdf"
+#         public_url = upload_file_to_firebase_pdf(
+#             pdf_data, unique_filename, content_type="application/pdf")
+
+#     except Exception as e:
+#         logging.error(f"Error al generar o subir el PDF: {str(e)}")
+#         raise HTTPException(
+#             status_code=500, detail=f"Error al generar o subir el archivo a Firebase: {str(e)}")
+#     db_documento.archivo = public_url
+#     await db.commit()
+#     await db.refresh(db_documento)
+#     return db_documento
+
 @app.post("/documentos/crear-con-pdf-local/", response_model=schemas.Documento)
 async def create_documento_con_pdf_local(
     documento: schemas.DocumentoCreate,
     db: AsyncSession = Depends(get_db)
 ):
+    # Crear el documento en la base de datos
     db_documento = await crud.create_documento(db=db, documento=documento)
 
     pdf = DocumentoPDFLocal()  # Instancia de la clase correctamente
@@ -885,9 +994,13 @@ async def create_documento_con_pdf_local(
         logging.error(f"Error al generar o subir el PDF: {str(e)}")
         raise HTTPException(
             status_code=500, detail=f"Error al generar o subir el archivo a Firebase: {str(e)}")
+
+    # Asignar la URL del PDF generado
     db_documento.archivo = public_url
+    db_documento.numero_rendicion = documento.numero_rendicion  # Guardar numero_rendicion
     await db.commit()
     await db.refresh(db_documento)
+
     return db_documento
 
 
@@ -995,7 +1108,9 @@ async def generar_pdf(data: dict, db: AsyncSession = Depends(get_db)):
         motivo=data['motivo'],
         origen=data['origen'],
         destino=data['destino'],
-        tipo_solicitud="GASTO"
+        tipo_solicitud="RENDICION",
+        numero_rendicion=data['numero_rendicion'] 
+        
     )
     db_documento = await crud.create_documento(db=db, documento=documento_data)
     db_documento.archivo = public_url
@@ -1053,3 +1168,66 @@ async def get_distinct_numero_rendicion(
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Error al obtener los números de rendición: {str(e)}")
+
+# @app.post("/rendicion/", response_model=schemas.Rendicion)
+# async def create_rendicion(rendicion: schemas.RendicionCreate, db: AsyncSession = Depends(get_db)):
+#     return await crud.create_rendicion(db, rendicion)
+
+# Ruta para obtener todas las rendiciones
+@app.get("/rendiciones/", response_model=list[schemas.Rendicion])
+async def read_rendiciones(db: AsyncSession = Depends(get_db)):
+    return await crud.get_rendiciones(db)
+
+class RendicionCreateRequest(BaseModel):
+    user_id: int
+
+@app.post("/rendicion/", response_model=RendicionCreateResponse)
+async def create_rendicion(rendicion_request: RendicionCreateRequest, db: AsyncSession = Depends(get_db)):
+    try:
+        user_id = rendicion_request.user_id
+        new_rendicion = await create_rendicion_with_increment(db, user_id)
+        return new_rendicion
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+# Método para obtener el último registro de rendición por user_id
+@app.get("/rendicion/last", response_model=RendicionCreateResponse)
+async def get_last_rendicion(user_id: int, db: AsyncSession = Depends(get_db)):
+    try:
+        # Consulta para obtener la última rendición por id de usuario
+        result = await db.execute(
+            select(models.Rendicion)
+            .where(models.Rendicion.idUser == user_id)
+            .order_by(models.Rendicion.id.desc())
+            .limit(1)
+        )
+        
+        last_rendicion = result.scalars().first()
+
+        if not last_rendicion:
+            raise HTTPException(status_code=404, detail="No se encontró ninguna rendición para este usuario")
+
+        return last_rendicion
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+    # Método para obtener todos los nombres de rendiciones por user_id sin repetir
+@app.get("/rendicion/nombres", response_model=list[str])
+async def get_unique_rendicion_names(user_id: int, db: AsyncSession = Depends(get_db)):
+    try:
+        # Consulta para obtener los nombres de las rendiciones sin repetir, filtradas por user_id
+        result = await db.execute(
+            select(distinct(models.Rendicion.nombre))
+            .where(models.Rendicion.idUser == user_id)
+        )
+
+        # Obtener todos los nombres únicos de la consulta
+        nombres_rendicion = result.scalars().all()
+
+        if not nombres_rendicion:
+            raise HTTPException(status_code=404, detail="No se encontraron rendiciones para este usuario")
+
+        return nombres_rendicion
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
