@@ -191,7 +191,7 @@ async def create_rendicion_with_increment(db: AsyncSession, user_id: int) -> mod
     new_rendicion = models.Rendicion(
         idUser=user_id,
         nombre=new_nombre,
-        estado="GENERANDO", 
+        estado="CREADO", 
         tipo="RENDICION"
     )
 
@@ -228,7 +228,7 @@ async def create_solicitud_with_increment(db: AsyncSession, user_id: int) -> mod
     new_rendicion = models.Rendicion(
         idUser=user_id,
         nombre=new_nombre,
-        estado="GENERANDO", 
+        estado="CREADO", 
         tipo="SOLICITUD"
     )
 

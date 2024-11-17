@@ -172,6 +172,11 @@ class RendicionBase(BaseModel):
     tipo: Optional[str] = None  # Nuevo campo tipo
     estado: Optional[str] = None  # Nuevo campo estado
 
+class RendicionUpdate(BaseModel):
+    nombre: Optional[str]
+    tipo: Optional[str]
+    estado: Optional[str]
+
 class RendicionCreate(RendicionBase):
     idUser: int
 

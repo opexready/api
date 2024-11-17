@@ -33,8 +33,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from .database import get_db
 from .crud import create_rendicion_with_increment, create_solicitud_with_increment
-from .schemas import RendicionCreateResponse
-
+from .schemas import RendicionCreateResponse, RendicionUpdate
+from .models import Rendicion 
 app = FastAPI()
 
 app.add_middleware(
@@ -1206,12 +1206,6 @@ async def get_distinct_numero_rendicion(
         raise HTTPException(
             status_code=500, detail=f"Error al obtener los números de rendición: {str(e)}")
 
-# @app.post("/rendicion/", response_model=schemas.Rendicion)
-# async def create_rendicion(rendicion: schemas.RendicionCreate, db: AsyncSession = Depends(get_db)):
-#     return await crud.create_rendicion(db, rendicion)
-
-# Ruta para obtener todas las rendiciones
-
 
 @app.get("/rendiciones/", response_model=list[schemas.Rendicion])
 async def read_rendiciones(db: AsyncSession = Depends(get_db)):
@@ -1233,6 +1227,7 @@ async def create_rendicion(rendicion_request: RendicionCreateRequest, db: AsyncS
 
 # Método para obtener el último registro de rendición por user_id
 
+
 @app.post("/solicitud/", response_model=RendicionCreateResponse)
 async def create_solicitud(rendicion_request: RendicionCreateRequest, db: AsyncSession = Depends(get_db)):
     try:
@@ -1240,7 +1235,7 @@ async def create_solicitud(rendicion_request: RendicionCreateRequest, db: AsyncS
         new_rendicion = await create_solicitud_with_increment(db, user_id)
         return new_rendicion
     except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/rendicion/last", response_model=RendicionCreateResponse)
@@ -1288,5 +1283,34 @@ async def get_unique_rendicion_names(user_id: int, db: AsyncSession = Depends(ge
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    
 
-   
+class RendicionUpdate(BaseModel):
+    nombre: Optional[str] = None
+    tipo: Optional[str] = None
+    estado: Optional[str] = None
+
+@app.put("/rendicion/{rendicion_id}", response_model=dict)
+async def update_rendicion(
+    rendicion_id: int,
+    rendicion_data: RendicionUpdate,
+    db: AsyncSession = Depends(get_db)
+):
+    # Buscar la rendición por ID
+    result = await db.execute(select(Rendicion).where(Rendicion.id == rendicion_id))
+    db_rendicion = result.scalars().first()
+
+    if not db_rendicion:
+        raise HTTPException(status_code=404, detail="Rendición no encontrada")
+
+    # Actualizar solo los campos proporcionados
+    update_data = rendicion_data.dict(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(db_rendicion, key, value)
+
+    # Guardar cambios
+    await db.commit()
+    await db.refresh(db_rendicion)
+
+    return {"detail": "Rendición actualizada exitosamente"}
+
