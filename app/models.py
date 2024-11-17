@@ -89,6 +89,8 @@ class Rendicion(Base):
     id = Column(Integer, primary_key=True, index=True)
     idUser = Column(Integer, ForeignKey('users.id'), nullable=False)  # Llave foránea a la tabla users
     nombre = Column(String, nullable=False)
+    tipo = Column(String, nullable=True)  # Nuevo campo tipo
+    estado = Column(String, nullable=True)  # Nuevo campo estado
 
     # Relación con la tabla users
     user = relationship("User")

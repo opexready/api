@@ -32,18 +32,19 @@ import cv2
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from .database import get_db
-from .crud import create_rendicion_with_increment
+from .crud import create_rendicion_with_increment, create_solicitud_with_increment
 from .schemas import RendicionCreateResponse
 
 app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], 
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 @app.middleware("http")
 async def https_redirect(request: Request, call_next):
@@ -57,6 +58,7 @@ async def init_models():
     async with engine.begin() as conn:
         await conn.run_sync(models.Base.metadata.create_all)
 
+
 @app.on_event("startup")
 async def on_startup():
     await init_models()
@@ -69,6 +71,7 @@ async def get_db():
 API_SUNAT_URL = "https://api.apis.net.pe/v2/sunat/ruc"
 API_TOKEN = "apis-token-9806.XVdywB8B1e4rdsDlPuTSZZ6D9RLx2sBX"
 API_URL = "https://api.apis.net.pe/v2/sunat/tipo-cambio"
+
 
 @app.get("/consulta-ruc/")
 async def consulta_ruc(ruc: str = Query(..., min_length=11, max_length=11)):
@@ -106,6 +109,7 @@ async def obtener_tipo_cambio(fecha: str):
         else:
             raise HTTPException(status_code=response.status_code,
                                 detail="Error al consultar el tipo de cambio")
+
 
 def preprocess_image(image):
     gray_image = ImageOps.grayscale(image)
@@ -167,6 +171,7 @@ def preprocess_image(image):
 #         raise HTTPException(
 #             status_code=500, detail=f"Failed to decode QR code: {str(e)}")
 
+
 @app.post("/decode-qr/")
 async def decode_qr(file: UploadFile = File(...)):
     if file.content_type not in ['image/jpeg', 'image/png']:
@@ -182,7 +187,8 @@ async def decode_qr(file: UploadFile = File(...)):
             return JSONResponse(content={"detail": "No QR code found in the image"})
 
         # Imprimir el primer resultado de la decodificación del QR en consola
-        print(f"Primer resultado decodificado del QR: {decoded_objects[0].data.decode('utf-8')}")
+        print(f"Primer resultado decodificado del QR: {
+              decoded_objects[0].data.decode('utf-8')}")
 
         qr_data = decoded_objects[0].data.decode("utf-8").split("|")
         result = {}
@@ -207,12 +213,15 @@ async def decode_qr(file: UploadFile = File(...)):
             elif re.match(r'^[A-Za-z0-9]{4}-\d{7,8}$', data):
                 serie, numero = data.split('-')
                 result["serie"] = serie
-                result["numero"] = numero.zfill(8)  # Rellena con ceros si es necesario
+                # Rellena con ceros si es necesario
+                result["numero"] = numero.zfill(8)
             # Detectar serie (alfanumérico sin guion como BL22) seguida de un número
-            elif re.match(r'^[A-Za-z0-9]{2,4}$', data):   # Detectar serie alfanumérica
+            # Detectar serie alfanumérica
+            elif re.match(r'^[A-Za-z0-9]{2,4}$', data):
                 result["serie"] = data
             elif re.match(r'^\d+$', data) and 3 < len(data) < 9:  # Detectar número (sin guion)
-                result["numero"] = data.zfill(8)  # Rellenar con ceros si es necesario
+                # Rellenar con ceros si es necesario
+                result["numero"] = data.zfill(8)
             elif re.match(r'^\d+\.\d{2}$', data):  # Dato de valor decimal
                 if "total" not in result or float(data) > float(result["total"]):
                     if "total" in result:
@@ -228,7 +237,6 @@ async def decode_qr(file: UploadFile = File(...)):
             status_code=500, detail=f"Failed to decode QR code: {str(e)}")
 
 
-
 @app.post("/token", response_model=dict)
 async def login_for_access_token(form_data: schemas.UserLogin, db: AsyncSession = Depends(get_db)):
     user = await crud.get_user_by_email(db, email=form_data.email)
@@ -240,9 +248,11 @@ async def login_for_access_token(form_data: schemas.UserLogin, db: AsyncSession 
         data={"sub": user.email}, expires_delta=access_token_expires)
     return {"access_token": access_token, "token_type": "bearer"}
 
+
 @app.get("/users/me/", response_model=schemas.User)
 async def read_users_me(current_user: schemas.User = Depends(auth.get_current_user)):
     return current_user
+
 
 @app.post("/users/", response_model=schemas.User)
 async def create_user(user: schemas.UserCreate, db: AsyncSession = Depends(get_db)):
@@ -251,9 +261,11 @@ async def create_user(user: schemas.UserCreate, db: AsyncSession = Depends(get_d
         raise HTTPException(status_code=400, detail="Email already registered")
     return await crud.create_user(db=db, user=user)
 
+
 @app.get("/users/", response_model=List[schemas.User])
 async def read_users(db: AsyncSession = Depends(get_db)):
     return await crud.get_users(db)
+
 
 @app.get("/users/by-company-and-role/", response_model=List[schemas.User])
 async def read_users_by_company_and_role(company_name: str = Query(...), role: str = Query(...), db: AsyncSession = Depends(get_db)):
@@ -263,9 +275,11 @@ async def read_users_by_company_and_role(company_name: str = Query(...), role: s
             status_code=404, detail="No users found for the specified company_name and role")
     return users
 
+
 @app.get("/users/with-pending-documents/", response_model=List[schemas.UserWithPendingDocuments])
 async def read_users_with_pending_documents(empresa: str = Query(...), db: AsyncSession = Depends(get_db)):
     return await crud.get_users_with_pending_documents(db, empresa)
+
 
 @app.get("/users/by-email/", response_model=schemas.User)
 async def read_user_by_email(email: str = Query(...), db: AsyncSession = Depends(get_db)):
@@ -282,7 +296,7 @@ async def read_user_by_email(email: str = Query(...), db: AsyncSession = Depends
 #         .filter(models.Documento.usuario == documento.usuario)
 #         .filter(models.Documento.fecha_solicitud == documento.fecha_solicitud)
 #         .filter(models.Documento.tipo_solicitud == 'GASTO')
-#         .limit(1)  
+#         .limit(1)
 #     )
 #     documento_existente = result.scalar_one_or_none()
 #     if documento_existente:
@@ -293,7 +307,7 @@ async def read_user_by_email(email: str = Query(...), db: AsyncSession = Depends
 #             .filter(models.Documento.usuario == documento.usuario)
 #             .filter(models.Documento.tipo_solicitud == 'GASTO')
 #             .order_by(models.Documento.numero_rendicion.desc())
-#             .limit(1)  
+#             .limit(1)
 #         )
 #         mayor_rendicion = result.scalar_one_or_none()
 
@@ -347,13 +361,14 @@ async def read_user_by_email(email: str = Query(...), db: AsyncSession = Depends
 #         numero_cuenta=documento.numero_cuenta,
 #         destino=documento.destino,
 #         origen=documento.origen,
-#         numero_rendicion=numero_rendicion  
+#         numero_rendicion=numero_rendicion
 #     )
 
 #     db.add(db_documento)
 #     await db.commit()
 #     await db.refresh(db_documento)
 #     return db_documento
+
 
 @app.post("/documentos/", response_model=schemas.Documento)
 async def create_documento(documento: schemas.DocumentoCreate, db: AsyncSession = Depends(get_db)):
@@ -422,10 +437,8 @@ async def create_documento(documento: schemas.DocumentoCreate, db: AsyncSession 
     await db.refresh(db_documento)
 
     print(f"Documento guardado exitosamente con ID: {db_documento.id}")
-    
+
     return db_documento
-
-
 
 
 @app.get("/documentos/{documento_id}", response_model=schemas.Documento)
@@ -515,6 +528,7 @@ async def upload_file(documento_id: int, file: UploadFile = File(...), db: Async
     await db.refresh(documento)
     return documento
 
+
 @app.get("/documentos/view/")
 async def view_file(file_location: str):
     if file_location.startswith("http"):
@@ -523,6 +537,7 @@ async def view_file(file_location: str):
         raise HTTPException(status_code=404, detail="File not found")
     media_type, _ = guess_type(file_location)
     return FileResponse(path=file_location, media_type=media_type)
+
 
 @app.get("/documentos/export/excel")
 async def export_documentos_excel(
@@ -590,11 +605,14 @@ class PDF(FPDF):
         self.set_xy(10, 60)
         self.cell(0, 10, f'Zona: {self.zona}', 0, 1, 'L')
         self.set_xy(-95, 30)
-        self.cell(0, 10, f'Área responsable: {self.area_responsable}', 0, 1, 'R')
+        self.cell(0, 10, f'Área responsable: {
+                  self.area_responsable}', 0, 1, 'R')
         self.set_xy(-95, 40)
-        self.cell(0, 10, f'Fecha de solicitud: {self.fecha_solicitud}', 0, 1, 'R')
+        self.cell(0, 10, f'Fecha de solicitud: {
+                  self.fecha_solicitud}', 0, 1, 'R')
         self.set_xy(-95, 50)
-        self.cell(0, 10, f'Fecha de rendición: {self.fecha_rendicion}', 0, 1, 'R')
+        self.cell(0, 10, f'Fecha de rendición: {
+                  self.fecha_rendicion}', 0, 1, 'R')
         self.set_xy(-95, 60)
         self.cell(0, 10, f'Tipo de gasto: {self.tipo_gasto}', 0, 1, 'R')
         self.ln(20)
@@ -631,14 +649,16 @@ class PDF(FPDF):
         self.cell(spacing, 10, '', border=0, ln=0)
         self.cell(col_width, 10, 'Recibido por:', border=1, ln=0, align='L')
         self.cell(spacing, 10, '', border=0, ln=0)
-        self.cell(col_width, 10, f'Total Anticipo: {total_anticipo}', border=1, ln=1, align='L')
+        self.cell(col_width, 10, f'Total Anticipo: {
+                  total_anticipo}', border=1, ln=1, align='L')
         self.cell(col_width, 10, 'Nombre', border=1, ln=0, align='R')
         self.cell(spacing, 10, '', border=0, ln=0)
         self.cell(col_width, 10, 'Nombre', border=1, ln=0, align='R')
         self.cell(spacing, 10, '', border=0, ln=0)
         self.cell(col_width, 10, 'Nombre', border=1, ln=0, align='R')
         self.cell(spacing, 10, '', border=0, ln=0)
-        self.cell(col_width, 10, f'Total Gasto: {total_gasto}', border=1, ln=1, align='L')
+        self.cell(col_width, 10, f'Total Gasto: {
+                  total_gasto}', border=1, ln=1, align='L')
         self.cell(col_width, 10, ' ', border=0, ln=0, align='L')
         self.cell(spacing, 10, '', border=0, ln=0)
         self.cell(col_width, 10, ' ', border=0, ln=0, align='L')
@@ -648,13 +668,15 @@ class PDF(FPDF):
         self.cell(
             col_width, 10, f'Reembolsar / (-)Devolver: {reembolso}', border=1, ln=1, align='L')
 
+
 @app.get("/documentos/export/pdf")
 async def export_documentos_pdf(
     empresa: str = Query(..., alias="company_name"),  # Obligatorio
     estado: str = Query(None),  # Opcional
     username: str = Query(...),  # Obligatorio
     # Obligatorio
-    numero_rendicion: str = Query(..., description="Número de rendición (obligatorio)"),
+    numero_rendicion: str = Query(...,
+                                  description="Número de rendición (obligatorio)"),
     db: AsyncSession = Depends(get_db)
 ):
     # Verificar que numero_rendicion no esté vacío
@@ -728,7 +750,8 @@ async def export_documentos_pdf(
 
     # Definir los datos de la tabla
     table_data = [
-        [i + 1, doc.fecha_emision, doc.ruc, doc.tipo_documento, doc.cuenta_contable, doc.serie, doc.correlativo, doc.moneda, doc.tc, doc.afecto, doc.igv, doc.inafecto, doc.total]
+        [i + 1, doc.fecha_emision, doc.ruc, doc.tipo_documento, doc.cuenta_contable, doc.serie,
+            doc.correlativo, doc.moneda, doc.tc, doc.afecto, doc.igv, doc.inafecto, doc.total]
         for i, doc in enumerate(documentos)
     ]
     pdf.add_table(table_header, table_data)
@@ -741,6 +764,7 @@ async def export_documentos_pdf(
     pdf.output(pdf_file)
 
     return FileResponse(path=pdf_file, filename=f"documentos_{numero_rendicion}.pdf")
+
 
 class DocumentoPDFCustom(FPDF):
     def header(self):
@@ -883,7 +907,7 @@ class DocumentoPDFLocal(FPDF):
         self.cell(60, 10, documento.dni if documento.dni else 'N/A', 1)
         self.cell(40, 10, 'Solicitado el:', 1)
         self.cell(60, 10, str(documento.fecha_solicitud)
-        if documento.fecha_solicitud else 'N/A', 1)
+                  if documento.fecha_solicitud else 'N/A', 1)
         self.ln(10)
         self.cell(40, 10, 'Responsable:', 1)
         self.cell(
@@ -1022,10 +1046,12 @@ class DocumentoPDFMovilidad(FPDF):
         self.set_font('Arial', '', 10)
 
         # Información principal
-        self.cell(0, 5, 'Solicitante: ' + documento.get('usuario', 'N/A'), 0, 1, 'L')
+        self.cell(0, 5, 'Solicitante: ' +
+                  documento.get('usuario', 'N/A'), 0, 1, 'L')
         self.cell(0, 5, 'DNI: ' + str(documento.get('dni', 'N/A')), 0, 1, 'L')
         self.cell(0, 5, 'CeCo: ' + documento.get('ceco', 'N/A'), 0, 1, 'R')
-        self.cell(0, 5, 'Gerencia: ' + documento.get('gerencia', 'N/A'), 0, 1, 'R')
+        self.cell(0, 5, 'Gerencia: ' +
+                  documento.get('gerencia', 'N/A'), 0, 1, 'R')
         self.cell(0, 5, 'Moneda: ' + documento.get('moneda', 'N/A'), 0, 1, 'R')
         # self.cell(0, 5, 'Correlativo: ' + str(documento.get('correlativo', 'N/A')), 0, 1, 'R')
         self.ln(10)
@@ -1053,8 +1079,10 @@ class DocumentoPDFMovilidad(FPDF):
         self.cell(30, 6, documento.get('origen', 'N/A'), 1, 0, 'C')  # Origen
         self.cell(30, 6, documento.get('destino', 'N/A'), 1, 0, 'C')  # Destino
         self.cell(50, 6, documento.get('motivo', 'N/A'), 1, 0, 'C')  # Motivo
-        self.cell(30, 6, 'S/ ' + str(documento.get('gasto_deducible', '0.00')), 1, 0, 'C')
-        self.cell(30, 6, 'S/ ' + str(documento.get('gasto_no_deducible', '0.00')), 1, 0, 'C')
+        self.cell(30, 6, 'S/ ' +
+                  str(documento.get('gasto_deducible', '0.00')), 1, 0, 'C')
+        self.cell(30, 6, 'S/ ' +
+                  str(documento.get('gasto_no_deducible', '0.00')), 1, 0, 'C')
         self.cell(30, 6, 'S/ ' + str(documento.get('total', '0.00')), 1, 1, 'C')
         self.set_font('Arial', 'B', 10)
         self.cell(210, 6, 'Total', 1, 0, 'R')
@@ -1096,8 +1124,8 @@ async def generar_pdf(data: dict, db: AsyncSession = Depends(get_db)):
         fecha_solicitud=data['fecha_solicitud'],
         fecha_emision=data['fecha_emision'],
         usuario=data['usuario'],
-        correlativo=data['correlativo'] ,
-        ruc=data['ruc'] ,
+        correlativo=data['correlativo'],
+        ruc=data['ruc'],
         dni=data['dni'],
         tipo_cambio=data['tipo_cambio'],
         afecto=data['afecto'],
@@ -1117,9 +1145,9 @@ async def generar_pdf(data: dict, db: AsyncSession = Depends(get_db)):
         origen=data['origen'],
         destino=data['destino'],
         tipo_solicitud="RENDICION",
-        numero_rendicion=data['numero_rendicion'] ,
-        
-        
+        numero_rendicion=data['numero_rendicion'],
+
+
     )
     db_documento = await crud.create_documento(db=db, documento=documento_data)
     db_documento.archivo = public_url
@@ -1172,7 +1200,7 @@ async def get_distinct_numero_rendicion(
         result = await db.execute(query)
         numeros_rendicion = result.scalars().all()
         numeros_rendicion = [str(num)
-        for num in numeros_rendicion if num is not None]
+                             for num in numeros_rendicion if num is not None]
         return numeros_rendicion
     except Exception as e:
         raise HTTPException(
@@ -1183,12 +1211,16 @@ async def get_distinct_numero_rendicion(
 #     return await crud.create_rendicion(db, rendicion)
 
 # Ruta para obtener todas las rendiciones
+
+
 @app.get("/rendiciones/", response_model=list[schemas.Rendicion])
 async def read_rendiciones(db: AsyncSession = Depends(get_db)):
     return await crud.get_rendiciones(db)
 
+
 class RendicionCreateRequest(BaseModel):
     user_id: int
+
 
 @app.post("/rendicion/", response_model=RendicionCreateResponse)
 async def create_rendicion(rendicion_request: RendicionCreateRequest, db: AsyncSession = Depends(get_db)):
@@ -1198,29 +1230,44 @@ async def create_rendicion(rendicion_request: RendicionCreateRequest, db: AsyncS
         return new_rendicion
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    
+
 # Método para obtener el último registro de rendición por user_id
+
+@app.post("/solicitud/", response_model=RendicionCreateResponse)
+async def create_solicitud(rendicion_request: RendicionCreateRequest, db: AsyncSession = Depends(get_db)):
+    try:
+        user_id = rendicion_request.user_id
+        new_rendicion = await create_solicitud_with_increment(db, user_id)
+        return new_rendicion
+    except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/rendicion/last", response_model=RendicionCreateResponse)
-async def get_last_rendicion(user_id: int, db: AsyncSession = Depends(get_db)):
+async def get_last_rendicion(user_id: int, tipo: str, db: AsyncSession = Depends(get_db)):
     try:
         # Consulta para obtener la última rendición por id de usuario
         result = await db.execute(
             select(models.Rendicion)
             .where(models.Rendicion.idUser == user_id)
+            .where(models.Rendicion.tipo == tipo)
             .order_by(models.Rendicion.id.desc())
             .limit(1)
         )
-        
+
         last_rendicion = result.scalars().first()
 
         if not last_rendicion:
-            raise HTTPException(status_code=404, detail="No se encontró ninguna rendición para este usuario")
+            raise HTTPException(
+                status_code=404, detail="No se encontró ninguna rendición para este usuario")
 
         return last_rendicion
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    
+
     # Método para obtener todos los nombres de rendiciones por user_id sin repetir
+
+
 @app.get("/rendicion/nombres", response_model=list[str])
 async def get_unique_rendicion_names(user_id: int, db: AsyncSession = Depends(get_db)):
     try:
@@ -1234,9 +1281,12 @@ async def get_unique_rendicion_names(user_id: int, db: AsyncSession = Depends(ge
         nombres_rendicion = result.scalars().all()
 
         if not nombres_rendicion:
-            raise HTTPException(status_code=404, detail="No se encontraron rendiciones para este usuario")
+            raise HTTPException(
+                status_code=404, detail="No se encontraron rendiciones para este usuario")
 
         return nombres_rendicion
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+   

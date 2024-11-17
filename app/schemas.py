@@ -169,6 +169,8 @@ class TipoCambioResponse(BaseModel):
 
 class RendicionBase(BaseModel):
     nombre: str
+    tipo: Optional[str] = None  # Nuevo campo tipo
+    estado: Optional[str] = None  # Nuevo campo estado
 
 class RendicionCreate(RendicionBase):
     idUser: int
@@ -184,6 +186,8 @@ class RendicionCreateResponse(BaseModel):
     id: int
     idUser: int
     nombre: str
+    tipo: Optional[str] = None  # Nuevo campo tipo
+    estado: Optional[str] = None  # Nuevo campo estado
 
     class Config:
         from_attributes = True

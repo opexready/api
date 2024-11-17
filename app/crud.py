@@ -190,7 +190,9 @@ async def create_rendicion_with_increment(db: AsyncSession, user_id: int) -> mod
     # Crear una nueva rendición
     new_rendicion = models.Rendicion(
         idUser=user_id,
-        nombre=new_nombre
+        nombre=new_nombre,
+        estado="GENERANDO", 
+        tipo="RENDICION"
     )
 
     # Guardar en la base de datos
@@ -199,4 +201,42 @@ async def create_rendicion_with_increment(db: AsyncSession, user_id: int) -> mod
     await db.refresh(new_rendicion)
 
     return new_rendicion
+
+
+
+# Método para crear una rendición con incremento en el nombre
+async def create_solicitud_with_increment(db: AsyncSession, user_id: int) -> models.Rendicion:
+    # Buscar el último registro de rendición del usuario
+    result = await db.execute(
+        select(models.Rendicion)
+        .filter(models.Rendicion.idUser == user_id, models.Rendicion.nombre.like("S%"))
+        .order_by(desc(models.Rendicion.id))
+    )
+    
+    last_rendicion = result.scalars().first()
+
+    # Si no existe ningún registro previo, el primer valor será R00001
+    if not last_rendicion:
+        new_nombre = "S00001"
+    else:
+        # Extraer el número del último 'nombre' y sumarle 1
+        last_number = int(last_rendicion.nombre[1:])  # Ignorar la letra 'R'
+        new_number = last_number + 1
+        new_nombre = f"S{new_number:05d}"  # Formatear con 5 dígitos, ejemplo: R00002
+
+    # Crear una nueva rendición
+    new_rendicion = models.Rendicion(
+        idUser=user_id,
+        nombre=new_nombre,
+        estado="GENERANDO", 
+        tipo="SOLICITUD"
+    )
+
+    # Guardar en la base de datos
+    db.add(new_rendicion)
+    await db.commit()
+    await db.refresh(new_rendicion)
+
+    return new_rendicion
+
 
