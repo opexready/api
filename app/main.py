@@ -605,14 +605,11 @@ class PDF(FPDF):
         self.set_xy(10, 60)
         self.cell(0, 10, f'Zona: {self.zona}', 0, 1, 'L')
         self.set_xy(-95, 30)
-        self.cell(0, 10, f'Área responsable: {
-                  self.area_responsable}', 0, 1, 'R')
+        self.cell(0, 10, f'Área responsable: {self.area_responsable}', 0, 1, 'R')
         self.set_xy(-95, 40)
-        self.cell(0, 10, f'Fecha de solicitud: {
-                  self.fecha_solicitud}', 0, 1, 'R')
+        self.cell(0, 10, f'Fecha de solicitud: {self.fecha_solicitud}', 0, 1, 'R')
         self.set_xy(-95, 50)
-        self.cell(0, 10, f'Fecha de rendición: {
-                  self.fecha_rendicion}', 0, 1, 'R')
+        self.cell(0, 10, f'Fecha de rendición: {self.fecha_rendicion}', 0, 1, 'R')
         self.set_xy(-95, 60)
         self.cell(0, 10, f'Tipo de gasto: {self.tipo_gasto}', 0, 1, 'R')
         self.ln(20)
@@ -649,16 +646,14 @@ class PDF(FPDF):
         self.cell(spacing, 10, '', border=0, ln=0)
         self.cell(col_width, 10, 'Recibido por:', border=1, ln=0, align='L')
         self.cell(spacing, 10, '', border=0, ln=0)
-        self.cell(col_width, 10, f'Total Anticipo: {
-                  total_anticipo}', border=1, ln=1, align='L')
+        self.cell(col_width, 10, f'Total Anticipo: {total_anticipo}', border=1, ln=1, align='L')
         self.cell(col_width, 10, 'Nombre', border=1, ln=0, align='R')
         self.cell(spacing, 10, '', border=0, ln=0)
         self.cell(col_width, 10, 'Nombre', border=1, ln=0, align='R')
         self.cell(spacing, 10, '', border=0, ln=0)
         self.cell(col_width, 10, 'Nombre', border=1, ln=0, align='R')
         self.cell(spacing, 10, '', border=0, ln=0)
-        self.cell(col_width, 10, f'Total Gasto: {
-                  total_gasto}', border=1, ln=1, align='L')
+        self.cell(col_width, 10, f'Total Gasto: {total_gasto}', border=1, ln=1, align='L')
         self.cell(col_width, 10, ' ', border=0, ln=0, align='L')
         self.cell(spacing, 10, '', border=0, ln=0)
         self.cell(col_width, 10, ' ', border=0, ln=0, align='L')
