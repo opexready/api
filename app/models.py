@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String, Date, Float, ForeignKey
 from sqlalchemy.orm import relationship
 from .database import Base
+from datetime import datetime
 
 class User(Base):
     __tablename__ = "users"
@@ -91,6 +92,8 @@ class Rendicion(Base):
     nombre = Column(String, nullable=False)
     tipo = Column(String, nullable=True)  # Nuevo campo tipo
     estado = Column(String, nullable=True)  # Nuevo campo estado
+    fecha_registro = Column(Date)  # Campo fecha_registro con valor por defecto
+    fecha_actualizacion = Column(Date)  # Campo fecha_actualizacion
 
     # Relación con la tabla users
     user = relationship("User")

@@ -167,6 +167,8 @@ async def get_rendiciones(db: AsyncSession):
     return result.scalars().all()
 
 
+from datetime import date
+
 # Método para crear una rendición con incremento en el nombre
 async def create_rendicion_with_increment(db: AsyncSession, user_id: int) -> models.Rendicion:
     # Buscar el último registro de rendición del usuario
@@ -192,7 +194,8 @@ async def create_rendicion_with_increment(db: AsyncSession, user_id: int) -> mod
         idUser=user_id,
         nombre=new_nombre,
         estado="CREADO", 
-        tipo="RENDICION"
+        tipo="RENDICION",
+        fecha_registro=date.today()  # Inserta la fecha actual
     )
 
     # Guardar en la base de datos

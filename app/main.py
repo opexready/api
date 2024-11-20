@@ -1258,13 +1258,34 @@ async def get_last_rendicion(user_id: int, tipo: str, db: AsyncSession = Depends
     # Método para obtener todos los nombres de rendiciones por user_id sin repetir
 
 
+# @app.get("/rendicion/nombres", response_model=list[str])
+# async def get_unique_rendicion_names(user_id: int, db: AsyncSession = Depends(get_db)):
+#     try:
+#         # Consulta para obtener los nombres de las rendiciones sin repetir, filtradas por user_id
+#         result = await db.execute(
+#             select(distinct(models.Rendicion.nombre))
+#             .where(models.Rendicion.idUser == user_id)
+#         )
+
+#         # Obtener todos los nombres únicos de la consulta
+#         nombres_rendicion = result.scalars().all()
+
+#         if not nombres_rendicion:
+#             raise HTTPException(
+#                 status_code=404, detail="No se encontraron rendiciones para este usuario")
+
+#         return nombres_rendicion
+
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=str(e))
+    
 @app.get("/rendicion/nombres", response_model=list[str])
-async def get_unique_rendicion_names(user_id: int, db: AsyncSession = Depends(get_db)):
+async def get_unique_rendicion_names(user_id: int, tipo: str, db: AsyncSession = Depends(get_db)):
     try:
-        # Consulta para obtener los nombres de las rendiciones sin repetir, filtradas por user_id
+        # Consulta para obtener los nombres de las rendiciones sin repetir, filtradas por user_id y tipo
         result = await db.execute(
             select(distinct(models.Rendicion.nombre))
-            .where(models.Rendicion.idUser == user_id)
+            .where(models.Rendicion.idUser == user_id, models.Rendicion.tipo == tipo)
         )
 
         # Obtener todos los nombres únicos de la consulta
@@ -1272,14 +1293,13 @@ async def get_unique_rendicion_names(user_id: int, db: AsyncSession = Depends(ge
 
         if not nombres_rendicion:
             raise HTTPException(
-                status_code=404, detail="No se encontraron rendiciones para este usuario")
+                status_code=404, detail="No se encontraron rendiciones para este usuario con el tipo especificado")
 
         return nombres_rendicion
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     
-
 class RendicionUpdate(BaseModel):
     nombre: Optional[str] = None
     tipo: Optional[str] = None
