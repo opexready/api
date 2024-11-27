@@ -1,6 +1,6 @@
 from pydantic import BaseModel
-from datetime import date
-from typing import Optional
+from datetime import date,datetime
+from typing import Optional, Union
 
 class UserBase(BaseModel):
     username: Optional[str] = None
@@ -193,6 +193,76 @@ class RendicionCreateResponse(BaseModel):
     nombre: str
     tipo: Optional[str] = None  # Nuevo campo tipo
     estado: Optional[str] = None  # Nuevo campo estado
+
+    class Config:
+        from_attributes = True
+
+#######################
+
+class SolicitudBase(BaseModel):
+    nombre: str
+    tipo: Optional[str] = None  # Nuevo campo tipo
+    estado: Optional[str] = None  # Nuevo campo estado
+
+class SolicitudUpdate(BaseModel):
+    nombre: Optional[str] = None
+    tipo: Optional[str] = None
+    estado: Optional[str] = None
+
+class SolicitudCreate(SolicitudBase):
+    idUser: int
+
+class Solicitud(SolicitudBase):
+    id: int
+    idUser: int
+
+    class Config:
+        from_attributes = True
+
+class SolicitudCreateResponse(BaseModel):
+    id: Optional[int]
+    idUser: Optional[int]
+    nombre: Optional[str]
+    tipo: Optional[str]
+    estado: Optional[str]
+
+class ErrorResponse(BaseModel):
+    detail: str
+
+class SolicitudResponse(BaseModel):
+    id: int
+    idUser: int
+    nombre: str
+    tipo: str
+    estado: Optional[str] = None
+
+    class Config:
+        orm_mode = True
+
+
+class RendicionResponse(BaseModel):
+    id: int
+    idUser: int
+    nombre: str
+    tipo: str
+    estado: Optional[str] = None
+
+    class Config:
+        orm_mode = True
+
+
+class RendicionSolicitudCreate(BaseModel):
+    rendicion_id: int
+    solicitud_id: int
+    estado: Optional[str] = None
+
+class RendicionSolicitudResponse(BaseModel):
+    id: int
+    rendicion_id: int
+    solicitud_id: int
+    fecha_creacion: datetime
+    fecha_actualizacion: Optional[datetime] = None
+    estado: Optional[str] = None
 
     class Config:
         from_attributes = True

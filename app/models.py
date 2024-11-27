@@ -97,3 +97,31 @@ class Rendicion(Base):
 
     # Relación con la tabla users
     user = relationship("User")
+
+class Solicitud(Base):
+    __tablename__ = "solicitud"
+
+    id = Column(Integer, primary_key=True, index=True)
+    idUser = Column(Integer, ForeignKey('users.id'), nullable=False)  # Llave foránea a la tabla users
+    nombre = Column(String, nullable=False)
+    tipo = Column(String, nullable=True)
+    estado = Column(String, nullable=True)
+    fecha_registro = Column(Date)
+    fecha_actualizacion = Column(Date)
+
+    # Relación con la tabla users
+    user = relationship("User")
+
+class RendicionSolicitud(Base):
+    __tablename__ = "rendicion_solicitud"
+
+    id = Column(Integer, primary_key=True, index=True)
+    rendicion_id = Column(Integer, ForeignKey('rendicion.id'), nullable=False)
+    solicitud_id = Column(Integer, ForeignKey('solicitud.id'), nullable=False)
+    fecha_creacion = Column(Date, default=datetime.utcnow)  # Fecha de creación con valor por defecto
+    fecha_actualizacion = Column(Date, onupdate=datetime.utcnow)  # Fecha de actualización con auto-update
+    estado = Column(String, nullable=True)  # Campo estado
+
+    # Relaciones
+    rendicion = relationship("Rendicion", backref="rendicion_solicitudes")
+    solicitud = relationship("Solicitud", backref="rendicion_solicitudes")

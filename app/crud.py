@@ -208,38 +208,38 @@ async def create_rendicion_with_increment(db: AsyncSession, user_id: int) -> mod
 
 
 # Método para crear una rendición con incremento en el nombre
-async def create_solicitud_with_increment(db: AsyncSession, user_id: int) -> models.Rendicion:
+async def create_solicitud_with_increment(db: AsyncSession, user_id: int) -> models.Solicitud:
     # Buscar el último registro de rendición del usuario
     result = await db.execute(
-        select(models.Rendicion)
-        .filter(models.Rendicion.idUser == user_id, models.Rendicion.nombre.like("S%"))
-        .order_by(desc(models.Rendicion.id))
+        select(models.Solicitud)
+        .filter(models.Solicitud.idUser == user_id, models.Solicitud.nombre.like("S%"))
+        .order_by(desc(models.Solicitud.id))
     )
     
-    last_rendicion = result.scalars().first()
+    last_solicitud = result.scalars().first()
 
     # Si no existe ningún registro previo, el primer valor será R00001
-    if not last_rendicion:
+    if not last_solicitud:
         new_nombre = "S00001"
     else:
         # Extraer el número del último 'nombre' y sumarle 1
-        last_number = int(last_rendicion.nombre[1:])  # Ignorar la letra 'R'
+        last_number = int(last_solicitud.nombre[1:])  # Ignorar la letra 'R'
         new_number = last_number + 1
         new_nombre = f"S{new_number:05d}"  # Formatear con 5 dígitos, ejemplo: R00002
 
     # Crear una nueva rendición
-    new_rendicion = models.Rendicion(
+    new_solicitud = models.Solicitud(
         idUser=user_id,
         nombre=new_nombre,
         estado="CREADO", 
-        tipo="SOLICITUD"
+        tipo="ANTICIPO"
     )
 
     # Guardar en la base de datos
-    db.add(new_rendicion)
+    db.add(new_solicitud)
     await db.commit()
-    await db.refresh(new_rendicion)
+    await db.refresh(new_solicitud)
 
-    return new_rendicion
+    return new_solicitud
 
 
