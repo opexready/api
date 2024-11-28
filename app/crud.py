@@ -193,7 +193,7 @@ async def create_rendicion_with_increment(db: AsyncSession, user_id: int) -> mod
     new_rendicion = models.Rendicion(
         idUser=user_id,
         nombre=new_nombre,
-        estado="CREADO", 
+        estado="NUEVO", 
         tipo="RENDICION",
         fecha_registro=date.today()  # Inserta la fecha actual
     )
@@ -231,7 +231,7 @@ async def create_solicitud_with_increment(db: AsyncSession, user_id: int) -> mod
     new_solicitud = models.Solicitud(
         idUser=user_id,
         nombre=new_nombre,
-        estado="CREADO", 
+        estado="NUEVO", 
         tipo="ANTICIPO"
     )
 
