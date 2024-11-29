@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import func, desc
 from . import models, schemas
 from . import auth
+from datetime import datetime
 
 # CRUD for User
 
@@ -228,9 +229,11 @@ async def create_solicitud_with_increment(db: AsyncSession, user_id: int) -> mod
         new_nombre = f"S{new_number:05d}"  # Formatear con 5 dígitos, ejemplo: R00002
 
     # Crear una nueva rendición
+    fecha_actual = datetime.now().date() 
     new_solicitud = models.Solicitud(
         idUser=user_id,
         nombre=new_nombre,
+        fecha_registro= fecha_actual,
         estado="NUEVO", 
         tipo="ANTICIPO"
     )
