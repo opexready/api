@@ -120,58 +120,6 @@ def preprocess_image(image):
         open_cv_image, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
     return processed_image
 
-# @app.post("/decode-qr/")
-# async def decode_qr(file: UploadFile = File(...)):
-#     if file.content_type not in ['image/jpeg', 'image/png']:
-#         raise HTTPException(status_code=400, detail="Invalid file format")
-#     try:
-#         image_data = await file.read()
-#         image = Image.open(io.BytesIO(image_data))
-#         processed_image = preprocess_image(image)
-#         decoded_objects = decode(processed_image)
-#         if not decoded_objects:
-#             decoded_objects = decode(image)
-#         if not decoded_objects:
-#             return JSONResponse(content={"detail": "No QR code found in the image"})
-#         qr_data = decoded_objects[0].data.decode("utf-8").split("|")
-#         result = {}
-#         for data in qr_data:
-#             if re.match(r'^\d{8}$', data):  # Dato de 8 dígitos (DNI)
-#                 result["dni"] = data
-#             elif re.match(r'^\d{11}$', data):  # Dato de 11 dígitos (RUC)
-#                 result["ruc"] = data
-#             elif re.match(r'^\d{2}$', data):  # Dato de 2 dígitos (Tipo de Documento)
-#                 tipo_doc_map = {
-#                     "01": "Factura",
-#                     "02": "Recibo por Honorarios",
-#                     "03": "Boleta de Venta",
-#                     "05": "Boleto Aéreo",
-#                     "07": "Nota de Crédito",
-#                     "08": "Nota de Débito",
-#                     "12": "Ticket o cinta emitido por máquina registradora",
-#                     "14": "Recibo Servicio Público"
-#                 }
-#                 result["tipo"] = tipo_doc_map.get(data, "Desconocido")
-#             # Dato con formato xxxx-aaaaaaaa (Serie-Número)
-#             elif re.match(r'^[A-Za-z0-9]{4}-\d{7,8}$', data):
-#                 serie, numero = data.split('-')
-#                 result["serie"] = serie
-#                 result["numero"] = numero
-#             elif re.match(r'^\d+\.\d{2}$', data):  # Dato de valor decimal
-#                 if "total" not in result or float(data) > float(result["total"]):
-#                     if "total" in result:
-#                         result["igv"] = result["total"]
-#                     result["total"] = data
-#                 else:
-#                     result["igv"] = data
-#             elif re.match(r'^\d{4}-\d{2}-\d{2}$', data) or re.match(r'^\d{2}/\d{2}/\d{4}$', data):  # Fecha
-#                 result["fecha"] = data
-#         return JSONResponse(content=result)
-#     except Exception as e:
-#         raise HTTPException(
-#             status_code=500, detail=f"Failed to decode QR code: {str(e)}")
-
-
 @app.post("/decode-qr/")
 async def decode_qr(file: UploadFile = File(...)):
     if file.content_type not in ['image/jpeg', 'image/png']:
@@ -291,7 +239,7 @@ async def read_user_by_email(email: str = Query(...), db: AsyncSession = Depends
 @app.post("/documentos/", response_model=schemas.Documento)
 async def create_documento(documento: schemas.DocumentoCreate, db: AsyncSession = Depends(get_db)):
     # Log para verificar los datos recibidos
-    print(f"Datos recibidos en el request: {documento}")
+    print(f"Datos recibidos en el request2222222222: {documento}")
 
     result = await db.execute(
         select(models.Documento)
@@ -345,7 +293,10 @@ async def create_documento(documento: schemas.DocumentoCreate, db: AsyncSession 
         numero_cuenta=documento.numero_cuenta,
         destino=documento.destino,
         origen=documento.origen,
-        numero_rendicion=documento.numero_rendicion  # Usamos numero_rendicion aquí
+        numero_rendicion=documento.numero_rendicion,
+        id_user = documento.id_user,
+        id_numero_rendicion = documento.id_numero_rendicion
+      
     )
 
     print(f"Guardando el documento en la base de datos: {db_documento}")
@@ -1220,28 +1171,6 @@ async def get_unique_rendicion_names(user_id: int, tipo: str, db: AsyncSession =
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     
-# @app.get("/solicitud/nombres", response_model=list[str])
-# async def get_unique_solicitud_names(user_id: int, tipo: str, db: AsyncSession = Depends(get_db)):
-#     try:
-#         # Consulta para obtener los nombres de las rendiciones sin repetir, filtradas por user_id y tipo
-#         result = await db.execute(
-#             # select(distinct(models.Solicitud.nombre))
-#             select(models.Solicitud)
-#             .where(models.Solicitud.idUser == user_id, models.Solicitud.tipo == tipo)
-#         )
-
-#         # Obtener todos los nombres únicos de la consulta
-#         nombres_solicitud = result.scalars().all()
-
-#         if not nombres_solicitud:
-#             raise HTTPException(
-#                 status_code=404, detail="No se encontraron rendiciones para este usuario con el tipo especificado")
-
-#         return nombres_solicitud
-
-#     except Exception as e:
-#         raise HTTPException(status_code=500, detail=str(e))
-
 @app.get("/solicitud/nombres", response_model=list[SolicitudResponse])
 async def get_unique_solicitud_names(user_id: int, tipo: str, db: AsyncSession = Depends(get_db)):
     try:
@@ -1477,21 +1406,19 @@ async def get_rendiciones_con_documentos_filtradas(
 #     Devuelve una lista combinada de rendiciones y solicitudes con sus documentos asociados, aplicando filtros opcionales.
 #     """
 #     try:
-#         # Construir la consulta base para rendiciones
+#         # Consultas base para rendiciones y solicitudes
 #         query_rendiciones = (
 #             select(models.Rendicion)
 #             .join(models.Documento, models.Documento.numero_rendicion == models.Rendicion.nombre)
 #             .distinct()
 #         )
-
-#         # Construir la consulta base para solicitudes
 #         query_solicitudes = (
 #             select(models.Solicitud)
 #             .join(models.Documento, models.Documento.numero_rendicion == models.Solicitud.nombre)
 #             .distinct()
 #         )
 
-#         # Aplicar filtros comunes a ambas consultas
+#         # Aplicar filtros a las consultas
 #         if tipo:
 #             query_rendiciones = query_rendiciones.where(models.Rendicion.tipo == tipo)
 #             query_solicitudes = query_solicitudes.where(models.Solicitud.tipo == tipo)
@@ -1514,18 +1441,18 @@ async def get_rendiciones_con_documentos_filtradas(
 #             query_rendiciones = query_rendiciones.where(models.Rendicion.idUser == id_user)
 #             query_solicitudes = query_solicitudes.where(models.Solicitud.idUser == id_user)
 
-#         # Ejecutar consultas
+#         # Ejecutar las consultas
 #         rendiciones_query = await db.execute(query_rendiciones)
 #         solicitudes_query = await db.execute(query_solicitudes)
-        
+
 #         rendiciones = rendiciones_query.scalars().all()
 #         solicitudes = solicitudes_query.scalars().all()
 
-#         # Crear la respuesta combinada
+#         # Combinar resultados y transformar al formato esperado
 #         resultado = []
 
+#         # Procesar rendiciones
 #         for rendicion in rendiciones:
-#             # Buscar documentos asociados a la rendición
 #             documentos_query = await db.execute(
 #                 select(models.Documento).where(models.Documento.numero_rendicion == rendicion.nombre)
 #             )
@@ -1533,21 +1460,70 @@ async def get_rendiciones_con_documentos_filtradas(
 
 #             if documentos:
 #                 resultado.append({
-#                     "tipo": "rendicion",
-#                     "id": rendicion.id,
-#                     "idUser": rendicion.idUser,
-#                     "nombre": rendicion.nombre,
-#                     "tipo_rendicion": rendicion.tipo,
-#                     "estado": rendicion.estado,
-#                     "fecha_registro": rendicion.fecha_registro,
-#                     "fecha_actualizacion": rendicion.fecha_actualizacion,
+#                     "rendicion": {
+#                         "id": rendicion.id,
+#                         "idUser": rendicion.idUser,
+#                         "nombre": rendicion.nombre,
+#                         "tipo": rendicion.tipo,
+#                         "estado": rendicion.estado,
+#                         "fecha_registro": rendicion.fecha_registro,
+#                         "fecha_actualizacion": rendicion.fecha_actualizacion,
+#                     },
 #                     "documentos": [
-#                         schemas.Documento.from_orm(doc).dict() for doc in documentos
+#                         {
+#                             "id": doc.id,
+#                             "fecha_solicitud": doc.fecha_solicitud,
+#                             "fecha_rendicion": doc.fecha_rendicion,
+#                             "dni": doc.dni,
+#                             "usuario": doc.usuario,
+#                             "gerencia": doc.gerencia,
+#                             "ruc": doc.ruc,
+#                             "proveedor": doc.proveedor,
+#                             "fecha_emision": doc.fecha_emision,
+#                             "moneda": doc.moneda,
+#                             "tipo_documento": doc.tipo_documento,
+#                             "serie": doc.serie,
+#                             "correlativo": doc.correlativo,
+#                             "tipo_gasto": doc.tipo_gasto,
+#                             "sub_total": doc.sub_total,
+#                             "igv": doc.igv,
+#                             "no_gravadas": doc.no_gravadas,
+#                             "importe_facturado": doc.importe_facturado,
+#                             "tc": doc.tc,
+#                             "anticipo": doc.anticipo,
+#                             "total": doc.total,
+#                             "pago": doc.pago,
+#                             "detalle": doc.detalle,
+#                             "estado": doc.estado,
+#                             "empresa": doc.empresa,
+#                             "archivo": doc.archivo,
+#                             "tipo_solicitud": doc.tipo_solicitud,
+#                             "tipo_cambio": doc.tipo_cambio,
+#                             "afecto": doc.afecto,
+#                             "inafecto": doc.inafecto,
+#                             "rubro": doc.rubro,
+#                             "cuenta_contable": doc.cuenta_contable,
+#                             "responsable": doc.responsable,
+#                             "area": doc.area,
+#                             "ceco": doc.ceco,
+#                             "tipo_anticipo": doc.tipo_anticipo,
+#                             "motivo": doc.motivo,
+#                             "fecha_viaje": doc.fecha_viaje,
+#                             "dias": doc.dias,
+#                             "presupuesto": doc.presupuesto,
+#                             "banco": doc.banco,
+#                             "numero_cuenta": doc.numero_cuenta,
+#                             "origen": doc.origen,
+#                             "destino": doc.destino,
+#                             "numero_rendicion": doc.numero_rendicion,
+#                             "tipo_viaje": doc.tipo_viaje,
+#                         }
+#                         for doc in documentos
 #                     ]
 #                 })
 
+#         # Procesar solicitudes
 #         for solicitud in solicitudes:
-#             # Buscar documentos asociados a la solicitud
 #             documentos_query = await db.execute(
 #                 select(models.Documento).where(models.Documento.numero_rendicion == solicitud.nombre)
 #             )
@@ -1555,23 +1531,72 @@ async def get_rendiciones_con_documentos_filtradas(
 
 #             if documentos:
 #                 resultado.append({
-#                     "tipo": "solicitud",
-#                     "id": solicitud.id,
-#                     "idUser": solicitud.idUser,
-#                     "nombre": solicitud.nombre,
-#                     "tipo_rendicion": solicitud.tipo,
-#                     "estado": solicitud.estado,
-#                     "fecha_registro": solicitud.fecha_registro,
-#                     "fecha_actualizacion": solicitud.fecha_actualizacion,
+#                     "rendicion": {
+#                         "id": solicitud.id,
+#                         "idUser": solicitud.idUser,
+#                         "nombre": solicitud.nombre,
+#                         "tipo": solicitud.tipo,
+#                         "estado": solicitud.estado,
+#                         "fecha_registro": solicitud.fecha_registro,
+#                         "fecha_actualizacion": solicitud.fecha_actualizacion,
+#                     },
 #                     "documentos": [
-#                         schemas.Documento.from_orm(doc).dict() for doc in documentos
+#                         {
+#                             "id": doc.id,
+#                             "fecha_solicitud": doc.fecha_solicitud,
+#                             "fecha_rendicion": doc.fecha_rendicion,
+#                             "dni": doc.dni,
+#                             "usuario": doc.usuario,
+#                             "gerencia": doc.gerencia,
+#                             "ruc": doc.ruc,
+#                             "proveedor": doc.proveedor,
+#                             "fecha_emision": doc.fecha_emision,
+#                             "moneda": doc.moneda,
+#                             "tipo_documento": doc.tipo_documento,
+#                             "serie": doc.serie,
+#                             "correlativo": doc.correlativo,
+#                             "tipo_gasto": doc.tipo_gasto,
+#                             "sub_total": doc.sub_total,
+#                             "igv": doc.igv,
+#                             "no_gravadas": doc.no_gravadas,
+#                             "importe_facturado": doc.importe_facturado,
+#                             "tc": doc.tc,
+#                             "anticipo": doc.anticipo,
+#                             "total": doc.total,
+#                             "pago": doc.pago,
+#                             "detalle": doc.detalle,
+#                             "estado": doc.estado,
+#                             "empresa": doc.empresa,
+#                             "archivo": doc.archivo,
+#                             "tipo_solicitud": doc.tipo_solicitud,
+#                             "tipo_cambio": doc.tipo_cambio,
+#                             "afecto": doc.afecto,
+#                             "inafecto": doc.inafecto,
+#                             "rubro": doc.rubro,
+#                             "cuenta_contable": doc.cuenta_contable,
+#                             "responsable": doc.responsable,
+#                             "area": doc.area,
+#                             "ceco": doc.ceco,
+#                             "tipo_anticipo": doc.tipo_anticipo,
+#                             "motivo": doc.motivo,
+#                             "fecha_viaje": doc.fecha_viaje,
+#                             "dias": doc.dias,
+#                             "presupuesto": doc.presupuesto,
+#                             "banco": doc.banco,
+#                             "numero_cuenta": doc.numero_cuenta,
+#                             "origen": doc.origen,
+#                             "destino": doc.destino,
+#                             "numero_rendicion": doc.numero_rendicion,
+#                             "tipo_viaje": doc.tipo_viaje,
+#                         }
+#                         for doc in documentos
 #                     ]
 #                 })
 
 #         return resultado
 
 #     except Exception as e:
-#         raise HTTPException(status_code=500, detail=f"Error al obtener rendiciones y solicitudes con documentos: {str(e)}")
+#         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
 
 @app.get("/rendiciones-solicitudes/con-documentos/", response_model=List[dict])
@@ -1591,32 +1616,17 @@ async def get_rendiciones_y_solicitudes_con_documentos(
     try:
         # Consultas base para rendiciones y solicitudes
         query_rendiciones = (
-            select(models.Rendicion)
+            select(models.Rendicion, models.User.full_name)
+            .join(models.User, models.Rendicion.idUser == models.User.id)
             .join(models.Documento, models.Documento.numero_rendicion == models.Rendicion.nombre)
             .distinct()
         )
         query_solicitudes = (
-            select(models.Solicitud)
+            select(models.Solicitud, models.User.full_name)
+            .join(models.User, models.Solicitud.idUser == models.User.id)
             .join(models.Documento, models.Documento.numero_rendicion == models.Solicitud.nombre)
             .distinct()
         )
-
-        # Aplicar filtros a las consultas
-        # for query in [query_rendiciones, query_solicitudes]:
-        #     if tipo:
-        #         query = query.where(models.Rendicion.tipo == tipo)
-        #     if estado:
-        #         query = query.where(models.Rendicion.estado == estado)
-        #     if fecha_registro_from:
-        #         query = query.where(models.Rendicion.fecha_registro >= fecha_registro_from)
-        #     if fecha_registro_to:
-        #         query = query.where(models.Rendicion.fecha_registro <= fecha_registro_to)
-        #     if fecha_actualizacion_from:
-        #         query = query.where(models.Rendicion.fecha_actualizacion >= fecha_actualizacion_from)
-        #     if fecha_actualizacion_to:
-        #         query = query.where(models.Rendicion.fecha_actualizacion <= fecha_actualizacion_to)
-        #     if id_user:
-        #         query = query.where(models.Rendicion.idUser == id_user)
 
         # Aplicar filtros a las consultas
         if tipo:
@@ -1645,14 +1655,14 @@ async def get_rendiciones_y_solicitudes_con_documentos(
         rendiciones_query = await db.execute(query_rendiciones)
         solicitudes_query = await db.execute(query_solicitudes)
 
-        rendiciones = rendiciones_query.scalars().all()
-        solicitudes = solicitudes_query.scalars().all()
+        rendiciones = rendiciones_query.all()  # Incluye (Rendicion, full_name)
+        solicitudes = solicitudes_query.all()  # Incluye (Solicitud, full_name)
 
         # Combinar resultados y transformar al formato esperado
         resultado = []
 
         # Procesar rendiciones
-        for rendicion in rendiciones:
+        for rendicion, full_name in rendiciones:
             documentos_query = await db.execute(
                 select(models.Documento).where(models.Documento.numero_rendicion == rendicion.nombre)
             )
@@ -1668,6 +1678,7 @@ async def get_rendiciones_y_solicitudes_con_documentos(
                         "estado": rendicion.estado,
                         "fecha_registro": rendicion.fecha_registro,
                         "fecha_actualizacion": rendicion.fecha_actualizacion,
+                        "nombre_usuario": full_name,
                     },
                     "documentos": [
                         {
@@ -1723,7 +1734,7 @@ async def get_rendiciones_y_solicitudes_con_documentos(
                 })
 
         # Procesar solicitudes
-        for solicitud in solicitudes:
+        for solicitud, full_name in solicitudes:
             documentos_query = await db.execute(
                 select(models.Documento).where(models.Documento.numero_rendicion == solicitud.nombre)
             )
@@ -1739,55 +1750,12 @@ async def get_rendiciones_y_solicitudes_con_documentos(
                         "estado": solicitud.estado,
                         "fecha_registro": solicitud.fecha_registro,
                         "fecha_actualizacion": solicitud.fecha_actualizacion,
+                        "nombre_usuario": full_name,
                     },
                     "documentos": [
                         {
                             "id": doc.id,
-                            "fecha_solicitud": doc.fecha_solicitud,
-                            "fecha_rendicion": doc.fecha_rendicion,
-                            "dni": doc.dni,
-                            "usuario": doc.usuario,
-                            "gerencia": doc.gerencia,
-                            "ruc": doc.ruc,
-                            "proveedor": doc.proveedor,
-                            "fecha_emision": doc.fecha_emision,
-                            "moneda": doc.moneda,
-                            "tipo_documento": doc.tipo_documento,
-                            "serie": doc.serie,
-                            "correlativo": doc.correlativo,
-                            "tipo_gasto": doc.tipo_gasto,
-                            "sub_total": doc.sub_total,
-                            "igv": doc.igv,
-                            "no_gravadas": doc.no_gravadas,
-                            "importe_facturado": doc.importe_facturado,
-                            "tc": doc.tc,
-                            "anticipo": doc.anticipo,
-                            "total": doc.total,
-                            "pago": doc.pago,
-                            "detalle": doc.detalle,
-                            "estado": doc.estado,
-                            "empresa": doc.empresa,
-                            "archivo": doc.archivo,
-                            "tipo_solicitud": doc.tipo_solicitud,
-                            "tipo_cambio": doc.tipo_cambio,
-                            "afecto": doc.afecto,
-                            "inafecto": doc.inafecto,
-                            "rubro": doc.rubro,
-                            "cuenta_contable": doc.cuenta_contable,
-                            "responsable": doc.responsable,
-                            "area": doc.area,
-                            "ceco": doc.ceco,
-                            "tipo_anticipo": doc.tipo_anticipo,
-                            "motivo": doc.motivo,
-                            "fecha_viaje": doc.fecha_viaje,
-                            "dias": doc.dias,
-                            "presupuesto": doc.presupuesto,
-                            "banco": doc.banco,
-                            "numero_cuenta": doc.numero_cuenta,
-                            "origen": doc.origen,
-                            "destino": doc.destino,
-                            "numero_rendicion": doc.numero_rendicion,
-                            "tipo_viaje": doc.tipo_viaje,
+                            **{key: getattr(doc, key) for key in models.Documento.__table__.columns.keys()}
                         }
                         for doc in documentos
                     ]

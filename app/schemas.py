@@ -64,8 +64,6 @@ class DocumentoBase(BaseModel):
     inafecto: Optional[float] = None
     rubro: Optional[str] = None
     cuenta_contable: Optional[int] = None
-
-    # Nuevos campos añadidos
     responsable: Optional[str] = None
     area: Optional[str] = None
     ceco: Optional[str] = None
@@ -80,6 +78,8 @@ class DocumentoBase(BaseModel):
     origen: Optional[str] = None
     numero_rendicion: Optional[str] = None
     tipo_viaje: Optional[str] = None
+    id_user: Optional[int] = None
+    id_numero_rendicion: Optional[int] = None
 
 class DocumentoCreate(DocumentoBase):
     pass
@@ -123,8 +123,6 @@ class DocumentoUpdate(BaseModel):
     inafecto: Optional[float] = None
     rubro: Optional[str] = None
     cuenta_contable: Optional[int] = None
-
-    # Nuevos campos añadidos
     responsable: Optional[str] = None
     area: Optional[str] = None
     ceco: Optional[str] = None

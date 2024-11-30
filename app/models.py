@@ -59,8 +59,6 @@ class Documento(Base):
     inafecto = Column(Float)
     rubro = Column(String)
     cuenta_contable = Column(Integer)
-
-    # Nuevos campos añadidos
     responsable = Column(String)
     area = Column(String)
     ceco = Column(String)
@@ -75,6 +73,8 @@ class Documento(Base):
     destino = Column(String)
     numero_rendicion = Column(String)
     tipo_viaje = Column(String)
+    id_user = Column(Integer)
+    id_numero_rendicion = Column(Integer)
   
 
 class Company(Base):
