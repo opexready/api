@@ -135,8 +135,8 @@ async def decode_qr(file: UploadFile = File(...)):
             return JSONResponse(content={"detail": "No QR code found in the image"})
 
         # Imprimir el primer resultado de la decodificación del QR en consola
-        # print(f"Primer resultado decodificado del QR: {
-        #       decoded_objects[0].data.decode('utf-8')}")
+        print(f"Primer resultado decodificado del QR: {
+              decoded_objects[0].data.decode('utf-8')}")
 
         qr_data = decoded_objects[0].data.decode("utf-8").split("|")
         result = {}
