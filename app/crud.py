@@ -1,3 +1,4 @@
+from datetime import date
 from sqlalchemy.future import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import func, desc
@@ -33,7 +34,9 @@ async def create_user(db: AsyncSession, user: schemas.UserCreate):
         gerencia=user.gerencia,  # Gerencia del usuario
         jefe_id=user.jefe_id,  # Relación con el jefe (ForeignKey)
         cuenta_bancaria=user.cuenta_bancaria,  # Cuenta bancaria
-        banco=user.banco  # Banco asociado a la cuenta bancaria
+        banco=user.banco,  # Banco asociado a la cuenta bancaria
+        id_empresa=user.id_empresa,
+        estado=user.estado
     )
 
     # Guardar el nuevo usuario en la base de datos
@@ -47,15 +50,19 @@ async def get_users(db: AsyncSession):
     result = await db.execute(select(models.User))
     return result.scalars().all()
 
+
 async def get_users_by_company_and_role(db: AsyncSession, company_name: str, role: str):
     result = await db.execute(select(models.User).filter(models.User.company_name == company_name, models.User.role == role))
     return result.scalars().all()
+
 
 async def get_user_by_email(db: AsyncSession, email: str):
     result = await db.execute(select(models.User).filter(models.User.email == email))
     return result.scalars().first()
 
 # Nueva función para obtener usuarios con documentos pendientes
+
+
 async def get_users_with_pending_documents(db: AsyncSession, empresa: str):
     result = await db.execute(
         select(
@@ -77,6 +84,8 @@ async def get_users_with_pending_documents(db: AsyncSession, empresa: str):
     return result.all()
 
 # CRUD for Documento
+
+
 async def get_documento(db: AsyncSession, documento_id: int):
     result = await db.execute(select(models.Documento).filter(models.Documento.id == documento_id))
     return result.scalars().first()
@@ -86,13 +95,16 @@ async def get_documentos_by_empresa(db: AsyncSession, empresa: str):
     result = await db.execute(select(models.Documento).filter(models.Documento.empresa == empresa))
     return result.scalars().all()
 
+
 async def get_documentos_by_empresa_estado(db: AsyncSession, empresa: str, estado: str):
     result = await db.execute(select(models.Documento).filter(models.Documento.empresa == empresa, models.Documento.estado == estado))
     return result.scalars().all()
 
+
 async def get_documentos_by_username_estado(db: AsyncSession, username: str, estado: str):
     result = await db.execute(select(models.Documento).filter(models.Documento.usuario == username, models.Documento.estado == estado))
     return result.scalars().all()
+
 
 async def create_documento(db: AsyncSession, documento: schemas.DocumentoCreate):
     db_documento = models.Documento(**documento.dict())
@@ -100,6 +112,7 @@ async def create_documento(db: AsyncSession, documento: schemas.DocumentoCreate)
     await db.commit()
     await db.refresh(db_documento)
     return db_documento
+
 
 async def update_documento(db: AsyncSession, documento_id: int, documento: schemas.DocumentoUpdate):
     db_documento = await get_documento(db, documento_id)
@@ -116,6 +129,7 @@ async def delete_documento(db: AsyncSession, documento_id: int):
     await db.commit()
     return db_documento
 
+
 async def update_documento_file(db: AsyncSession, documento_id: int, file_location: str):
     db_documento = await get_documento(db, documento_id)
     db_documento.archivo = file_location
@@ -123,9 +137,11 @@ async def update_documento_file(db: AsyncSession, documento_id: int, file_locati
     await db.refresh(db_documento)
     return db_documento
 
+
 async def get_companies(db: AsyncSession):
     result = await db.execute(select(models.Company))
     return result.scalars().all()
+
 
 async def create_company(db: AsyncSession, company: schemas.CompanyCreate):
     db_company = models.Company(**company.dict())
@@ -133,6 +149,7 @@ async def create_company(db: AsyncSession, company: schemas.CompanyCreate):
     await db.commit()
     await db.refresh(db_company)
     return db_company
+
 
 async def update_company(db: AsyncSession, company_id: int, company: schemas.CompanyCreate):
     db_company = await get_company_by_id(db, company_id)
@@ -144,6 +161,7 @@ async def update_company(db: AsyncSession, company_id: int, company: schemas.Com
     await db.refresh(db_company)
     return db_company
 
+
 async def delete_company(db: AsyncSession, company_id: int):
     db_company = await get_company_by_id(db, company_id)
     if not db_company:
@@ -152,25 +170,28 @@ async def delete_company(db: AsyncSession, company_id: int):
     await db.commit()
     return db_company
 
+
 async def get_company_by_id(db: AsyncSession, company_id: int):
     result = await db.execute(select(models.Company).filter(models.Company.id == company_id))
     return result.scalars().first()
 
+
 async def create_rendicion(db: AsyncSession, rendicion: schemas.RendicionCreate):
-    db_rendicion = models.Rendicion(idUser=rendicion.idUser, nombre=rendicion.nombre)
+    db_rendicion = models.Rendicion(
+        idUser=rendicion.idUser, nombre=rendicion.nombre)
     db.add(db_rendicion)
     await db.commit()
     await db.refresh(db_rendicion)
     return db_rendicion
+
 
 async def get_rendiciones(db: AsyncSession):
     result = await db.execute(select(models.Rendicion))
     return result.scalars().all()
 
 
-from datetime import date
-
 # Método para crear una rendición con incremento en el nombre
+
 async def create_rendicion_with_increment(db: AsyncSession, user_id: int) -> models.Rendicion:
     # Buscar el último registro de rendición del usuario
     result = await db.execute(
@@ -178,7 +199,7 @@ async def create_rendicion_with_increment(db: AsyncSession, user_id: int) -> mod
         .filter(models.Rendicion.idUser == user_id, models.Rendicion.nombre.like("R%"))
         .order_by(desc(models.Rendicion.id))
     )
-    
+
     last_rendicion = result.scalars().first()
 
     # Si no existe ningún registro previo, el primer valor será R00001
@@ -188,13 +209,14 @@ async def create_rendicion_with_increment(db: AsyncSession, user_id: int) -> mod
         # Extraer el número del último 'nombre' y sumarle 1
         last_number = int(last_rendicion.nombre[1:])  # Ignorar la letra 'R'
         new_number = last_number + 1
-        new_nombre = f"R{new_number:05d}"  # Formatear con 5 dígitos, ejemplo: R00002
+        # Formatear con 5 dígitos, ejemplo: R00002
+        new_nombre = f"R{new_number:05d}"
 
     # Crear una nueva rendición
     new_rendicion = models.Rendicion(
         idUser=user_id,
         nombre=new_nombre,
-        estado="NUEVO", 
+        estado="NUEVO",
         tipo="RENDICION",
         fecha_registro=date.today()  # Inserta la fecha actual
     )
@@ -207,7 +229,6 @@ async def create_rendicion_with_increment(db: AsyncSession, user_id: int) -> mod
     return new_rendicion
 
 
-
 # Método para crear una rendición con incremento en el nombre
 async def create_solicitud_with_increment(db: AsyncSession, user_id: int) -> models.Solicitud:
     # Buscar el último registro de rendición del usuario
@@ -216,7 +237,7 @@ async def create_solicitud_with_increment(db: AsyncSession, user_id: int) -> mod
         .filter(models.Solicitud.idUser == user_id, models.Solicitud.nombre.like("S%"))
         .order_by(desc(models.Solicitud.id))
     )
-    
+
     last_solicitud = result.scalars().first()
 
     # Si no existe ningún registro previo, el primer valor será R00001
@@ -226,15 +247,16 @@ async def create_solicitud_with_increment(db: AsyncSession, user_id: int) -> mod
         # Extraer el número del último 'nombre' y sumarle 1
         last_number = int(last_solicitud.nombre[1:])  # Ignorar la letra 'R'
         new_number = last_number + 1
-        new_nombre = f"S{new_number:05d}"  # Formatear con 5 dígitos, ejemplo: R00002
+        # Formatear con 5 dígitos, ejemplo: R00002
+        new_nombre = f"S{new_number:05d}"
 
     # Crear una nueva rendición
-    fecha_actual = datetime.now().date() 
+    fecha_actual = datetime.now().date()
     new_solicitud = models.Solicitud(
         idUser=user_id,
         nombre=new_nombre,
-        fecha_registro= fecha_actual,
-        estado="NUEVO", 
+        fecha_registro=fecha_actual,
+        estado="NUEVO",
         tipo="ANTICIPO"
     )
 
@@ -244,5 +266,3 @@ async def create_solicitud_with_increment(db: AsyncSession, user_id: int) -> mod
     await db.refresh(new_solicitud)
 
     return new_solicitud
-
-

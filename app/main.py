@@ -35,6 +35,8 @@ from .database import get_db
 from .crud import create_rendicion_with_increment, create_solicitud_with_increment
 from .schemas import RendicionCreateResponse, RendicionUpdate,SolicitudCreateResponse,SolicitudUpdate,SolicitudResponse,RendicionSolicitudResponse,RendicionSolicitudCreate,RendicionResponse,ErrorResponse
 from .models import Rendicion, Solicitud,RendicionSolicitud
+from app.routers import company_api
+
 app = FastAPI()
 
 app.add_middleware(
@@ -44,6 +46,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Registrar los routers
+app.include_router(company_api.router, prefix="/api", tags=["Companies"])
 
 
 @app.middleware("http")

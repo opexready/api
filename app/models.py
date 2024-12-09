@@ -1,5 +1,7 @@
-from sqlalchemy import Column, Integer, String, Date, Float, ForeignKey
-from sqlalchemy.orm import relationship
+from xmlrpc.client import Boolean
+from sqlalchemy import Column, Integer, String, Date, Float, ForeignKey # type: ignore
+from sqlalchemy.orm import relationship # type: ignore
+from sqlalchemy import Boolean # type: ignore
 from .database import Base
 from datetime import datetime
 
@@ -23,6 +25,9 @@ class User(Base):
     jefe = relationship("User", remote_side=[id])  # Relación para referenciar al jefe
     cuenta_bancaria = Column(String) 
     banco = Column(String) 
+    id_empresa = Column(Integer, ForeignKey('companies.id'), nullable=True)  # Ahora permite valores NULL
+    empresa = relationship("Company", back_populates="usuarios")
+    estado = Column(Boolean, default=True)
 
 class Documento(Base):
     __tablename__ = "documentos"
@@ -83,6 +88,7 @@ class Company(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, index=True)
     description = Column(String, nullable=True)
+    usuarios = relationship("User", back_populates="empresa")  # Relación bidireccional con User
 
 class Rendicion(Base):
     __tablename__ = "rendicion"
