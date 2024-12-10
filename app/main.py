@@ -35,7 +35,7 @@ from .database import get_db
 from .crud import create_rendicion_with_increment, create_solicitud_with_increment
 from .schemas import RendicionCreateResponse, RendicionUpdate,SolicitudCreateResponse,SolicitudUpdate,SolicitudResponse,RendicionSolicitudResponse,RendicionSolicitudCreate,RendicionResponse,ErrorResponse
 from .models import Rendicion, Solicitud,RendicionSolicitud
-from app.routers import company_api
+from app.routers import company_api, qr_processing_api
 
 app = FastAPI()
 
@@ -49,6 +49,7 @@ app.add_middleware(
 
 # Registrar los routers
 app.include_router(company_api.router, prefix="/api", tags=["Companies"])
+app.include_router(qr_processing_api.router, prefix="/api", tags=["QR Processing"])
 
 
 @app.middleware("http")
