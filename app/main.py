@@ -35,7 +35,7 @@ from .database import get_db
 from .crud import create_rendicion_with_increment, create_solicitud_with_increment
 from .schemas import RendicionCreateResponse, RendicionUpdate,SolicitudCreateResponse,SolicitudUpdate,SolicitudResponse,RendicionSolicitudResponse,RendicionSolicitudCreate,RendicionResponse,ErrorResponse
 from .models import Rendicion, Solicitud,RendicionSolicitud
-from app.routers import company_api, qr_processing_api
+from app.routers import company_api, qr_processing_api,solicitud_api, rendicion_api
 
 app = FastAPI()
 
@@ -50,6 +50,8 @@ app.add_middleware(
 # Registrar los routers
 app.include_router(company_api.router, prefix="/api", tags=["Companies"])
 app.include_router(qr_processing_api.router, prefix="/api", tags=["QR Processing"])
+app.include_router(solicitud_api.router, prefix="/api", tags=["Solicitud"])
+app.include_router(rendicion_api.router, prefix="/api", tags=["Rendicion"])
 
 
 @app.middleware("http")
@@ -1101,14 +1103,14 @@ async def create_rendicion(rendicion_request: RendicionCreateRequest, db: AsyncS
 # Método para obtener el último registro de rendición por user_id
 
 
-@app.post("/solicitud/", response_model=SolicitudCreateResponse)
-async def create_solicitud(solicitud_request: SolicitudCreateRequest, db: AsyncSession = Depends(get_db)):
-    try:
-        user_id = solicitud_request.user_id
-        new_solicitud = await create_solicitud_with_increment(db, user_id)
-        return new_solicitud
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+# @app.post("/solicitud/", response_model=SolicitudCreateResponse)
+# async def create_solicitud(solicitud_request: SolicitudCreateRequest, db: AsyncSession = Depends(get_db)):
+#     try:
+#         user_id = solicitud_request.user_id
+#         new_solicitud = await create_solicitud_with_increment(db, user_id)
+#         return new_solicitud
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/rendicion/last", response_model=RendicionCreateResponse)
@@ -1177,26 +1179,7 @@ async def get_unique_rendicion_names(user_id: int, tipo: str, db: AsyncSession =
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     
-@app.get("/solicitud/nombres", response_model=list[SolicitudResponse])
-async def get_unique_solicitud_names(user_id: int, tipo: str, db: AsyncSession = Depends(get_db)):
-    try:
-        result = await db.execute(
-            select(models.Solicitud)
-            .where(models.Solicitud.idUser == user_id, models.Solicitud.tipo == tipo)
-        )
-
-        solicitudes = result.scalars().all()
-
-        if not solicitudes:
-            raise HTTPException(
-                status_code=404, detail="No se encontraron solicitudes para este usuario con el tipo especificado"
-            )
-
-        return solicitudes  # SQLAlchemy objects serán serializados automáticamente por Pydantic
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-    
+   
 @app.get("/rendiciones/nombres", response_model=list[RendicionResponse])
 async def get_unique_rendicion_names(user_id: int, tipo: str, db: AsyncSession = Depends(get_db)):
     try:
@@ -1252,150 +1235,128 @@ async def update_rendicion(
 
 ###################
 
-@app.put("/solicitud/{solicitud_id}", response_model=dict)
-async def update_solicitud(
-    solicitud_id: int,
-    solicitud_data: SolicitudUpdate,
-    db: AsyncSession = Depends(get_db)
-):
-    # Buscar la rendición por ID
-    result = await db.execute(select(Solicitud).where(Solicitud.id == solicitud_id))
-    db_solicitud = result.scalars().first()
-
-    if not db_solicitud:
-        raise HTTPException(status_code=404, detail="Rendición no encontrada")
-
-    # Actualizar solo los campos proporcionados
-    update_data = solicitud_data.dict(exclude_unset=True)
-    for key, value in update_data.items():
-        setattr(db_solicitud, key, value)
-
-    # Guardar cambios
-    await db.commit()
-    await db.refresh(db_solicitud)
-
-    return {"detail": "Rendición actualizada exitosamente"}
 
 
-@app.get("/rendiciones/con-documentos/", response_model=list[dict])
-async def get_rendiciones_con_documentos_filtradas(
-    tipo: Optional[str] = Query(None, description="Filtrar por tipo de rendición"),
-    estado: Optional[str] = Query(None, description="Filtrar por estado de la rendición"),
-    fecha_registro_from: Optional[date] = Query(None, description="Filtrar desde esta fecha de registro"),
-    fecha_registro_to: Optional[date] = Query(None, description="Filtrar hasta esta fecha de registro"),
-    fecha_actualizacion_from: Optional[date] = Query(None, description="Filtrar desde esta fecha de actualización"),
-    fecha_actualizacion_to: Optional[date] = Query(None, description="Filtrar hasta esta fecha de actualización"),
-    id_user: Optional[int] = Query(None, description="Filtrar por ID de usuario"),
-    db: AsyncSession = Depends(get_db)
-):
-    """
-    Devuelve una lista de rendiciones que tienen documentos asociados, aplicando filtros opcionales.
-    """
-    try:
-        # Construir la consulta base para las rendiciones
-        query = (
-            select(models.Rendicion)
-            .join(models.Documento, models.Documento.numero_rendicion == models.Rendicion.nombre)
-            .distinct()
-        )
 
-        if tipo:
-            query = query.where(models.Rendicion.tipo == tipo)
-        if estado:
-            query = query.where(models.Rendicion.estado == estado)
-        if fecha_registro_from:
-            query = query.where(models.Rendicion.fecha_registro >= fecha_registro_from)
-        if fecha_registro_to:
-            query = query.where(models.Rendicion.fecha_registro <= fecha_registro_to)
-        if fecha_actualizacion_from:
-            query = query.where(models.Rendicion.fecha_actualizacion >= fecha_actualizacion_from)
-        if fecha_actualizacion_to:
-            query = query.where(models.Rendicion.fecha_actualizacion <= fecha_actualizacion_to)
-        if id_user:
-            query = query.where(models.Rendicion.idUser == id_user)
+# @app.get("/rendiciones/con-documentos/", response_model=list[dict])
+# async def get_rendiciones_con_documentos_filtradas(
+#     tipo: Optional[str] = Query(None, description="Filtrar por tipo de rendición"),
+#     estado: Optional[str] = Query(None, description="Filtrar por estado de la rendición"),
+#     fecha_registro_from: Optional[date] = Query(None, description="Filtrar desde esta fecha de registro"),
+#     fecha_registro_to: Optional[date] = Query(None, description="Filtrar hasta esta fecha de registro"),
+#     fecha_actualizacion_from: Optional[date] = Query(None, description="Filtrar desde esta fecha de actualización"),
+#     fecha_actualizacion_to: Optional[date] = Query(None, description="Filtrar hasta esta fecha de actualización"),
+#     id_user: Optional[int] = Query(None, description="Filtrar por ID de usuario"),
+#     db: AsyncSession = Depends(get_db)
+# ):
+#     """
+#     Devuelve una lista de rendiciones que tienen documentos asociados, aplicando filtros opcionales.
+#     """
+#     try:
+#         # Construir la consulta base para las rendiciones
+#         query = (
+#             select(models.Rendicion)
+#             .join(models.Documento, models.Documento.numero_rendicion == models.Rendicion.nombre)
+#             .distinct()
+#         )
 
-        # Ejecutar la consulta para rendiciones
-        rendiciones_query = await db.execute(query)
-        rendiciones = rendiciones_query.scalars().all()
+#         if tipo:
+#             query = query.where(models.Rendicion.tipo == tipo)
+#         if estado:
+#             query = query.where(models.Rendicion.estado == estado)
+#         if fecha_registro_from:
+#             query = query.where(models.Rendicion.fecha_registro >= fecha_registro_from)
+#         if fecha_registro_to:
+#             query = query.where(models.Rendicion.fecha_registro <= fecha_registro_to)
+#         if fecha_actualizacion_from:
+#             query = query.where(models.Rendicion.fecha_actualizacion >= fecha_actualizacion_from)
+#         if fecha_actualizacion_to:
+#             query = query.where(models.Rendicion.fecha_actualizacion <= fecha_actualizacion_to)
+#         if id_user:
+#             query = query.where(models.Rendicion.idUser == id_user)
 
-        # Crear la respuesta con los documentos relacionados
-        resultado = []
-        for rendicion in rendiciones:
-            # Buscar documentos relacionados con el nombre de la rendición (numero_rendicion)
-            documentos_query = await db.execute(
-                select(models.Documento).where(models.Documento.numero_rendicion == rendicion.nombre)
-            )
-            documentos = documentos_query.scalars().all()
+#         # Ejecutar la consulta para rendiciones
+#         rendiciones_query = await db.execute(query)
+#         rendiciones = rendiciones_query.scalars().all()
 
-            # Solo agregar rendiciones con documentos asociados
-            if documentos:
-                resultado.append({
-                    "rendicion": {
-                        "id": rendicion.id,
-                        "idUser": rendicion.idUser,
-                        "nombre": rendicion.nombre,
-                        "tipo": rendicion.tipo,
-                        "estado": rendicion.estado,
-                        "fecha_registro": rendicion.fecha_registro,
-                        "fecha_actualizacion": rendicion.fecha_actualizacion,
-                    },
-                    "documentos": [
-                        {
-                            "id": doc.id,
-                            "fecha_solicitud": doc.fecha_solicitud,
-                            "fecha_rendicion": doc.fecha_rendicion,
-                            "dni": doc.dni,
-                            "usuario": doc.usuario,
-                            "gerencia": doc.gerencia,
-                            "ruc": doc.ruc,
-                            "proveedor": doc.proveedor,
-                            "fecha_emision": doc.fecha_emision,
-                            "moneda": doc.moneda,
-                            "tipo_documento": doc.tipo_documento,
-                            "serie": doc.serie,
-                            "correlativo": doc.correlativo,
-                            "tipo_gasto": doc.tipo_gasto,
-                            "sub_total": doc.sub_total,
-                            "igv": doc.igv,
-                            "no_gravadas": doc.no_gravadas,
-                            "importe_facturado": doc.importe_facturado,
-                            "tc": doc.tc,
-                            "anticipo": doc.anticipo,
-                            "total": doc.total,
-                            "pago": doc.pago,
-                            "detalle": doc.detalle,
-                            "estado": doc.estado,
-                            "empresa": doc.empresa,
-                            "archivo": doc.archivo,
-                            "tipo_solicitud": doc.tipo_solicitud,
-                            "tipo_cambio": doc.tipo_cambio,
-                            "afecto": doc.afecto,
-                            "inafecto": doc.inafecto,
-                            "rubro": doc.rubro,
-                            "cuenta_contable": doc.cuenta_contable,
-                            "responsable": doc.responsable,
-                            "area": doc.area,
-                            "ceco": doc.ceco,
-                            "tipo_anticipo": doc.tipo_anticipo,
-                            "motivo": doc.motivo,
-                            "fecha_viaje": doc.fecha_viaje,
-                            "dias": doc.dias,
-                            "presupuesto": doc.presupuesto,
-                            "banco": doc.banco,
-                            "numero_cuenta": doc.numero_cuenta,
-                            "origen": doc.origen,
-                            "destino": doc.destino,
-                            "numero_rendicion": doc.numero_rendicion,
-                            "tipo_viaje": doc.tipo_viaje,
-                        }
-                        for doc in documentos
-                    ]
-                })
+#         # Crear la respuesta con los documentos relacionados
+#         resultado = []
+#         for rendicion in rendiciones:
+#             # Buscar documentos relacionados con el nombre de la rendición (numero_rendicion)
+#             documentos_query = await db.execute(
+#                 select(models.Documento).where(models.Documento.numero_rendicion == rendicion.nombre)
+#             )
+#             documentos = documentos_query.scalars().all()
 
-        return resultado
+#             # Solo agregar rendiciones con documentos asociados
+#             if documentos:
+#                 resultado.append({
+#                     "rendicion": {
+#                         "id": rendicion.id,
+#                         "idUser": rendicion.idUser,
+#                         "nombre": rendicion.nombre,
+#                         "tipo": rendicion.tipo,
+#                         "estado": rendicion.estado,
+#                         "fecha_registro": rendicion.fecha_registro,
+#                         "fecha_actualizacion": rendicion.fecha_actualizacion,
+#                     },
+#                     "documentos": [
+#                         {
+#                             "id": doc.id,
+#                             "fecha_solicitud": doc.fecha_solicitud,
+#                             "fecha_rendicion": doc.fecha_rendicion,
+#                             "dni": doc.dni,
+#                             "usuario": doc.usuario,
+#                             "gerencia": doc.gerencia,
+#                             "ruc": doc.ruc,
+#                             "proveedor": doc.proveedor,
+#                             "fecha_emision": doc.fecha_emision,
+#                             "moneda": doc.moneda,
+#                             "tipo_documento": doc.tipo_documento,
+#                             "serie": doc.serie,
+#                             "correlativo": doc.correlativo,
+#                             "tipo_gasto": doc.tipo_gasto,
+#                             "sub_total": doc.sub_total,
+#                             "igv": doc.igv,
+#                             "no_gravadas": doc.no_gravadas,
+#                             "importe_facturado": doc.importe_facturado,
+#                             "tc": doc.tc,
+#                             "anticipo": doc.anticipo,
+#                             "total": doc.total,
+#                             "pago": doc.pago,
+#                             "detalle": doc.detalle,
+#                             "estado": doc.estado,
+#                             "empresa": doc.empresa,
+#                             "archivo": doc.archivo,
+#                             "tipo_solicitud": doc.tipo_solicitud,
+#                             "tipo_cambio": doc.tipo_cambio,
+#                             "afecto": doc.afecto,
+#                             "inafecto": doc.inafecto,
+#                             "rubro": doc.rubro,
+#                             "cuenta_contable": doc.cuenta_contable,
+#                             "responsable": doc.responsable,
+#                             "area": doc.area,
+#                             "ceco": doc.ceco,
+#                             "tipo_anticipo": doc.tipo_anticipo,
+#                             "motivo": doc.motivo,
+#                             "fecha_viaje": doc.fecha_viaje,
+#                             "dias": doc.dias,
+#                             "presupuesto": doc.presupuesto,
+#                             "banco": doc.banco,
+#                             "numero_cuenta": doc.numero_cuenta,
+#                             "origen": doc.origen,
+#                             "destino": doc.destino,
+#                             "numero_rendicion": doc.numero_rendicion,
+#                             "tipo_viaje": doc.tipo_viaje,
+#                         }
+#                         for doc in documentos
+#                     ]
+#                 })
 
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al obtener rendiciones con documentos: {str(e)}")
+#         return resultado
+
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=f"Error al obtener rendiciones con documentos: {str(e)}")
     
 # @app.get("/rendiciones-solicitudes/con-documentos/", response_model=List[dict])
 # async def get_rendiciones_y_solicitudes_con_documentos(
@@ -1625,12 +1586,14 @@ async def get_rendiciones_y_solicitudes_con_documentos(
             select(models.Rendicion, models.User.full_name)
             .join(models.User, models.Rendicion.idUser == models.User.id)
             .join(models.Documento, models.Documento.numero_rendicion == models.Rendicion.nombre)
+            .where(models.Rendicion.estado != "NUEVO") 
             .distinct()
         )
         query_solicitudes = (
             select(models.Solicitud, models.User.full_name)
             .join(models.User, models.Solicitud.idUser == models.User.id)
             .join(models.Documento, models.Documento.numero_rendicion == models.Solicitud.nombre)
+            .where(models.Solicitud.estado != "NUEVO")
             .distinct()
         )
 

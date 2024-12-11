@@ -198,9 +198,12 @@ class RendicionCreateResponse(BaseModel):
 #######################
 
 class SolicitudBase(BaseModel):
-    nombre: str
-    tipo: Optional[str] = None  # Nuevo campo tipo
-    estado: Optional[str] = None  # Nuevo campo estado
+    idUser: Optional[int]
+    nombre: Optional[str]
+    tipo: Optional[str]
+    estado: Optional[str]
+    fecha_registro: Optional[str]  # Fecha en formato YYYY-MM-DD
+    fecha_actualizacion: Optional[str]
 
 class SolicitudUpdate(BaseModel):
     nombre: Optional[str] = None
