@@ -17,27 +17,29 @@ async def get_unique_solicitud_names(
     db: AsyncSession = Depends(get_db)
 ):
     try:
-        query = select(Solicitud).where(
-            Solicitud.idUser == user_id,
-            Solicitud.estado == estado
-        )
+        # Construir la consulta inicial
+        query = select(Solicitud).where(Solicitud.idUser == user_id)
 
-        if estado:
+        # Agregar condición para estado solo si se proporciona
+        if estado is not None:
             query = query.where(Solicitud.estado == estado)
 
+        # Ejecutar la consulta
         result = await db.execute(query)
         solicitudes = result.scalars().all()
 
+        # Verificar si hay resultados
         if not solicitudes:
             raise HTTPException(
                 status_code=404,
-                detail="No se encontraron solicitudes para este usuario con los filtros especificadosee"
+                detail="No se encontraron solicitudes para este usuario con los filtros especificados"
             )
 
         return solicitudes
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
     # 3
 
