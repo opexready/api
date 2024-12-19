@@ -210,11 +210,24 @@ async def read_users_me(current_user: schemas.User = Depends(auth.get_current_us
     return current_user
 
 
+# @app.post("/users/", response_model=schemas.User)
+# async def create_user(user: schemas.UserCreate, db: AsyncSession = Depends(get_db)):
+#     db_user = await crud.get_user_by_email(db, email=user.email)
+#     if db_user:
+#         raise HTTPException(status_code=400, detail="Email already registered")
+#     return await crud.create_user(db=db, user=user)
+
 @app.post("/users/", response_model=schemas.User)
 async def create_user(user: schemas.UserCreate, db: AsyncSession = Depends(get_db)):
+    # Verificar si el email ya está registrado
     db_user = await crud.get_user_by_email(db, email=user.email)
     if db_user:
         raise HTTPException(status_code=400, detail="Email already registered")
+    
+    # Asignar valor por defecto a id_empresa si no se envía
+    if not hasattr(user, "id_empresa") or user.id_empresa is None:
+        user.id_empresa = 2
+
     return await crud.create_user(db=db, user=user)
 
 
