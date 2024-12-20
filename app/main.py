@@ -228,7 +228,12 @@ async def create_user(user: schemas.UserCreate, db: AsyncSession = Depends(get_d
     if not hasattr(user, "id_empresa") or user.id_empresa is None:
         user.id_empresa = 2
 
+    # Asignar valor por defecto a estado si no se envía
+    if not hasattr(user, "estado") or user.estado is None:
+        user.estado = True
+
     return await crud.create_user(db=db, user=user)
+
 
 
 @app.get("/users/", response_model=List[schemas.User])

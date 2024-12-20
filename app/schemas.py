@@ -21,6 +21,7 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     password: Optional[str] = None
     id_empresa: Optional[int] = None  # Agregar el campo id_empresa
+    estado: Optional[bool] = None
 
 class User(UserBase):
     id: int

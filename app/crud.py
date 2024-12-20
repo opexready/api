@@ -266,3 +266,5 @@ async def create_solicitud_with_increment(db: AsyncSession, user_id: int) -> mod
     await db.refresh(new_solicitud)
 
     return new_solicitud
+
+
