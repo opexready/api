@@ -36,7 +36,7 @@ from .crud import create_rendicion_with_increment, create_solicitud_with_increme
 from .schemas import RendicionCreateResponse, RendicionUpdate, SolicitudCreateResponse, SolicitudUpdate, SolicitudResponse, RendicionSolicitudResponse, RendicionSolicitudCreate, RendicionResponse, ErrorResponse
 from .models import Rendicion, Solicitud, RendicionSolicitud, User
 from app.routers import company_api, qr_processing_api, solicitud_api, rendicion_api
-from num2words import num2words # type: ignore
+
 
 app = FastAPI()
 
@@ -411,46 +411,6 @@ async def view_file(file_location: str):
     media_type, _ = guess_type(file_location)
     return FileResponse(path=file_location, media_type=media_type)
 
-
-# @app.get("/documentos/export/excel")
-# async def export_documentos_excel(
-#     empresa: str = Query(None, alias="company_name"),
-#     estado: str = Query(None),
-#     username: str = Query(None),
-#     db: AsyncSession = Depends(get_db)
-# ):
-#     query = select(models.Documento).filter(
-#         models.Documento.empresa == empresa)
-#     if estado:
-#         query = query.filter(models.Documento.estado == estado)
-#     if username:
-#         query = query.filter(models.Documento.usuario == username)
-
-#     result = await db.execute(query)
-#     documentos = result.scalars().all()
-
-#     df = pd.DataFrame([{
-#         "Item": i + 1,
-#         "Fecha": doc.fecha_emision,
-#         "RUC": doc.ruc,
-#         "TipoDoc": doc.tipo_documento,
-#         "Cuenta Contable": doc.cuenta_contable,
-#         "Serie": doc.serie,
-#         "Correlativo": doc.correlativo,
-#         # "Rubro": doc.rubro,
-#         "Moneda": doc.moneda,
-#         "Tipo de Cambio": doc.tc,
-#         "Afecto": doc.afecto,
-#         "IGV": doc.igv,
-#         "Inafecto": doc.inafecto,
-#         "Total": doc.total
-#     } for i, doc in enumerate(documentos)])
-
-#     excel_file = f"documentos.xlsx"
-#     df.to_excel(excel_file, index=False)
-#     return FileResponse(path=excel_file, filename="documentos.xlsx")
-
-
 # Configurar el logger
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -465,9 +425,6 @@ async def export_documentos_excel(
     fecha_hasta: date = Query(None),
     db: AsyncSession = Depends(get_db)
 ):
-    # Log de parámetros recibidos
-    # logger.info(f"Parámetros recibidos: empresa={empresa}, estado={estado}, username={
-    #             username}, fecha_desde={fecha_desde}, fecha_hasta={fecha_hasta}")
 
     # Construir la consulta base sin filtros obligatorios
     query = select(models.Documento)
@@ -607,169 +564,6 @@ class PDF(FPDF):
         self.cell(spacing, 10, '', border=0, ln=0)
         self.cell(
             col_width, 10, f'Reembolsar / (-)Devolver: {reembolso}', border=1, ln=1, align='L')
-
-# @app.get("/documentos/export/pdf")
-# async def export_documentos_pdf(
-#     empresa: str = Query(..., alias="company_name"),  # Obligatorio
-#     estado: str = Query(None),  # Opcional
-#     id_user: str = Query(...),
-#     id_rendicion: int = Query(..., description="ID de rendición (obligatorio)"),
-#     db: AsyncSession = Depends(get_db)
-# ):
-#     # Verificar que id_rendicion no esté vacío
-#     if not id_rendicion:
-#         raise HTTPException(
-#             status_code=400, detail="El campo 'id_rendicion' es obligatorio."
-#         )
-
-#     # Construir la consulta base con el filtro de empresa e id_rendicion obligatorio
-#     query = select(models.Documento).filter(
-#         models.Documento.empresa == empresa,
-#         models.Documento.tipo_solicitud == "RENDICION",
-#         models.Documento.id_numero_rendicion == id_rendicion
-#     )
-
-#     # Filtros adicionales opcionales
-#     if estado:
-#         query = query.filter(models.Documento.estado == estado)
-#     if id_user:
-#         try:
-#             id_user_int = int(id_user)  # Convertir id_user a entero
-#             query = query.filter(models.Documento.id_user == id_user_int)
-#         except ValueError:
-#             raise HTTPException(
-#                 status_code=400,
-#                 detail="El campo 'id_user' debe ser un número entero."
-#             )
-
-#     # Ejecutar la consulta
-#     result = await db.execute(query)
-#     documentos = result.scalars().all()
-
-#     # Verificar si se encontraron documentos
-#     if not documentos:
-#         raise HTTPException(
-#             status_code=404,
-#             detail="No se encontraron documentos para la rendición proporcionada."
-#         )
-
-#     # Calcular el total de gastos
-#     total_gasto = sum(doc.total for doc in documentos)
-
-#     # Calcular el total de anticipo basado en tipo_solicitud=ANTICIPO, estado=CERRADO y usuario
-#     query_anticipo = select(models.Documento).filter(
-#         models.Documento.tipo_solicitud == "ANTICIPO",
-#         models.Documento.estado == "CERRADO",
-#         models.Documento.usuario == id_user_int,
-#         models.Documento.empresa == empresa
-#     )
-
-#     result_anticipo = await db.execute(query_anticipo)
-#     documentos_anticipo = result_anticipo.scalars().all()
-
-#     total_anticipo = sum(
-#         doc.total if doc.total is not None else 0 for doc in documentos_anticipo
-#     )
-
-#     reembolso = total_anticipo - total_gasto
-
-#     # Crear el PDF
-#     pdf = PDF(orientation='L')
-#     pdf.usuario = "Cesar Loyola"
-#     pdf.dni = "456215242"
-#     pdf.cargo = "Vendedor"
-#     pdf.zona = "Zona Norte"
-#     pdf.area_responsable = "Finanzas"
-#     pdf.fecha_solicitud = "16-10-2024"
-#     pdf.fecha_rendicion = "16-10-2024"
-#     pdf.tipo_gasto = "Rendición de Gastos"
-#     pdf.total_anticipo = total_anticipo
-#     pdf.total_gasto = total_gasto
-#     pdf.reembolso = reembolso
-
-#     # Añadir una página al PDF
-#     pdf.add_page()
-
-#     # Definir el encabezado de la tabla
-#     table_header = ["Item", "Fecha", "RUC", "Tip. Doc", "Cta Contable", "Serie", "Correlativo",
-#                     "Moneda", "Tip. Cambio", "Afecto", "IGV", "Inafecto", "Total"]
-
-#     # Definir los datos de la tabla
-#     table_data = [
-#         [i + 1, doc.fecha_emision, doc.ruc, doc.tipo_documento, doc.cuenta_contable, doc.serie,
-#             doc.correlativo, doc.moneda, doc.tc, doc.afecto, doc.igv, doc.inafecto, doc.total]
-#         for i, doc in enumerate(documentos)
-#     ]
-#     pdf.add_table(table_header, table_data)
-
-#     # Añadir las firmas
-#     pdf.add_firmas(pdf.total_anticipo, pdf.total_gasto, pdf.reembolso)
-
-#     # Generar el archivo PDF
-#     pdf_file = f"documentos_{id_rendicion}.pdf"
-#     pdf.output(pdf_file)
-
-#     return FileResponse(path=pdf_file, filename=f"documentos_{id_rendicion}.pdf")
-
-# @app.get("/documentos/export/pdf")
-# async def export_documentos_pdf(
-#     id_rendicion: int = Query(..., description="ID de rendición (obligatorio)"),
-#     db: AsyncSession = Depends(get_db)
-# ):
-#     if not id_rendicion:
-#         raise HTTPException(
-#             status_code=400, detail="El campo 'id_rendicion' es obligatorio."
-#         )
-#     query = select(models.Documento).filter(
-#         models.Documento.id_numero_rendicion == id_rendicion
-#     )
-#     result = await db.execute(query)
-#     documentos = result.scalars().all()
-#     if not documentos:
-#         raise HTTPException(
-#             status_code=404,
-#             detail="No se encontraron documentos para la rendición proporcionada."
-#         )
-#     total_gasto = sum(doc.total for doc in documentos)
-
-#     query_anticipo = select(models.Documento).filter(
-#         models.Documento.tipo_solicitud == "ANTICIPO",
-#         models.Documento.id_numero_rendicion == id_rendicion
-#     )
-#     result_anticipo = await db.execute(query_anticipo)
-#     documentos_anticipo = result_anticipo.scalars().all()
-#     total_anticipo = sum(
-#         doc.total if doc.total is not None else 0 for doc in documentos_anticipo
-#     )
-
-#     reembolso = total_anticipo - total_gasto
-#     # Crear el PDF
-#     pdf = PDF(orientation='L')
-#     pdf.usuario = "Cesar Loyola"
-#     pdf.dni = "456215242"
-#     pdf.cargo = "Vendedor"
-#     pdf.zona = "Zona Norte"
-#     pdf.area_responsable = "Finanzas"
-#     pdf.fecha_solicitud = "16-10-2024"
-#     pdf.fecha_rendicion = "16-10-2024"
-#     pdf.tipo_gasto = "Rendición de Gastos"
-#     pdf.total_anticipo = total_anticipo
-#     pdf.total_gasto = total_gasto
-#     pdf.reembolso = reembolso
-#     pdf.add_page()
-
-#     table_header = ["Item", "Fecha", "RUC", "Tip. Doc", "Cta Contable", "Serie", "Correlativo",
-#                     "Moneda", "Tip. Cambio", "Afecto", "IGV", "Inafecto", "Total"]
-#     table_data = [
-#         [i + 1, doc.fecha_emision, doc.ruc, doc.tipo_documento, doc.cuenta_contable, doc.serie,
-#             doc.correlativo, doc.moneda, doc.tc, doc.afecto, doc.igv, doc.inafecto, doc.total]
-#         for i, doc in enumerate(documentos)
-#     ]
-#     pdf.add_table(table_header, table_data)
-#     pdf.add_firmas(pdf.total_anticipo, pdf.total_gasto, pdf.reembolso)
-#     pdf_file = f"documentos_{id_rendicion}.pdf"
-#     pdf.output(pdf_file)
-#     return FileResponse(path=pdf_file, filename=f"documentos_{id_rendicion}.pdf")
 
 
 @app.get("/documentos/export/pdf")
