@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from typing import List, Optional,Union
+from typing import List, Optional, Union
 from datetime import date, timedelta, datetime
 from sqlalchemy import distinct
 import shutil
@@ -33,9 +33,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from .database import get_db
 from .crud import create_rendicion_with_increment, create_solicitud_with_increment
-from .schemas import RendicionCreateResponse, RendicionUpdate,SolicitudCreateResponse,SolicitudUpdate,SolicitudResponse,RendicionSolicitudResponse,RendicionSolicitudCreate,RendicionResponse,ErrorResponse
-from .models import Rendicion, Solicitud,RendicionSolicitud, User
-from app.routers import company_api, qr_processing_api,solicitud_api, rendicion_api
+from .schemas import RendicionCreateResponse, RendicionUpdate, SolicitudCreateResponse, SolicitudUpdate, SolicitudResponse, RendicionSolicitudResponse, RendicionSolicitudCreate, RendicionResponse, ErrorResponse
+from .models import Rendicion, Solicitud, RendicionSolicitud, User
+from app.routers import company_api, qr_processing_api, solicitud_api, rendicion_api
 
 app = FastAPI()
 
@@ -128,6 +128,7 @@ def preprocess_image(image):
         open_cv_image, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
     return processed_image
 
+
 @app.post("/decode-qr/")
 async def decode_qr(file: UploadFile = File(...)):
     if file.content_type not in ['image/jpeg', 'image/png']:
@@ -141,10 +142,6 @@ async def decode_qr(file: UploadFile = File(...)):
             decoded_objects = decode(image)
         if not decoded_objects:
             return JSONResponse(content={"detail": "No QR code found in the image"})
-
-        # Imprimir el primer resultado de la decodificación del QR en consola
-        # print(f"Primer resultado decodificado del QR: {
-        #       decoded_objects[0].data.decode('utf-8')}")
 
         qr_data = decoded_objects[0].data.decode("utf-8").split("|")
         result = {}
@@ -204,42 +201,24 @@ async def login_for_access_token(form_data: schemas.UserLogin, db: AsyncSession 
         data={"sub": user.email}, expires_delta=access_token_expires)
     return {"access_token": access_token, "token_type": "bearer"}
 
-
 @app.get("/users/me/", response_model=schemas.User)
 async def read_users_me(current_user: schemas.User = Depends(auth.get_current_user)):
     return current_user
 
-
-# @app.post("/users/", response_model=schemas.User)
-# async def create_user(user: schemas.UserCreate, db: AsyncSession = Depends(get_db)):
-#     db_user = await crud.get_user_by_email(db, email=user.email)
-#     if db_user:
-#         raise HTTPException(status_code=400, detail="Email already registered")
-#     return await crud.create_user(db=db, user=user)
-
 @app.post("/users/", response_model=schemas.User)
 async def create_user(user: schemas.UserCreate, db: AsyncSession = Depends(get_db)):
-    # Verificar si el email ya está registrado
     db_user = await crud.get_user_by_email(db, email=user.email)
     if db_user:
         raise HTTPException(status_code=400, detail="Email already registered")
-    
-    # Asignar valor por defecto a id_empresa si no se envía
     if not hasattr(user, "id_empresa") or user.id_empresa is None:
         user.id_empresa = 2
-
-    # Asignar valor por defecto a estado si no se envía
     if not hasattr(user, "estado") or user.estado is None:
         user.estado = True
-
     return await crud.create_user(db=db, user=user)
-
-
 
 @app.get("/users/", response_model=List[schemas.User])
 async def read_users(db: AsyncSession = Depends(get_db)):
     return await crud.get_users(db)
-
 
 @app.get("/users/by-company-and-role/", response_model=List[schemas.User])
 async def read_users_by_company_and_role(company_name: str = Query(...), role: str = Query(...), db: AsyncSession = Depends(get_db)):
@@ -249,11 +228,9 @@ async def read_users_by_company_and_role(company_name: str = Query(...), role: s
             status_code=404, detail="No users found for the specified company_name and role")
     return users
 
-
 @app.get("/users/with-pending-documents/", response_model=List[schemas.UserWithPendingDocuments])
 async def read_users_with_pending_documents(empresa: str = Query(...), db: AsyncSession = Depends(get_db)):
     return await crud.get_users_with_pending_documents(db, empresa)
-
 
 @app.get("/users/by-email/", response_model=schemas.User)
 async def read_user_by_email(email: str = Query(...), db: AsyncSession = Depends(get_db)):
@@ -320,9 +297,9 @@ async def create_documento(documento: schemas.DocumentoCreate, db: AsyncSession 
         destino=documento.destino,
         origen=documento.origen,
         numero_rendicion=documento.numero_rendicion,
-        id_user = documento.id_user,
-        id_numero_rendicion = documento.id_numero_rendicion
-      
+        id_user=documento.id_user,
+        id_numero_rendicion=documento.id_numero_rendicion
+
     )
 
     print(f"Guardando el documento en la base de datos: {db_documento}")
@@ -477,6 +454,7 @@ async def view_file(file_location: str):
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
 @app.get("/documentos/export/excel")
 async def export_documentos_excel(
     empresa: str = Query(None, alias="company_name"),
@@ -487,7 +465,8 @@ async def export_documentos_excel(
     db: AsyncSession = Depends(get_db)
 ):
     # Log de parámetros recibidos
-    logger.info(f"Parámetros recibidos: empresa={empresa}, estado={estado}, username={username}, fecha_desde={fecha_desde}, fecha_hasta={fecha_hasta}")
+    # logger.info(f"Parámetros recibidos: empresa={empresa}, estado={estado}, username={
+    #             username}, fecha_desde={fecha_desde}, fecha_hasta={fecha_hasta}")
 
     # Construir la consulta base sin filtros obligatorios
     query = select(models.Documento)
@@ -541,7 +520,6 @@ async def export_documentos_excel(
     df.to_excel(excel_file, index=False)
 
     return FileResponse(path=excel_file, filename="documentos.xlsx")
-
 
 
 class PDF(FPDF):
@@ -762,7 +740,7 @@ class PDF(FPDF):
 #     total_anticipo = sum(
 #         doc.total if doc.total is not None else 0 for doc in documentos_anticipo
 #     )
-    
+
 #     reembolso = total_anticipo - total_gasto
 #     # Crear el PDF
 #     pdf = PDF(orientation='L')
@@ -793,14 +771,13 @@ class PDF(FPDF):
 #     return FileResponse(path=pdf_file, filename=f"documentos_{id_rendicion}.pdf")
 
 
-
 @app.get("/documentos/export/pdf")
 async def export_documentos_pdf(
-    id_rendicion: int = Query(..., description="ID de rendición (obligatorio)"),
+    id_rendicion: int = Query(...,description="ID de rendición (obligatorio)"),
     id_usuario: int = Query(..., description="ID del usuario (obligatorio)"),
     db: AsyncSession = Depends(get_db)
 ):
-    
+
     query_usuario = select(User).filter(User.id == id_usuario)
     result_usuario = await db.execute(query_usuario)
     usuario = result_usuario.scalar_one_or_none()
@@ -810,7 +787,7 @@ async def export_documentos_pdf(
             status_code=404,
             detail="No se encontró el usuario con el ID proporcionado."
         )
-    
+
     if not id_rendicion:
         raise HTTPException(
             status_code=400, detail="El campo 'id_rendicion' es obligatorio."
@@ -883,8 +860,7 @@ async def export_documentos_pdf(
 
     # Agregar datos de la tabla
     table_data = [
-        [i + 1, doc.fecha_emision, doc.ruc, doc.tipo_documento, doc.cuenta_contable, doc.serie,
-         doc.correlativo, doc.moneda, doc.tc, doc.afecto, doc.igv, doc.inafecto, doc.total]
+        [i + 1, doc.fecha_emision, doc.ruc, doc.tipo_documento, doc.cuenta_contable, doc.serie, doc.correlativo, doc.moneda, doc.tc, doc.afecto, doc.igv, doc.inafecto, doc.total]
         for i, doc in enumerate(documentos)
     ]
     pdf.add_table(table_header, table_data)
@@ -897,7 +873,6 @@ async def export_documentos_pdf(
     pdf.output(pdf_file)
 
     return FileResponse(path=pdf_file, filename=f"documentos_{id_rendicion}.pdf")
-
 
 
 class DocumentoPDFCustom(FPDF):
@@ -1040,8 +1015,7 @@ class DocumentoPDFLocal(FPDF):
         self.cell(40, 10, 'DNI:', 1)
         self.cell(60, 10, documento.dni if documento.dni else 'N/A', 1)
         self.cell(40, 10, 'Solicitado el:', 1)
-        self.cell(60, 10, str(documento.fecha_solicitud)
-                  if documento.fecha_solicitud else 'N/A', 1)
+        self.cell(60, 10, str(documento.fecha_solicitud) if documento.fecha_solicitud else 'N/A', 1)
         self.ln(10)
         self.cell(40, 10, 'Responsable:', 1)
         self.cell(
@@ -1173,19 +1147,17 @@ class DocumentoPDFMovilidad(FPDF):
         self.cell(0, 10, 'Reporte de Gastos movilidad / Local', 0, 1, 'L')
         self.set_font('Arial', '', 10)
         self.cell(0, 5, 'OPEX READY SAC', 0, 1, 'L')
-        self.cell(0, 5, '20XXXXXXXXX', 0, 1, 'L')
+        self.cell(0, 5, '20612958271', 0, 1, 'L')
         self.ln(5)
 
     def add_document_details(self, documento):
         self.set_font('Arial', '', 10)
 
         # Información principal
-        self.cell(0, 5, 'Solicitante: ' +
-                  documento.get('usuario', 'N/A'), 0, 1, 'L')
+        self.cell(0, 5, 'Solicitante: ' + documento.get('usuario', 'N/A'), 0, 1, 'L')
         self.cell(0, 5, 'DNI: ' + str(documento.get('dni', 'N/A')), 0, 1, 'L')
         self.cell(0, 5, 'CeCo: ' + documento.get('ceco', 'N/A'), 0, 1, 'R')
-        self.cell(0, 5, 'Gerencia: ' +
-                  documento.get('gerencia', 'N/A'), 0, 1, 'R')
+        self.cell(0, 5, 'Gerencia: ' + documento.get('gerencia', 'N/A'), 0, 1, 'R')
         self.cell(0, 5, 'Moneda: ' + documento.get('moneda', 'N/A'), 0, 1, 'R')
         # self.cell(0, 5, 'Correlativo: ' + str(documento.get('correlativo', 'N/A')), 0, 1, 'R')
         self.ln(10)
@@ -1213,10 +1185,8 @@ class DocumentoPDFMovilidad(FPDF):
         self.cell(30, 6, documento.get('origen', 'N/A'), 1, 0, 'C')  # Origen
         self.cell(30, 6, documento.get('destino', 'N/A'), 1, 0, 'C')  # Destino
         self.cell(50, 6, documento.get('motivo', 'N/A'), 1, 0, 'C')  # Motivo
-        self.cell(30, 6, 'S/ ' +
-                  str(documento.get('gasto_deducible', '0.00')), 1, 0, 'C')
-        self.cell(30, 6, 'S/ ' +
-                  str(documento.get('gasto_no_deducible', '0.00')), 1, 0, 'C')
+        self.cell(30, 6, 'S/ ' + str(documento.get('gasto_deducible', '0.00')), 1, 0, 'C')
+        self.cell(30, 6, 'S/ ' + str(documento.get('gasto_no_deducible', '0.00')), 1, 0, 'C')
         self.cell(30, 6, 'S/ ' + str(documento.get('total', '0.00')), 1, 1, 'C')
         self.set_font('Arial', 'B', 10)
         self.cell(210, 6, 'Total', 1, 0, 'R')
@@ -1269,7 +1239,7 @@ async def generar_pdf(data: dict, db: AsyncSession = Depends(get_db)):
         gerencia=data['gerencia'],
         archivo=public_url,
         estado="POR APROBAR",
-        empresa="innova",
+        empresa=data['empresa'],
         moneda="PEN",
         tipo_documento="Recibo de Movilidad",
         total=data['total'],
@@ -1280,8 +1250,8 @@ async def generar_pdf(data: dict, db: AsyncSession = Depends(get_db)):
         destino=data['destino'],
         tipo_solicitud="RENDICION",
         numero_rendicion=data['numero_rendicion'],
-
-
+        id_numero_rendicion=data['id_numero_rendicion'],
+        id_user=data['id_user'],
     )
     db_documento = await crud.create_documento(db=db, documento=documento_data)
     db_documento.archivo = public_url
@@ -1333,25 +1303,19 @@ async def get_distinct_numero_rendicion(
         )
         result = await db.execute(query)
         numeros_rendicion = result.scalars().all()
-        numeros_rendicion = [str(num)
-                             for num in numeros_rendicion if num is not None]
+        numeros_rendicion = [str(num) for num in numeros_rendicion if num is not None]
         return numeros_rendicion
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Error al obtener los números de rendición: {str(e)}")
 
-
 @app.get("/rendiciones/", response_model=list[schemas.Rendicion])
 async def read_rendiciones(db: AsyncSession = Depends(get_db)):
     return await crud.get_rendiciones(db)
-
-
 class RendicionCreateRequest(BaseModel):
     user_id: int
-
 class SolicitudCreateRequest(BaseModel):
     user_id: int
-
 
 @app.post("/rendicion/", response_model=RendicionCreateResponse)
 async def create_rendicion(rendicion_request: RendicionCreateRequest, db: AsyncSession = Depends(get_db)):
@@ -1396,7 +1360,8 @@ async def get_last_rendicion(user_id: int, tipo: str, db: AsyncSession = Depends
         return last_rendicion
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    
+
+
 @app.get("/solicitud/last", response_model=Union[SolicitudCreateResponse, ErrorResponse])
 async def get_last_solicitud(user_id: int, tipo: str, db: AsyncSession = Depends(get_db)):
     try:
@@ -1418,8 +1383,10 @@ async def get_last_solicitud(user_id: int, tipo: str, db: AsyncSession = Depends
         # Si se encuentra, devolver la solicitud
         return last_solicitud
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error interno del servidor: {str(e)}")
-    
+        raise HTTPException(
+            status_code=500, detail=f"Error interno del servidor: {str(e)}")
+
+
 @app.get("/rendicion/nombres", response_model=list[str])
 async def get_unique_rendicion_names(user_id: int, tipo: str, db: AsyncSession = Depends(get_db)):
     try:
@@ -1440,8 +1407,8 @@ async def get_unique_rendicion_names(user_id: int, tipo: str, db: AsyncSession =
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    
-   
+
+
 @app.get("/rendiciones/nombres", response_model=list[RendicionResponse])
 async def get_unique_rendicion_names(user_id: int, tipo: str, db: AsyncSession = Depends(get_db)):
     try:
@@ -1462,14 +1429,13 @@ async def get_unique_rendicion_names(user_id: int, tipo: str, db: AsyncSession =
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    
 
 
-    
 class RendicionUpdate(BaseModel):
     nombre: Optional[str] = None
     tipo: Optional[str] = None
     estado: Optional[str] = None
+
 
 @app.put("/rendicion/{rendicion_id}", response_model=dict)
 async def update_rendicion(
@@ -1496,8 +1462,6 @@ async def update_rendicion(
     return {"detail": "Rendición actualizada exitosamente"}
 
 ###################
-
-
 
 
 # @app.get("/rendiciones/con-documentos/", response_model=list[dict])
@@ -1619,7 +1583,7 @@ async def update_rendicion(
 
 #     except Exception as e:
 #         raise HTTPException(status_code=500, detail=f"Error al obtener rendiciones con documentos: {str(e)}")
-    
+
 # @app.get("/rendiciones-solicitudes/con-documentos/", response_model=List[dict])
 # async def get_rendiciones_y_solicitudes_con_documentos(
 #     tipo: Optional[str] = Query(None, description="Filtrar por tipo"),
@@ -1832,11 +1796,16 @@ async def update_rendicion(
 async def get_rendiciones_y_solicitudes_con_documentos(
     tipo: Optional[str] = Query(None, description="Filtrar por tipo"),
     estado: Optional[str] = Query(None, description="Filtrar por estado"),
-    fecha_registro_from: Optional[date] = Query(None, description="Filtrar desde esta fecha de registro"),
-    fecha_registro_to: Optional[date] = Query(None, description="Filtrar hasta esta fecha de registro"),
-    fecha_actualizacion_from: Optional[date] = Query(None, description="Filtrar desde esta fecha de actualización"),
-    fecha_actualizacion_to: Optional[date] = Query(None, description="Filtrar hasta esta fecha de actualización"),
-    id_user: Optional[int] = Query(None, description="Filtrar por ID de usuario"),
+    fecha_registro_from: Optional[date] = Query(
+        None, description="Filtrar desde esta fecha de registro"),
+    fecha_registro_to: Optional[date] = Query(
+        None, description="Filtrar hasta esta fecha de registro"),
+    fecha_actualizacion_from: Optional[date] = Query(
+        None, description="Filtrar desde esta fecha de actualización"),
+    fecha_actualizacion_to: Optional[date] = Query(
+        None, description="Filtrar hasta esta fecha de actualización"),
+    id_user: Optional[int] = Query(
+        None, description="Filtrar por ID de usuario"),
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -1848,7 +1817,7 @@ async def get_rendiciones_y_solicitudes_con_documentos(
             select(models.Rendicion, models.User.full_name)
             .join(models.User, models.Rendicion.idUser == models.User.id)
             .join(models.Documento, models.Documento.numero_rendicion == models.Rendicion.nombre)
-            .where(models.Rendicion.estado != "NUEVO") 
+            .where(models.Rendicion.estado != "NUEVO")
             .distinct()
         )
         query_solicitudes = (
@@ -1861,26 +1830,40 @@ async def get_rendiciones_y_solicitudes_con_documentos(
 
         # Aplicar filtros a las consultas
         if tipo:
-            query_rendiciones = query_rendiciones.where(models.Rendicion.tipo == tipo)
-            query_solicitudes = query_solicitudes.where(models.Solicitud.tipo == tipo)
+            query_rendiciones = query_rendiciones.where(
+                models.Rendicion.tipo == tipo)
+            query_solicitudes = query_solicitudes.where(
+                models.Solicitud.tipo == tipo)
         if estado:
-            query_rendiciones = query_rendiciones.where(models.Rendicion.estado == estado)
-            query_solicitudes = query_solicitudes.where(models.Solicitud.estado == estado)
+            query_rendiciones = query_rendiciones.where(
+                models.Rendicion.estado == estado)
+            query_solicitudes = query_solicitudes.where(
+                models.Solicitud.estado == estado)
         if fecha_registro_from:
-            query_rendiciones = query_rendiciones.where(models.Rendicion.fecha_registro >= fecha_registro_from)
-            query_solicitudes = query_solicitudes.where(models.Solicitud.fecha_registro >= fecha_registro_from)
+            query_rendiciones = query_rendiciones.where(
+                models.Rendicion.fecha_registro >= fecha_registro_from)
+            query_solicitudes = query_solicitudes.where(
+                models.Solicitud.fecha_registro >= fecha_registro_from)
         if fecha_registro_to:
-            query_rendiciones = query_rendiciones.where(models.Rendicion.fecha_registro <= fecha_registro_to)
-            query_solicitudes = query_solicitudes.where(models.Solicitud.fecha_registro <= fecha_registro_to)
+            query_rendiciones = query_rendiciones.where(
+                models.Rendicion.fecha_registro <= fecha_registro_to)
+            query_solicitudes = query_solicitudes.where(
+                models.Solicitud.fecha_registro <= fecha_registro_to)
         if fecha_actualizacion_from:
-            query_rendiciones = query_rendiciones.where(models.Rendicion.fecha_actualizacion >= fecha_actualizacion_from)
-            query_solicitudes = query_solicitudes.where(models.Solicitud.fecha_actualizacion >= fecha_actualizacion_from)
+            query_rendiciones = query_rendiciones.where(
+                models.Rendicion.fecha_actualizacion >= fecha_actualizacion_from)
+            query_solicitudes = query_solicitudes.where(
+                models.Solicitud.fecha_actualizacion >= fecha_actualizacion_from)
         if fecha_actualizacion_to:
-            query_rendiciones = query_rendiciones.where(models.Rendicion.fecha_actualizacion <= fecha_actualizacion_to)
-            query_solicitudes = query_solicitudes.where(models.Solicitud.fecha_actualizacion <= fecha_actualizacion_to)
+            query_rendiciones = query_rendiciones.where(
+                models.Rendicion.fecha_actualizacion <= fecha_actualizacion_to)
+            query_solicitudes = query_solicitudes.where(
+                models.Solicitud.fecha_actualizacion <= fecha_actualizacion_to)
         if id_user:
-            query_rendiciones = query_rendiciones.where(models.Rendicion.idUser == id_user)
-            query_solicitudes = query_solicitudes.where(models.Solicitud.idUser == id_user)
+            query_rendiciones = query_rendiciones.where(
+                models.Rendicion.idUser == id_user)
+            query_solicitudes = query_solicitudes.where(
+                models.Solicitud.idUser == id_user)
 
         # Ejecutar las consultas
         rendiciones_query = await db.execute(query_rendiciones)
@@ -1895,7 +1878,8 @@ async def get_rendiciones_y_solicitudes_con_documentos(
         # Procesar rendiciones
         for rendicion, full_name in rendiciones:
             documentos_query = await db.execute(
-                select(models.Documento).where(models.Documento.numero_rendicion == rendicion.nombre)
+                select(models.Documento).where(
+                    models.Documento.numero_rendicion == rendicion.nombre)
             )
             documentos = documentos_query.scalars().all()
 
@@ -1967,7 +1951,8 @@ async def get_rendiciones_y_solicitudes_con_documentos(
         # Procesar solicitudes
         for solicitud, full_name in solicitudes:
             documentos_query = await db.execute(
-                select(models.Documento).where(models.Documento.numero_rendicion == solicitud.nombre)
+                select(models.Documento).where(
+                    models.Documento.numero_rendicion == solicitud.nombre)
             )
             documentos = documentos_query.scalars().all()
 
@@ -1996,7 +1981,6 @@ async def get_rendiciones_y_solicitudes_con_documentos(
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
-
 
 
 @app.post("/rendicion_solicitud", response_model=RendicionSolicitudResponse)
@@ -2030,4 +2014,5 @@ async def create_rendicion_solicitud(
         return nueva_rendicion_solicitud
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al crear la relación: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Error al crear la relación: {str(e)}")
