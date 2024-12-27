@@ -36,6 +36,7 @@ from .crud import create_rendicion_with_increment, create_solicitud_with_increme
 from .schemas import RendicionCreateResponse, RendicionUpdate, SolicitudCreateResponse, SolicitudUpdate, SolicitudResponse, RendicionSolicitudResponse, RendicionSolicitudCreate, RendicionResponse, ErrorResponse
 from .models import Rendicion, Solicitud, RendicionSolicitud, User
 from app.routers import company_api, qr_processing_api, solicitud_api, rendicion_api
+from num2words import num2words # type: ignore
 
 app = FastAPI()
 
@@ -1185,7 +1186,7 @@ class DocumentoPDFMovilidad(FPDF):
         self.cell(30, 6, documento.get('origen', 'N/A'), 1, 0, 'C')  # Origen
         self.cell(30, 6, documento.get('destino', 'N/A'), 1, 0, 'C')  # Destino
         self.cell(50, 6, documento.get('motivo', 'N/A'), 1, 0, 'C')  # Motivo
-        self.cell(30, 6, 'S/ ' + str(documento.get('gasto_deducible', '0.00')), 1, 0, 'C')
+        self.cell(30, 6, 'S/ ' + str(documento.get('total', '0.00')), 1, 0, 'C')
         self.cell(30, 6, 'S/ ' + str(documento.get('gasto_no_deducible', '0.00')), 1, 0, 'C')
         self.cell(30, 6, 'S/ ' + str(documento.get('total', '0.00')), 1, 1, 'C')
         self.set_font('Arial', 'B', 10)
