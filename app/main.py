@@ -671,6 +671,12 @@ async def export_documentos_pdf(
 
 
 class DocumentoPDFCustom(FPDF):
+    def __init__(self):
+        super().__init__()
+        # Márgenes (izquierdo, superior, derecho)
+        self.set_margins(15, 15, 15)  # Márgenes más amplios
+        self.set_auto_page_break(auto=True, margin=15)  # Salto automático de página con margen inferior
+
     def header(self):
         self.set_font('Arial', 'B', 14)
         self.cell(0, 10, 'Solicitud de Anticipo - Viajes', 0, 1, 'C')
@@ -679,68 +685,79 @@ class DocumentoPDFCustom(FPDF):
     def add_document_details(self, documento):
         self.set_font('Arial', '', 10)
 
+        # Ajustar ancho de las celdas
+        ancho_celda1 = 40  # Ancho de la primera columna
+        ancho_celda2 = 50  # Ancho de la segunda columna
+
         # Añadir información general
-        self.cell(40, 10, 'DNI:', 1)
-        self.cell(60, 10, documento.dni, 1)
-        self.cell(40, 10, 'Solicitado el:', 1)
-        self.cell(60, 10, str(documento.fecha_solicitud), 1)
+        self.cell(ancho_celda1, 10, 'DNI:', 1)
+        self.cell(ancho_celda2, 10, documento.dni, 1)
+        self.cell(ancho_celda1, 10, 'Solicitado el:', 1)
+        self.cell(ancho_celda2, 10, str(documento.fecha_solicitud), 1)
         self.ln(10)
 
-        self.cell(40, 10, 'Responsable:', 1)
-        self.cell(60, 10, documento.responsable, 1)
-        self.cell(40, 10, 'Gerencia:', 1)
-        self.cell(60, 10, documento.gerencia, 1)
+        self.cell(ancho_celda1, 10, 'Responsable:', 1)
+        self.cell(ancho_celda2, 10, documento.responsable, 1)
+        self.cell(ancho_celda1, 10, 'Gerencia:', 1)
+        self.cell(ancho_celda2, 10, documento.gerencia, 1)
         self.ln(10)
 
-        self.cell(40, 10, 'Área:', 1)
-        self.cell(60, 10, documento.area, 1)
-        self.cell(40, 10, 'CeCo:', 1)
-        self.cell(60, 10, documento.ceco, 1)
+        self.cell(ancho_celda1, 10, 'Área:', 1)
+        self.cell(ancho_celda2, 10, documento.area, 1)
+        self.cell(ancho_celda1, 10, 'CeCo:', 1)
+        self.cell(ancho_celda2, 10, documento.ceco, 1)
         self.ln(10)
 
-        self.cell(40, 10, 'Tipo de Anticipo:', 1)
-        self.cell(60, 10, documento.tipo_anticipo, 1)
-        self.cell(40, 10, 'Destino:', 1)
-        self.cell(60, 10, documento.destino, 1)
+        self.cell(ancho_celda1, 10, 'Tipo de Anticipo:', 1)
+        self.cell(ancho_celda2, 10, documento.tipo_anticipo, 1)
+        self.cell(ancho_celda1, 10, 'Destino:', 1)
+        self.cell(ancho_celda2, 10, documento.destino, 1)
         self.ln(10)
 
-        self.cell(40, 10, 'Fecha de Viaje:', 1)
-        self.cell(60, 10, str(documento.fecha_viaje), 1)
-        self.cell(40, 10, 'Días:', 1)
-        self.cell(60, 10, str(documento.dias), 1)
+        self.cell(ancho_celda1, 10, 'Fecha de Viaje:', 1)
+        self.cell(ancho_celda2, 10, str(documento.fecha_emision), 1)
+        self.cell(ancho_celda1, 10, 'Días:', 1)
+        self.cell(ancho_celda2, 10, str(documento.dias), 1)
         self.ln(10)
 
-        self.cell(40, 10, 'Presupuesto:', 1)
-        self.cell(60, 10, f"{documento.presupuesto:.2f}", 1)
-        self.cell(40, 10, 'Banco:', 1)
-        self.cell(60, 10, documento.banco, 1)
+        self.cell(ancho_celda1, 10, 'Presupuesto:', 1)
+        self.cell(ancho_celda2, 10, f"{documento.presupuesto:.2f}", 1)
+        self.cell(ancho_celda1, 10, 'Banco:', 1)
+        self.cell(ancho_celda2, 10, documento.banco, 1)
         self.ln(10)
 
-        self.cell(40, 10, 'N° de Cuenta:', 1)
-        self.cell(60, 10, documento.numero_cuenta, 1)
-        self.cell(40, 10, 'Motivo:', 1)
-        self.cell(60, 10, documento.motivo, 1)
+        self.cell(ancho_celda1, 10, 'N° de Cuenta:', 1)
+        self.cell(ancho_celda2, 10, documento.numero_cuenta, 1)
+        self.cell(ancho_celda1, 10, 'Motivo:', 1)
+        self.cell(ancho_celda2, 10, documento.motivo, 1)
         self.ln(10)
 
-        self.cell(40, 10, 'Total:', 1)
-        self.cell(60, 10, f"{documento.total:.2f}", 1)
+        self.cell(ancho_celda1, 10, 'Tipo Viaje:', 1)
+        self.cell(ancho_celda2, 10, documento.tipo_viaje, 1)
+        self.cell(ancho_celda1, 10, 'Moneda:', 1)
+        self.cell(ancho_celda2, 10, documento.moneda, 1)
+        self.ln(10)
+
+        self.cell(ancho_celda1, 10, 'Total:', 1)
+        self.cell(ancho_celda2, 10, f"{documento.total:.2f}", 1)
         self.ln(20)
 
         # Añadir sección de firmas
         self.set_font('Arial', 'B', 12)
         self.cell(0, 10, 'Firmas', 0, 1, 'C')
         self.set_font('Arial', '', 10)
-        self.cell(40, 10, 'Usuario Responsable:', 1)
-        self.cell(60, 10, '', 1)
-        self.cell(40, 10, 'Aprobado por:', 1)
-        self.cell(60, 10, '', 1)
+        self.cell(ancho_celda1, 10, 'Usuario Responsable:', 1)
+        self.cell(ancho_celda2, 10, '', 1)
+        self.cell(ancho_celda1, 10, 'Aprobado por:', 1)
+        self.cell(ancho_celda2, 10, '', 1)
         self.ln(10)
 
-        self.cell(40, 10, 'Recibido por:', 1)
-        self.cell(60, 10, '', 1)
-        self.cell(40, 10, 'Ejecutado por:', 1)
-        self.cell(60, 10, '', 1)
+        self.cell(ancho_celda1, 10, 'Recibido por:', 1)
+        self.cell(ancho_celda2, 10, '', 1)
+        self.cell(ancho_celda1, 10, 'Ejecutado por:', 1)
+        self.cell(ancho_celda2, 10, '', 1)
         self.ln(10)
+
 
 
 @app.post("/documentos/crear-con-pdf-custom/", response_model=schemas.Documento)
@@ -792,6 +809,12 @@ async def get_db():
 
 
 class DocumentoPDFLocal(FPDF):
+    def __init__(self):
+        super().__init__()
+        # Establece márgenes (izquierdo, superior, derecho)
+        self.set_margins(15, 15, 15)  # Márgenes de 15 mm en todos los lados
+        self.set_auto_page_break(auto=True, margin=15)  # Salto automático de página con margen inferior
+
     def header(self):
         self.set_font('Arial', 'B', 14)
         self.cell(0, 10, 'Solicitud de Anticipo - Gasto Local', 0, 1, 'C')
@@ -800,70 +823,63 @@ class DocumentoPDFLocal(FPDF):
     def add_document_details(self, documento: schemas.DocumentoCreate):
         self.set_font('Arial', '', 10)
 
+        # Configuración del ancho de las celdas
+        ancho_celda1 = 40  # Ancho de la primera columna
+        ancho_celda2 = 50  # Ancho de la segunda columna
+
         # Cabecera del documento
-        self.cell(40, 10, 'ANTICIPO', 1)
-        self.cell(60, 10, '1', 1)
+        self.cell(ancho_celda1, 10, 'ANTICIPO', 1)
+        self.cell(ancho_celda2, 10, '1', 1)
         self.cell(0, 10, 'OPEX READY SAC', 0, 1, 'R')
         self.ln(10)
 
         # Información del documento
-        self.cell(40, 10, 'DNI:', 1)
-        self.cell(60, 10, documento.dni if documento.dni else 'N/A', 1)
-        self.cell(40, 10, 'Solicitado el:', 1)
-        self.cell(60, 10, str(documento.fecha_solicitud) if documento.fecha_solicitud else 'N/A', 1)
-        self.ln(10)
-        self.cell(40, 10, 'Responsable:', 1)
-        self.cell(
-            60, 10, documento.responsable if documento.responsable else 'N/A', 1)
-        self.cell(40, 10, 'Gerencia:', 1)
-        self.cell(60, 10, documento.gerencia if documento.gerencia else 'N/A', 1)
+        self.cell(ancho_celda1, 10, 'DNI:', 1)
+        self.cell(ancho_celda2, 10, documento.dni if documento.dni else 'N/A', 1)
+        self.cell(ancho_celda1, 10, 'Solicitado el:', 1)
+        self.cell(ancho_celda2, 10, str(documento.fecha_emision) if documento.fecha_emision else 'N/A', 1)
         self.ln(10)
 
-        self.cell(40, 10, 'Área:', 1)
-        self.cell(60, 10, documento.area if documento.area else 'N/A', 1)
-        self.cell(40, 10, 'CeCo:', 1)
-        self.cell(60, 10, documento.ceco if documento.ceco else 'N/A', 1)
+        self.cell(ancho_celda1, 10, 'Responsable:', 1)
+        self.cell(ancho_celda2, 10, documento.responsable if documento.responsable else 'N/A', 1)
+        self.cell(ancho_celda1, 10, 'Gerencia:', 1)
+        self.cell(ancho_celda2, 10, documento.gerencia if documento.gerencia else 'N/A', 1)
         self.ln(10)
 
-        self.cell(40, 10, 'Breve motivo:', 1)
-        self.cell(60, 10, documento.motivo if documento.motivo else 'N/A', 1)
+        self.cell(ancho_celda1, 10, 'Área:', 1)
+        self.cell(ancho_celda2, 10, documento.area if documento.area else 'N/A', 1)
+        self.cell(ancho_celda1, 10, 'CeCo:', 1)
+        self.cell(ancho_celda2, 10, documento.ceco if documento.ceco else 'N/A', 1)
         self.ln(10)
 
-        self.cell(40, 10, 'Moneda:', 1)
-        self.cell(60, 10, documento.moneda if documento.moneda else 'N/A', 1)
-        self.cell(40, 10, 'Presupuesto:', 1)
-        self.cell(
-            60, 10, f"{documento.presupuesto:.2f}" if documento.presupuesto else "0.00", 1)
+        self.cell(ancho_celda1, 10, 'Breve motivo:', 1)
+        self.cell(ancho_celda2, 10, documento.motivo if documento.motivo else 'N/A', 1)
+        self.cell(ancho_celda1, 10, 'Banco y N° de Cuenta:', 1)
+        self.cell(ancho_celda2, 10, documento.numero_cuenta if documento.numero_cuenta else 'N/A', 1)
         self.ln(10)
 
-        self.cell(40, 10, 'Total:', 1)
-        self.cell(
-            60, 10, f"{documento.total:.2f}" if documento.total else "0.00", 1)
-        self.cell(40, 10, 'Banco y N° de Cuenta:', 1)
-        self.cell(
-            60, 10, documento.numero_cuenta if documento.numero_cuenta else 'N/A', 1)
-        self.ln(20)
-
-        # Motivo del anticipo
-        self.cell(40, 10, 'Motivo del Anticipo', 1, 1, 'L')
-        self.cell(0, 10, documento.motivo if documento.motivo else 'N/A', 1)
-        self.ln(20)
+        self.cell(ancho_celda1, 10, 'Moneda:', 1)
+        self.cell(ancho_celda2, 10, documento.moneda if documento.moneda else 'N/A', 1)
+        self.cell(ancho_celda1, 10, 'Presupuesto:', 1)
+        self.cell(ancho_celda2, 10, f"{documento.total:.2f}" if documento.total else "0.00", 1)
+        self.ln(10)
 
         # Firmas
         self.set_font('Arial', 'B', 12)
         self.cell(0, 10, 'Firmas electrónicas desde la Plataforma', 0, 1, 'C')
         self.set_font('Arial', '', 10)
-        self.cell(40, 10, 'Usuario Responsable:', 1)
-        self.cell(60, 10, '', 1)
-        self.cell(40, 10, 'Aprobado por:', 1)
-        self.cell(60, 10, '', 1)
+        self.cell(ancho_celda1, 10, 'Usuario Responsable:', 1)
+        self.cell(ancho_celda2, 10, '', 1)
+        self.cell(ancho_celda1, 10, 'Aprobado por:', 1)
+        self.cell(ancho_celda2, 10, '', 1)
         self.ln(10)
 
-        self.cell(40, 10, 'Recibido por:', 1)
-        self.cell(60, 10, '', 1)
-        self.cell(40, 10, 'Ejecutado por:', 1)
-        self.cell(60, 10, '', 1)
+        self.cell(ancho_celda1, 10, 'Recibido por:', 1)
+        self.cell(ancho_celda2, 10, '', 1)
+        self.cell(ancho_celda1, 10, 'Ejecutado por:', 1)
+        self.cell(ancho_celda2, 10, '', 1)
         self.ln(10)
+
 
 
 # @app.post("/documentos/crear-con-pdf-local/", response_model=schemas.Documento)
@@ -949,7 +965,7 @@ class DocumentoPDFMovilidad(FPDF):
         self.set_font('Arial', '', 10)
 
         # Información principal
-        self.cell(0, 5, 'Solicitante: ' + documento.get('usuario', 'N/A'), 0, 1, 'L')
+        self.cell(0, 5, 'Solicitante: ' + documento.get('full_name', 'N/A'), 0, 1, 'L')
         self.cell(0, 5, 'DNI: ' + str(documento.get('dni', 'N/A')), 0, 1, 'L')
         self.cell(0, 5, 'CeCo: ' + documento.get('ceco', 'N/A'), 0, 1, 'R')
         self.cell(0, 5, 'Gerencia: ' + documento.get('gerencia', 'N/A'), 0, 1, 'R')
@@ -993,8 +1009,8 @@ class DocumentoPDFMovilidad(FPDF):
         self.ln(10)
         self.cell(90, 6, 'Solicitante', 1, 0, 'C')
         self.cell(90, 6, 'Validado y Registrado', 1, 1, 'C')
-        self.cell(90, 6, documento.get('usuario', 'N/A'), 1, 0, 'C')
-        self.cell(90, 6, 'Gerencia de Adm. Y Finanzas', 1, 1, 'C')
+        self.cell(90, 6, documento.get('full_name', 'N/A'), 1, 0, 'C')
+        self.cell(90, 6, '', 1, 1, 'C')
 
 
 @app.post("/generar-pdf-movilidad/")
