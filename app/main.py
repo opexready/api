@@ -24,6 +24,7 @@ import pytesseract
 import httpx
 import uuid
 from pyzbar.pyzbar import decode  # type: ignore
+from num2words import num2words # type: ignore
 from pyzxing import BarCodeReader  # type: ignore
 from . import crud, models, schemas, auth
 from .database import engine, SessionLocal
@@ -1003,12 +1004,17 @@ class DocumentoPDFMovilidad(FPDF):
         self.cell(210, 6, 'Total', 1, 0, 'R')
         self.cell(30, 6, 'S/ ' + str(documento.get('total', '0.00')), 1, 1, 'C')
         self.ln(10)
-        self.cell(0, 5, 'Son: ' + documento.get('total_letras', 'N/A'), 0, 1, 'L')
+        # self.cell(0, 5, 'Son: ' + documento.get('total_letras', 'N/A'), 0, 1, 'L')
+        # Convertir el total a texto
+        total = documento.get('total', 0)
+        total_text = num2words(total, lang='es') if total else 'N/A'
+    
+        self.cell(0, 5, 'Son: ' + total_text, 0, 1, 'L')
         self.ln(5)
         self.cell(0, 5, 'Firmas electrónicas desde Plataforma', 0, 1, 'L')
         self.ln(10)
-        self.cell(90, 6, 'Solicitante', 1, 0, 'C')
-        self.cell(90, 6, 'Validado y Registrado', 1, 1, 'C')
+        self.cell(90, 6, 'Aprobador', 1, 0, 'C')
+        self.cell(90, 6, 'Administrador/Contabilidad', 1, 1, 'C')
         self.cell(90, 6, documento.get('full_name', 'N/A'), 1, 0, 'C')
         self.cell(90, 6, '', 1, 1, 'C')
 
