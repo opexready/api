@@ -748,12 +748,12 @@ class DocumentoPDFCustom(FPDF):
         self.cell(0, 10, 'Firmas', 0, 1, 'C')
         self.set_font('Arial', '', 10)
         self.cell(ancho_celda1, 10, 'Usuario Responsable:', 1)
-        self.cell(ancho_celda2, 10, '', 1)
+        self.cell(ancho_celda2, 10, documento.responsable, 1)
         self.cell(ancho_celda1, 10, 'Aprobado por:', 1)
         self.cell(ancho_celda2, 10, '', 1)
         self.ln(10)
 
-        self.cell(ancho_celda1, 10, 'Recibido por:', 1)
+        self.cell(ancho_celda1, 10, 'Administracion / Contabilidad:', 1)
         self.cell(ancho_celda2, 10, '', 1)
         self.cell(ancho_celda1, 10, 'Ejecutado por:', 1)
         self.cell(ancho_celda2, 10, '', 1)
@@ -870,12 +870,12 @@ class DocumentoPDFLocal(FPDF):
         self.cell(0, 10, 'Firmas electrónicas desde la Plataforma', 0, 1, 'C')
         self.set_font('Arial', '', 10)
         self.cell(ancho_celda1, 10, 'Usuario Responsable:', 1)
-        self.cell(ancho_celda2, 10, '', 1)
+        self.cell(ancho_celda2, 10, documento.responsable if documento.responsable else 'N/A', 1)
         self.cell(ancho_celda1, 10, 'Aprobado por:', 1)
         self.cell(ancho_celda2, 10, '', 1)
         self.ln(10)
 
-        self.cell(ancho_celda1, 10, 'Recibido por:', 1)
+        self.cell(ancho_celda1, 10, 'Administracion / Contabilidad:', 1)
         self.cell(ancho_celda2, 10, '', 1)
         self.cell(ancho_celda1, 10, 'Ejecutado por:', 1)
         self.cell(ancho_celda2, 10, '', 1)
@@ -1006,8 +1006,17 @@ class DocumentoPDFMovilidad(FPDF):
         self.ln(10)
         # self.cell(0, 5, 'Son: ' + documento.get('total_letras', 'N/A'), 0, 1, 'L')
         # Convertir el total a texto
+        # total = documento.get('total', 0)
+        # total_text = num2words(total, lang='es') if total else 'N/A'
+    
+        # Convertir el total a texto
         total = documento.get('total', 0)
-        total_text = num2words(total, lang='es') if total else 'N/A'
+        if total:
+            entero = int(total)
+            decimal = int(round((total - entero) * 100))
+            total_text = f"{num2words(entero, lang='es')} y {decimal}/100"
+        else:
+            total_text = 'N/A'
     
         self.cell(0, 5, 'Son: ' + total_text, 0, 1, 'L')
         self.ln(5)
