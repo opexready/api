@@ -22,7 +22,7 @@ def send_welcome_email(user: schemas.User):
     msg['Subject'] = "Bienvenido a [Nombre de tu aplicación]"
 
     body = f"""
-    Hola {user.nombre},
+    Hola {user.username},
 
     ¡Bienvenido a [Nombre de tu aplicación]!
 
