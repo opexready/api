@@ -36,7 +36,11 @@ from .database import get_db
 from .crud import create_rendicion_with_increment, create_solicitud_with_increment
 from .schemas import RendicionCreateResponse, RendicionUpdate, SolicitudCreateResponse, SolicitudUpdate, SolicitudResponse, RendicionSolicitudResponse, RendicionSolicitudCreate, RendicionResponse, ErrorResponse
 from .models import Rendicion, Solicitud, RendicionSolicitud, User
-from app.routers import company_api, qr_processing_api, solicitud_api, rendicion_api
+from app.routers import company_api, qr_processing_api, solicitud_api, rendicion_api, user_api
+from dotenv import load_dotenv
+import aiosmtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 
 app = FastAPI()
@@ -54,6 +58,7 @@ app.include_router(company_api.router, prefix="/api", tags=["Companies"])
 app.include_router(qr_processing_api.router, prefix="/api", tags=["QR Processing"])
 app.include_router(solicitud_api.router, prefix="/api", tags=["Solicitud"])
 app.include_router(rendicion_api.router, prefix="/api", tags=["Rendicion"])
+app.include_router(user_api.router, prefix="/api", tags=["User"])
 
 
 @app.middleware("http")
@@ -207,16 +212,16 @@ async def login_for_access_token(form_data: schemas.UserLogin, db: AsyncSession 
 async def read_users_me(current_user: schemas.User = Depends(auth.get_current_user)):
     return current_user
 
-@app.post("/users/", response_model=schemas.User)
-async def create_user(user: schemas.UserCreate, db: AsyncSession = Depends(get_db)):
-    db_user = await crud.get_user_by_email(db, email=user.email)
-    if db_user:
-        raise HTTPException(status_code=400, detail="Email already registered")
-    if not hasattr(user, "id_empresa") or user.id_empresa is None:
-        user.id_empresa = 2
-    if not hasattr(user, "estado") or user.estado is None:
-        user.estado = True
-    return await crud.create_user(db=db, user=user)
+# @app.post("/users/", response_model=schemas.User)
+# async def create_user(user: schemas.UserCreate, db: AsyncSession = Depends(get_db)):
+#     db_user = await crud.get_user_by_email(db, email=user.email)
+#     if db_user:
+#         raise HTTPException(status_code=400, detail="Email already registered")
+#     if not hasattr(user, "id_empresa") or user.id_empresa is None:
+#         user.id_empresa = 2
+#     if not hasattr(user, "estado") or user.estado is None:
+#         user.estado = True
+#     return await crud.create_user(db=db, user=user)
 
 @app.get("/users/", response_model=List[schemas.User])
 async def read_users(db: AsyncSession = Depends(get_db)):
@@ -566,10 +571,9 @@ class PDF(FPDF):
         self.cell(
             col_width, 10, f'Reembolsar / (-)Devolver: {reembolso}', border=1, ln=1, align='L')
 
-
 @app.get("/documentos/export/pdf")
 async def export_documentos_pdf(
-    id_rendicion: int = Query(...,description="ID de rendición (obligatorio)"),
+    id_rendicion: int = Query(..., description="ID de rendición (obligatorio)"),
     id_usuario: int = Query(..., description="ID del usuario (obligatorio)"),
     db: AsyncSession = Depends(get_db)
 ):
@@ -612,27 +616,25 @@ async def export_documentos_pdf(
     result_solicitudes = await db.execute(query_solicitudes)
     solicitud_ids = [row[0] for row in result_solicitudes]
 
+    # Si no hay solicitudes asociadas, establecer total_anticipo en 0
     if not solicitud_ids:
-        raise HTTPException(
-            status_code=404,
-            detail="No se encontraron solicitudes asociadas a la rendición proporcionada."
+        total_anticipo = 0
+    else:
+        # Consultar documentos basados en los valores de `solicitud_id`
+        query_documentos = select(models.Documento).filter(
+            models.Documento.id_numero_rendicion.in_(solicitud_ids),
+            models.Documento.tipo_solicitud == "ANTICIPO"
+        )
+        result_documentos = await db.execute(query_documentos)
+        documentos_anticipo = result_documentos.scalars().all()
+
+        # Calcular el total de anticipos de los documentos obtenidos
+        total_anticipo = sum(
+            doc.total if doc.total is not None else 0 for doc in documentos_anticipo
         )
 
-    # Consultar documentos basados en los valores de `solicitud_id`
-    query_documentos = select(models.Documento).filter(
-        models.Documento.id_numero_rendicion.in_(solicitud_ids),
-        models.Documento.tipo_solicitud == "ANTICIPO"
-    )
-    result_documentos = await db.execute(query_documentos)
-    documentos_anticipo = result_documentos.scalars().all()
-
-    # Calcular el total de anticipos de los documentos obtenidos
-    total_anticipo = sum(
-        doc.total if doc.total is not None else 0 for doc in documentos_anticipo
-    )
-
     # Calcular el reembolso
-    reembolso = total_anticipo - total_gasto
+    reembolso = total_gasto - total_anticipo
 
     fecha_actual = datetime.now().strftime("%d-%m-%Y")
     # Crear el PDF
@@ -669,7 +671,6 @@ async def export_documentos_pdf(
     pdf.output(pdf_file)
 
     return FileResponse(path=pdf_file, filename=f"documentos_{id_rendicion}.pdf")
-
 
 class DocumentoPDFCustom(FPDF):
     def __init__(self):
@@ -1004,11 +1005,7 @@ class DocumentoPDFMovilidad(FPDF):
         self.cell(210, 6, 'Total', 1, 0, 'R')
         self.cell(30, 6, 'S/ ' + str(documento.get('total', '0.00')), 1, 1, 'C')
         self.ln(10)
-        # self.cell(0, 5, 'Son: ' + documento.get('total_letras', 'N/A'), 0, 1, 'L')
-        # Convertir el total a texto
-        # total = documento.get('total', 0)
-        # total_text = num2words(total, lang='es') if total else 'N/A'
-    
+
         # Convertir el total a texto
         total = documento.get('total', 0)
         if total:
@@ -1018,7 +1015,7 @@ class DocumentoPDFMovilidad(FPDF):
         else:
             total_text = 'N/A'
     
-        self.cell(0, 5, 'Son: ' + total_text, 0, 1, 'L')
+        self.cell(0, 5, 'Son: ' + total_text + ' Soles', 0, 1, 'L')
         self.ln(5)
         self.cell(0, 5, 'Firmas electrónicas desde Plataforma', 0, 1, 'L')
         self.ln(10)
