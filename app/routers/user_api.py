@@ -11,7 +11,7 @@ router = APIRouter()
 
 # Configuración del correo electrónico
 sender_email = "ychacon.opexready@gmail.com"  # Tu correo electrónico
-sender_password = "Opexready10..."  # Tu contraseña de correo electrónico
+sender_password = "ryqoyaslkxzmxysj"  # Tu contraseña de correo electrónico
 
 def send_welcome_email(user: schemas.User):
     """Envía un correo electrónico de bienvenida al usuario."""
@@ -19,17 +19,18 @@ def send_welcome_email(user: schemas.User):
     msg = MIMEMultipart()
     msg['From'] = sender_email
     msg['To'] = user.email
-    msg['Subject'] = "Bienvenido a [Nombre de tu aplicación]"
+    msg['Subject'] = "Bienvenido a Arendir"
 
     body = f"""
     Hola {user.username},
 
-    ¡Bienvenido a [Nombre de tu aplicación]!
+    ¡Bienvenido a Arendir!
 
     Gracias por registrarte. 
+    Para poder continuar ingrese a https://arendir.onrender.com/
 
     Atentamente,
-    El equipo de [Nombre de tu aplicación]
+    El equipo de Arendir
     """
     msg.attach(MIMEText(body, 'plain'))
 
@@ -64,16 +65,6 @@ async def create_user(user: schemas.UserCreate, db: AsyncSession = Depends(get_d
 
     return created_user
 
-# @router.post("/users/", response_model=schemas.User)
-# async def create_user(user: schemas.UserCreate, db: AsyncSession = Depends(get_db)):
-#     db_user = await crud.get_user_by_email(db, email=user.email)
-#     if db_user:
-#         raise HTTPException(status_code=400, detail="Email already registered")
-#     if not hasattr(user, "id_empresa") or user.id_empresa is None:
-#         user.id_empresa = 2
-#     if not hasattr(user, "estado") or user.estado is None:
-#         user.estado = True
-#     return await crud.create_user(db=db, user=user)
 
 @router.get("/users/me/", response_model=schemas.User)
 async def read_users_me(current_user: schemas.User = Depends(auth.get_current_user)):

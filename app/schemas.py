@@ -197,6 +197,11 @@ class RendicionCreateResponse(BaseModel):
     class Config:
         from_attributes = True
 
+class RendicionCreateRequest(BaseModel):
+    user_id: int
+class SolicitudCreateRequest(BaseModel):
+    user_id: int
+
 #######################
 
 class SolicitudBase(BaseModel):

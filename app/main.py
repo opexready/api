@@ -34,7 +34,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from .database import get_db
 from .crud import create_rendicion_with_increment, create_solicitud_with_increment
-from .schemas import RendicionCreateResponse, RendicionUpdate, SolicitudCreateResponse, SolicitudUpdate, SolicitudResponse, RendicionSolicitudResponse, RendicionSolicitudCreate, RendicionResponse, ErrorResponse
+from .schemas import RendicionCreateRequest, RendicionCreateResponse, RendicionUpdate, SolicitudCreateRequest, SolicitudCreateResponse, SolicitudUpdate, SolicitudResponse, RendicionSolicitudResponse, RendicionSolicitudCreate, RendicionResponse, ErrorResponse
 from .models import Rendicion, Solicitud, RendicionSolicitud, User
 from app.routers import company_api, qr_processing_api, solicitud_api, rendicion_api, user_api
 from dotenv import load_dotenv
@@ -223,28 +223,28 @@ async def read_users_me(current_user: schemas.User = Depends(auth.get_current_us
 #         user.estado = True
 #     return await crud.create_user(db=db, user=user)
 
-@app.get("/users/", response_model=List[schemas.User])
-async def read_users(db: AsyncSession = Depends(get_db)):
-    return await crud.get_users(db)
+# @app.get("/users/", response_model=List[schemas.User])
+# async def read_users(db: AsyncSession = Depends(get_db)):
+#     return await crud.get_users(db)
 
-@app.get("/users/by-company-and-role/", response_model=List[schemas.User])
-async def read_users_by_company_and_role(company_name: str = Query(...), role: str = Query(...), db: AsyncSession = Depends(get_db)):
-    users = await crud.get_users_by_company_and_role(db, company_name, role)
-    if not users:
-        raise HTTPException(
-            status_code=404, detail="No users found for the specified company_name and role")
-    return users
+# @app.get("/users/by-company-and-role/", response_model=List[schemas.User])
+# async def read_users_by_company_and_role(company_name: str = Query(...), role: str = Query(...), db: AsyncSession = Depends(get_db)):
+#     users = await crud.get_users_by_company_and_role(db, company_name, role)
+#     if not users:
+#         raise HTTPException(
+#             status_code=404, detail="No users found for the specified company_name and role")
+#     return users
 
-@app.get("/users/with-pending-documents/", response_model=List[schemas.UserWithPendingDocuments])
-async def read_users_with_pending_documents(empresa: str = Query(...), db: AsyncSession = Depends(get_db)):
-    return await crud.get_users_with_pending_documents(db, empresa)
+# @app.get("/users/with-pending-documents/", response_model=List[schemas.UserWithPendingDocuments])
+# async def read_users_with_pending_documents(empresa: str = Query(...), db: AsyncSession = Depends(get_db)):
+#     return await crud.get_users_with_pending_documents(db, empresa)
 
-@app.get("/users/by-email/", response_model=schemas.User)
-async def read_user_by_email(email: str = Query(...), db: AsyncSession = Depends(get_db)):
-    user = await crud.get_user_by_email(db, email=email)
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    return user
+# @app.get("/users/by-email/", response_model=schemas.User)
+# async def read_user_by_email(email: str = Query(...), db: AsyncSession = Depends(get_db)):
+#     user = await crud.get_user_by_email(db, email=email)
+#     if not user:
+#         raise HTTPException(status_code=404, detail="User not found")
+#     return user
 
 @app.post("/documentos/", response_model=schemas.Documento)
 async def create_documento(documento: schemas.DocumentoCreate, db: AsyncSession = Depends(get_db)):
@@ -1135,10 +1135,7 @@ async def get_distinct_numero_rendicion(
 @app.get("/rendiciones/", response_model=list[schemas.Rendicion])
 async def read_rendiciones(db: AsyncSession = Depends(get_db)):
     return await crud.get_rendiciones(db)
-class RendicionCreateRequest(BaseModel):
-    user_id: int
-class SolicitudCreateRequest(BaseModel):
-    user_id: int
+
 
 @app.post("/rendicion/", response_model=RendicionCreateResponse)
 async def create_rendicion(rendicion_request: RendicionCreateRequest, db: AsyncSession = Depends(get_db)):

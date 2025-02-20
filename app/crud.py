@@ -268,3 +268,32 @@ async def create_solicitud_with_increment(db: AsyncSession, user_id: int) -> mod
     return new_solicitud
 
 
+async def create_rendicion(db: AsyncSession, user_id: int) -> models.Rendicion:
+    new_rendicion = models.Rendicion(
+        idUser=user_id,
+        nombre="R00001",
+        estado="NUEVO",
+        tipo="RENDICION",
+        fecha_registro=date.today()
+    )
+    db.add(new_rendicion)
+    await db.commit()
+    await db.refresh(new_rendicion)
+    return new_rendicion
+
+
+async def create_solicitud(db: AsyncSession, user_id: int) -> models.Solicitud:
+    fecha_actual = datetime.now().date()
+    new_solicitud = models.Solicitud(
+        idUser=user_id,
+        nombre="S00001",
+        estado="NUEVO",
+        tipo="ANTICIPO",
+        fecha_registro=fecha_actual
+    )
+
+    db.add(new_solicitud)
+    await db.commit()
+    await db.refresh(new_solicitud)
+    return new_solicitud
+
