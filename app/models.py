@@ -84,7 +84,8 @@ class Company(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, index=True)
     description = Column(String, nullable=True)
-    usuarios = relationship("User", back_populates="empresa")  
+    id_user = Column(Integer, ForeignKey('users.id'), nullable=True)  # Nuevo campo agregado
+    usuarios = relationship("User", back_populates="empresa")
 
 class Rendicion(Base):
     __tablename__ = "rendicion"
