@@ -178,18 +178,18 @@ class RendicionUpdate(BaseModel):
     estado: Optional[str]
 
 class RendicionCreate(RendicionBase):
-    idUser: int
+    id_user: int
 
 class Rendicion(RendicionBase):
     id: int
-    idUser: int
+    id_user: int
 
     class Config:
         from_attributes = True
 
 class RendicionCreateResponse(BaseModel):
     id: int
-    idUser: int
+    id_user: int
     nombre: str
     tipo: Optional[str] = None  # Nuevo campo tipo
     estado: Optional[str] = None  # Nuevo campo estado
@@ -198,14 +198,14 @@ class RendicionCreateResponse(BaseModel):
         from_attributes = True
 
 class RendicionCreateRequest(BaseModel):
-    user_id: int
+    id_user: int
 class SolicitudCreateRequest(BaseModel):
-    user_id: int
+    id_user: int
 
 #######################
 
 class SolicitudBase(BaseModel):
-    idUser: Optional[int]
+    id_user: Optional[int]
     nombre: Optional[str]
     tipo: Optional[str]
     estado: Optional[str]
@@ -218,18 +218,18 @@ class SolicitudUpdate(BaseModel):
     estado: Optional[str] = None
 
 class SolicitudCreate(SolicitudBase):
-    idUser: int
+    id_user: int
 
 class Solicitud(SolicitudBase):
     id: int
-    idUser: int
+    id_user: int
 
     class Config:
         from_attributes = True
 
 class SolicitudCreateResponse(BaseModel):
     id: Optional[int]
-    idUser: Optional[int]
+    id_user: Optional[int]
     nombre: Optional[str]
     tipo: Optional[str]
     estado: Optional[str]
@@ -239,7 +239,7 @@ class ErrorResponse(BaseModel):
 
 class SolicitudResponse(BaseModel):
     id: int
-    idUser: int
+    id_user: int
     nombre: str
     tipo: str
     estado: Optional[str] = None
@@ -250,7 +250,7 @@ class SolicitudResponse(BaseModel):
 
 class RendicionResponse(BaseModel):
     id: int
-    idUser: int
+    id_user: int
     nombre: str
     tipo: str
     estado: Optional[str] = None

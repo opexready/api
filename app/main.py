@@ -1140,32 +1140,32 @@ async def read_rendiciones(db: AsyncSession = Depends(get_db)):
 @app.post("/rendicion/", response_model=RendicionCreateResponse)
 async def create_rendicion(rendicion_request: RendicionCreateRequest, db: AsyncSession = Depends(get_db)):
     try:
-        user_id = rendicion_request.user_id
-        new_rendicion = await create_rendicion_with_increment(db, user_id)
+        id_user = rendicion_request.id_user
+        new_rendicion = await create_rendicion_with_increment(db, id_user)
         return new_rendicion
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# Método para obtener el último registro de rendición por user_id
+# Método para obtener el último registro de rendición por id_user
 
 
 @app.post("/solicitud/", response_model=SolicitudCreateResponse)
 async def create_solicitud(solicitud_request: SolicitudCreateRequest, db: AsyncSession = Depends(get_db)):
     try:
-        user_id = solicitud_request.user_id
-        new_solicitud = await create_solicitud_with_increment(db, user_id)
+        id_user = solicitud_request.id_user
+        new_solicitud = await create_solicitud_with_increment(db, id_user)
         return new_solicitud
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/rendicion/last", response_model=RendicionCreateResponse)
-async def get_last_rendicion(user_id: int, tipo: str, db: AsyncSession = Depends(get_db)):
+async def get_last_rendicion(id_user: int, tipo: str, db: AsyncSession = Depends(get_db)):
     try:
         # Consulta para obtener la última rendición por id de usuario
         result = await db.execute(
             select(models.Rendicion)
-            .where(models.Rendicion.idUser == user_id)
+            .where(models.Rendicion.id_user == id_user)
             .where(models.Rendicion.tipo == tipo)
             .order_by(models.Rendicion.id.desc())
             .limit(1)
@@ -1183,12 +1183,12 @@ async def get_last_rendicion(user_id: int, tipo: str, db: AsyncSession = Depends
 
 
 @app.get("/solicitud/last", response_model=Union[SolicitudCreateResponse, ErrorResponse])
-async def get_last_solicitud(user_id: int, tipo: str, db: AsyncSession = Depends(get_db)):
+async def get_last_solicitud(id_user: int, tipo: str, db: AsyncSession = Depends(get_db)):
     try:
         # Consulta para obtener la última solicitud
         result = await db.execute(
             select(models.Solicitud)
-            .where(models.Solicitud.idUser == user_id)
+            .where(models.Solicitud.id_user == id_user)
             .where(models.Solicitud.tipo == tipo)
             .order_by(models.Solicitud.id.desc())
             .limit(1)
@@ -1208,12 +1208,12 @@ async def get_last_solicitud(user_id: int, tipo: str, db: AsyncSession = Depends
 
 
 @app.get("/rendicion/nombres", response_model=list[str])
-async def get_unique_rendicion_names(user_id: int, tipo: str, db: AsyncSession = Depends(get_db)):
+async def get_unique_rendicion_names(id_user: int, tipo: str, db: AsyncSession = Depends(get_db)):
     try:
-        # Consulta para obtener los nombres de las rendiciones sin repetir, filtradas por user_id y tipo
+        # Consulta para obtener los nombres de las rendiciones sin repetir, filtradas por id_user y tipo
         result = await db.execute(
             select(distinct(models.Rendicion.nombre))
-            .where(models.Rendicion.idUser == user_id, models.Rendicion.tipo == tipo)
+            .where(models.Rendicion.id_user == id_user, models.Rendicion.tipo == tipo)
         )
 
         # Obtener todos los nombres únicos de la consulta
@@ -1230,12 +1230,12 @@ async def get_unique_rendicion_names(user_id: int, tipo: str, db: AsyncSession =
 
 
 @app.get("/rendiciones/nombres", response_model=list[RendicionResponse])
-async def get_unique_rendicion_names(user_id: int, tipo: str, db: AsyncSession = Depends(get_db)):
+async def get_unique_rendicion_names(id_user: int, tipo: str, db: AsyncSession = Depends(get_db)):
     try:
-        # Consulta para obtener los nombres de las rendiciones sin repetir, filtradas por user_id y tipo
+        # Consulta para obtener los nombres de las rendiciones sin repetir, filtradas por id_user y tipo
         result = await db.execute(
             select(models.Rendicion)
-            .where(models.Rendicion.idUser == user_id, models.Rendicion.tipo == tipo)
+            .where(models.Rendicion.id_user == id_user, models.Rendicion.tipo == tipo)
         )
 
         # Obtener todos los nombres únicos de la consulta
@@ -1635,14 +1635,14 @@ async def get_rendiciones_y_solicitudes_con_documentos(
         # Consultas base para rendiciones y solicitudes
         query_rendiciones = (
             select(models.Rendicion, models.User.full_name)
-            .join(models.User, models.Rendicion.idUser == models.User.id)
+            .join(models.User, models.Rendicion.id_user == models.User.id)
             .join(models.Documento, models.Documento.numero_rendicion == models.Rendicion.nombre)
             .where(models.Rendicion.estado != "NUEVO")
             .distinct()
         )
         query_solicitudes = (
             select(models.Solicitud, models.User.full_name)
-            .join(models.User, models.Solicitud.idUser == models.User.id)
+            .join(models.User, models.Solicitud.id_user == models.User.id)
             .join(models.Documento, models.Documento.numero_rendicion == models.Solicitud.nombre)
             .where(models.Solicitud.estado != "NUEVO")
             .distinct()
@@ -1681,9 +1681,9 @@ async def get_rendiciones_y_solicitudes_con_documentos(
                 models.Solicitud.fecha_actualizacion <= fecha_actualizacion_to)
         if id_user:
             query_rendiciones = query_rendiciones.where(
-                models.Rendicion.idUser == id_user)
+                models.Rendicion.id_user == id_user)
             query_solicitudes = query_solicitudes.where(
-                models.Solicitud.idUser == id_user)
+                models.Solicitud.id_user == id_user)
 
         # Ejecutar las consultas
         rendiciones_query = await db.execute(query_rendiciones)
@@ -1707,7 +1707,7 @@ async def get_rendiciones_y_solicitudes_con_documentos(
                 resultado.append({
                     "rendicion": {
                         "id": rendicion.id,
-                        "idUser": rendicion.idUser,
+                        "id_user": rendicion.id_user,
                         "nombre": rendicion.nombre,
                         "tipo": rendicion.tipo,
                         "estado": rendicion.estado,
@@ -1780,7 +1780,7 @@ async def get_rendiciones_y_solicitudes_con_documentos(
                 resultado.append({
                     "rendicion": {
                         "id": solicitud.id,
-                        "idUser": solicitud.idUser,
+                        "id_user": solicitud.id_user,
                         "nombre": solicitud.nombre,
                         "tipo": solicitud.tipo,
                         "estado": solicitud.estado,

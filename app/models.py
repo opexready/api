@@ -1,9 +1,6 @@
-from xmlrpc.client import Boolean
-from sqlalchemy import Column, Integer, String, Date, Float, ForeignKey # type: ignore
-from sqlalchemy.orm import relationship # type: ignore
-from sqlalchemy import Boolean # type: ignore
+from sqlalchemy import Column, Integer, String, Date, Float, ForeignKey, Boolean, func
+from sqlalchemy.orm import relationship
 from .database import Base
-from datetime import datetime
 
 class User(Base):
     __tablename__ = "users"
@@ -21,11 +18,11 @@ class User(Base):
     area = Column(String)
     ceco = Column(String)
     gerencia = Column(String)
-    jefe_id = Column(Integer, ForeignKey('users.id'))  # Relación de ForeignKey
-    jefe = relationship("User", remote_side=[id])  # Relación para referenciar al jefe
+    jefe_id = Column(Integer, ForeignKey('users.id'))  
+    jefe = relationship("User", remote_side=[id])  
     cuenta_bancaria = Column(String) 
     banco = Column(String) 
-    id_empresa = Column(Integer, ForeignKey('companies.id'), nullable=True)  # Ahora permite valores NULL
+    id_empresa = Column(Integer, ForeignKey('companies.id'), nullable=True)  
     empresa = relationship("Company", back_populates="usuarios")
     estado = Column(Boolean, default=True)
 
@@ -33,8 +30,8 @@ class Documento(Base):
     __tablename__ = "documentos"
 
     id = Column(Integer, primary_key=True, index=True)
-    fecha_solicitud = Column(Date)
-    fecha_rendicion = Column(Date)
+    fecha_solicitud = Column(Date, server_default=func.now())
+    fecha_rendicion = Column(Date, nullable=True)
     dni = Column(String)
     usuario = Column(String)
     gerencia = Column(String)
@@ -78,9 +75,8 @@ class Documento(Base):
     destino = Column(String)
     numero_rendicion = Column(String)
     tipo_viaje = Column(String)
-    id_user = Column(Integer)
+    id_user = Column(Integer, ForeignKey('users.id'))  
     id_numero_rendicion = Column(Integer)
-  
 
 class Company(Base):
     __tablename__ = "companies"
@@ -88,34 +84,32 @@ class Company(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, index=True)
     description = Column(String, nullable=True)
-    usuarios = relationship("User", back_populates="empresa")  # Relación bidireccional con User
+    usuarios = relationship("User", back_populates="empresa")  
 
 class Rendicion(Base):
     __tablename__ = "rendicion"
 
     id = Column(Integer, primary_key=True, index=True)
-    idUser = Column(Integer, ForeignKey('users.id'), nullable=False)  # Llave foránea a la tabla users
+    id_user = Column(Integer, ForeignKey('users.id'), nullable=False)  
     nombre = Column(String, nullable=False)
-    tipo = Column(String, nullable=True)  # Nuevo campo tipo
-    estado = Column(String, nullable=True)  # Nuevo campo estado
-    fecha_registro = Column(Date)  # Campo fecha_registro con valor por defecto
-    fecha_actualizacion = Column(Date)  # Campo fecha_actualizacion
+    tipo = Column(String, nullable=True)  
+    estado = Column(String, nullable=True)  
+    fecha_registro = Column(Date, server_default=func.now())  
+    fecha_actualizacion = Column(Date, onupdate=func.now())  
 
-    # Relación con la tabla users
     user = relationship("User")
 
 class Solicitud(Base):
     __tablename__ = "solicitud"
 
     id = Column(Integer, primary_key=True, index=True)
-    idUser = Column(Integer, ForeignKey('users.id'), nullable=False)  # Llave foránea a la tabla users
+    id_user = Column(Integer, ForeignKey('users.id'), nullable=False)  
     nombre = Column(String, nullable=False)
     tipo = Column(String, nullable=True)
     estado = Column(String, nullable=True)
-    fecha_registro = Column(Date)
-    fecha_actualizacion = Column(Date)
+    fecha_registro = Column(Date, server_default=func.now())
+    fecha_actualizacion = Column(Date, onupdate=func.now())
 
-    # Relación con la tabla users
     user = relationship("User")
 
 class RendicionSolicitud(Base):
@@ -124,10 +118,9 @@ class RendicionSolicitud(Base):
     id = Column(Integer, primary_key=True, index=True)
     rendicion_id = Column(Integer, ForeignKey('rendicion.id'), nullable=False)
     solicitud_id = Column(Integer, ForeignKey('solicitud.id'), nullable=False)
-    fecha_creacion = Column(Date, default=datetime.utcnow)  # Fecha de creación con valor por defecto
-    fecha_actualizacion = Column(Date, onupdate=datetime.utcnow)  # Fecha de actualización con auto-update
-    estado = Column(String, nullable=True)  # Campo estado
+    fecha_creacion = Column(Date, server_default=func.now())  
+    fecha_actualizacion = Column(Date, onupdate=func.now())  
+    estado = Column(String, nullable=True)  
 
-    # Relaciones
     rendicion = relationship("Rendicion", backref="rendicion_solicitudes")
     solicitud = relationship("Solicitud", backref="rendicion_solicitudes")

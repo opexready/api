@@ -178,7 +178,7 @@ async def get_company_by_id(db: AsyncSession, company_id: int):
 
 async def create_rendicion(db: AsyncSession, rendicion: schemas.RendicionCreate):
     db_rendicion = models.Rendicion(
-        idUser=rendicion.idUser, nombre=rendicion.nombre)
+        id_user=rendicion.id_user, nombre=rendicion.nombre)
     db.add(db_rendicion)
     await db.commit()
     await db.refresh(db_rendicion)
@@ -192,11 +192,11 @@ async def get_rendiciones(db: AsyncSession):
 
 # Método para crear una rendición con incremento en el nombre
 
-async def create_rendicion_with_increment(db: AsyncSession, user_id: int) -> models.Rendicion:
+async def create_rendicion_with_increment(db: AsyncSession, id_user: int) -> models.Rendicion:
     # Buscar el último registro de rendición del usuario
     result = await db.execute(
         select(models.Rendicion)
-        .filter(models.Rendicion.idUser == user_id, models.Rendicion.nombre.like("R%"))
+        .filter(models.Rendicion.id_user == id_user, models.Rendicion.nombre.like("R%"))
         .order_by(desc(models.Rendicion.id))
     )
 
@@ -214,7 +214,7 @@ async def create_rendicion_with_increment(db: AsyncSession, user_id: int) -> mod
 
     # Crear una nueva rendición
     new_rendicion = models.Rendicion(
-        idUser=user_id,
+        id_user=id_user,
         nombre=new_nombre,
         estado="NUEVO",
         tipo="RENDICION",
@@ -230,11 +230,11 @@ async def create_rendicion_with_increment(db: AsyncSession, user_id: int) -> mod
 
 
 # Método para crear una rendición con incremento en el nombre
-async def create_solicitud_with_increment(db: AsyncSession, user_id: int) -> models.Solicitud:
+async def create_solicitud_with_increment(db: AsyncSession, id_user: int) -> models.Solicitud:
     # Buscar el último registro de rendición del usuario
     result = await db.execute(
         select(models.Solicitud)
-        .filter(models.Solicitud.idUser == user_id, models.Solicitud.nombre.like("S%"))
+        .filter(models.Solicitud.id_user == id_user, models.Solicitud.nombre.like("S%"))
         .order_by(desc(models.Solicitud.id))
     )
 
@@ -253,7 +253,7 @@ async def create_solicitud_with_increment(db: AsyncSession, user_id: int) -> mod
     # Crear una nueva rendición
     fecha_actual = datetime.now().date()
     new_solicitud = models.Solicitud(
-        idUser=user_id,
+        id_user=id_user,
         nombre=new_nombre,
         fecha_registro=fecha_actual,
         estado="NUEVO",
@@ -268,9 +268,9 @@ async def create_solicitud_with_increment(db: AsyncSession, user_id: int) -> mod
     return new_solicitud
 
 
-async def create_rendicion(db: AsyncSession, user_id: int) -> models.Rendicion:
+async def create_rendicion(db: AsyncSession, id_user: int) -> models.Rendicion:
     new_rendicion = models.Rendicion(
-        idUser=user_id,
+        id_user=id_user,
         nombre="R00001",
         estado="NUEVO",
         tipo="RENDICION",
@@ -282,10 +282,10 @@ async def create_rendicion(db: AsyncSession, user_id: int) -> models.Rendicion:
     return new_rendicion
 
 
-async def create_solicitud(db: AsyncSession, user_id: int) -> models.Solicitud:
+async def create_solicitud(db: AsyncSession, id_user: int) -> models.Solicitud:
     fecha_actual = datetime.now().date()
     new_solicitud = models.Solicitud(
-        idUser=user_id,
+        id_user=id_user,
         nombre="S00001",
         estado="NUEVO",
         tipo="ANTICIPO",
