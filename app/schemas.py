@@ -268,7 +268,7 @@ class RendicionSolicitudResponse(BaseModel):
     id: int
     rendicion_id: int
     solicitud_id: int
-    fecha_creacion: datetime
+    fecha_creacion: Optional[datetime] = None  # Hacer el campo opcional
     fecha_actualizacion: Optional[datetime] = None
     estado: Optional[str] = None
 

@@ -12,13 +12,13 @@ router = APIRouter()
 
 @router.get("/solicitud/nombres", response_model=List[SolicitudResponse])
 async def get_unique_solicitud_names(
-    user_id: int,
+    id_user: int,
     estado: Optional[str] = None,
     db: AsyncSession = Depends(get_db)
 ):
     try:
         # Construir la consulta inicial
-        query = select(Solicitud).where(Solicitud.idUser == user_id)
+        query = select(Solicitud).where(Solicitud.id_user == id_user)
 
         # Agregar condición para estado solo si se proporciona
         if estado is not None:

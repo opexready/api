@@ -1826,6 +1826,7 @@ async def create_rendicion_solicitud(
             rendicion_id=rendicion_solicitud.rendicion_id,
             solicitud_id=rendicion_solicitud.solicitud_id,
             estado=rendicion_solicitud.estado,
+            fecha_creacion=datetime.now()
         )
         db.add(nueva_rendicion_solicitud)
         await db.commit()

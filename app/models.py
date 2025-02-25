@@ -18,12 +18,13 @@ class User(Base):
     area = Column(String)
     ceco = Column(String)
     gerencia = Column(String)
-    jefe_id = Column(Integer, ForeignKey('users.id'))  
-    jefe = relationship("User", remote_side=[id])  
-    cuenta_bancaria = Column(String) 
-    banco = Column(String) 
-    id_empresa = Column(Integer, ForeignKey('companies.id'), nullable=True)  
-    empresa = relationship("Company", back_populates="usuarios")
+    jefe_id = Column(Integer, ForeignKey('users.id'))
+    jefe = relationship("User", remote_side=[id])
+    cuenta_bancaria = Column(String)
+    banco = Column(String)
+    id_empresa = Column(Integer, ForeignKey('companies.id'), nullable=True)
+    # Especifica la clave foránea en la relación con Empresa
+    empresa = relationship("Company", back_populates="usuarios", foreign_keys=[id_empresa]) 
     estado = Column(Boolean, default=True)
 
 class Documento(Base):
@@ -84,8 +85,10 @@ class Company(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, index=True)
     description = Column(String, nullable=True)
-    id_user = Column(Integer, ForeignKey('users.id'), nullable=True)  # Nuevo campo agregado
-    usuarios = relationship("User", back_populates="empresa")
+    id_user = Column(Integer, ForeignKey('users.id'), nullable=True)
+
+    # Specify the foreign key in the relationship
+    usuarios = relationship("User", back_populates="empresa", foreign_keys='User.id_empresa')
 
 class Rendicion(Base):
     __tablename__ = "rendicion"

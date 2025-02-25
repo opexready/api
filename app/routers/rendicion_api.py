@@ -45,7 +45,7 @@ async def get_rendiciones_con_documentos_filtradas(
         if fecha_actualizacion_to:
             query = query.where(models.Rendicion.fecha_actualizacion <= fecha_actualizacion_to)
         if id_user:
-            query = query.where(models.Rendicion.idUser == id_user)
+            query = query.where(models.Rendicion.id_user == id_user)
 
         # Ejecutar la consulta para rendiciones
         rendiciones_query = await db.execute(query)
@@ -65,7 +65,7 @@ async def get_rendiciones_con_documentos_filtradas(
                 resultado.append({
                     "rendicion": {
                         "id": rendicion.id,
-                        "idUser": rendicion.idUser,
+                        "id_user": rendicion.id_user,
                         "nombre": rendicion.nombre,
                         "tipo": rendicion.tipo,
                         "estado": rendicion.estado,
@@ -151,14 +151,14 @@ async def get_rendiciones_y_solicitudes_con_documentos(
         # Consultas base para rendiciones y solicitudes, excluyendo estado "NUEVO"
         query_rendiciones = (
             select(models.Rendicion, models.User.full_name)
-            .join(models.User, models.Rendicion.idUser == models.User.id)
+            .join(models.User, models.Rendicion.id_user == models.User.id)
             .join(models.Documento, models.Documento.numero_rendicion == models.Rendicion.nombre)
             .where(models.Rendicion.estado != "NUEVO")  # Excluir estado "NUEVO"
             .distinct()
         )
         query_solicitudes = (
             select(models.Solicitud, models.User.full_name)
-            .join(models.User, models.Solicitud.idUser == models.User.id)
+            .join(models.User, models.Solicitud.id_user == models.User.id)
             .join(models.Documento, models.Documento.numero_rendicion == models.Solicitud.nombre)
             .where(models.Solicitud.estado != "NUEVO")  # Excluir estado "NUEVO"
             .distinct()
@@ -184,8 +184,8 @@ async def get_rendiciones_y_solicitudes_con_documentos(
             query_rendiciones = query_rendiciones.where(models.Rendicion.fecha_actualizacion <= fecha_actualizacion_to)
             query_solicitudes = query_solicitudes.where(models.Solicitud.fecha_actualizacion <= fecha_actualizacion_to)
         if id_user:
-            query_rendiciones = query_rendiciones.where(models.Rendicion.idUser == id_user)
-            query_solicitudes = query_solicitudes.where(models.Solicitud.idUser == id_user)
+            query_rendiciones = query_rendiciones.where(models.Rendicion.id_user == id_user)
+            query_solicitudes = query_solicitudes.where(models.Solicitud.id_user == id_user)
 
         # Ejecutar las consultas
         rendiciones_query = await db.execute(query_rendiciones)
@@ -208,7 +208,7 @@ async def get_rendiciones_y_solicitudes_con_documentos(
                 resultado.append({
                     "rendicion": {
                         "id": rendicion.id,
-                        "idUser": rendicion.idUser,
+                        "id_user": rendicion.id_user,
                         "nombre": rendicion.nombre,
                         "tipo": rendicion.tipo,
                         "estado": rendicion.estado,
@@ -280,7 +280,7 @@ async def get_rendiciones_y_solicitudes_con_documentos(
                 resultado.append({
                     "solicitud": {
                         "id": solicitud.id,
-                        "idUser": solicitud.idUser,
+                        "id_user": solicitud.id_user,
                         "nombre": solicitud.nombre,
                         "tipo": solicitud.tipo,
                         "estado": solicitud.estado,
