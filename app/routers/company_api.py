@@ -1,3 +1,4 @@
+from typing import List
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -38,6 +39,21 @@ async def read_company(company_id: int, db: AsyncSession = Depends(get_db)):
     if not company:
         raise HTTPException(status_code=404, detail="Compañía no encontrada")
     return company
+
+
+# Obtener una compañía por ID
+@router.get("/companies/user/{id_user}", response_model=List[Company])
+async def read_companies_by_user(id_user: int, db: AsyncSession = Depends(get_db)):
+    """
+    Obtiene una lista de compañías asociadas a un ID de usuario específico.
+    """
+    result = await db.execute(select(CompanyModel).where(CompanyModel.id_user == id_user))
+    companies = result.scalars().all()
+
+    if not companies:
+        raise HTTPException(status_code=404, detail="No se encontraron compañías para este usuario")
+
+    return companies
 
 
 # Listar todas las compañías

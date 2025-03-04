@@ -144,6 +144,7 @@ class DocumentoUpdate(BaseModel):
 class CompanyBase(BaseModel):
     name: str
     description: Optional[str] = None
+    id_user: int
 
 class CompanyCreate(CompanyBase):
     pass
