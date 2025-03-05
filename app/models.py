@@ -6,7 +6,7 @@ class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
-    id_user = Column(Integer, unique=True, index=True) 
+    id_user = Column(Integer, index=True)
     username = Column(String, unique=True, index=True)
     full_name = Column(String)
     email = Column(String, unique=True, index=True)
