@@ -54,7 +54,7 @@ async def create_user(user: schemas.UserCreate, db: AsyncSession = Depends(get_d
     if db_user:
         raise HTTPException(status_code=400, detail="Email already registered")
     if not hasattr(user, "id_empresa") or user.id_empresa is None:
-        user.id_empresa = 2
+        user.id_empresa = 1
     if not hasattr(user, "estado") or user.estado is None:
         user.estado = True
     
@@ -80,6 +80,14 @@ async def read_users_by_company_and_role(company_name: str = Query(...), role: s
     if not users:
         raise HTTPException(
             status_code=404, detail="No users found for the specified company_name and role")
+    return users
+
+@router.get("/users/by-id-user/", response_model=List[schemas.User])
+async def read_users_by_id_user(id_user: int = Query(...), db: AsyncSession = Depends(get_db)):
+    users = await crud.get_users_by_id_user(db, id_user)
+    if not users:
+        raise HTTPException(
+            status_code=404, detail=f"No users found with id_user: {id_user}")
     return users
 
 @router.get("/users/with-pending-documents/", response_model=List[schemas.UserWithPendingDocuments])

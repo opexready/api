@@ -50,6 +50,11 @@ async def get_users(db: AsyncSession):
     result = await db.execute(select(models.User))
     return result.scalars().all()
 
+async def get_users_by_id_user(db: AsyncSession, id_user: int):
+    result = await db.execute(select(models.User).where(models.User.id_user == id_user)) #Asumiendo que tienes un campo id en tu modelo User.
+    users = result.scalars().all()
+    return users
+
 
 async def get_users_by_company_and_role(db: AsyncSession, company_name: str, role: str):
     result = await db.execute(select(models.User).filter(models.User.company_name == company_name, models.User.role == role))
