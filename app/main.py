@@ -1019,10 +1019,13 @@ class DocumentoPDFMovilidad(FPDF):
         self.ln(5)
         self.cell(0, 5, 'Firmas electrónicas desde Plataforma', 0, 1, 'L')
         self.ln(10)
+        self.cell(90, 6, 'Colaborador', 1, 0, 'C')
         self.cell(90, 6, 'Aprobador', 1, 0, 'C')
         self.cell(90, 6, 'Administrador/Contabilidad', 1, 1, 'C')
+        
         self.cell(90, 6, documento.get('full_name', 'N/A'), 1, 0, 'C')
-        self.cell(90, 6, '', 1, 1, 'C')
+        self.cell(90, 6, '', 1, 0, 'C')  # Celda en blanco
+        self.cell(90, 6, '', 1, 1, 'C') 
 
 
 @app.post("/generar-pdf-movilidad/")
