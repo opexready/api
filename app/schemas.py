@@ -17,11 +17,13 @@ class UserBase(BaseModel):
     jefe_id: Optional[int] = None
     cuenta_bancaria:Optional[str] = None
     banco :Optional[str] = None
+    
 
 class UserCreate(UserBase):
     password: Optional[str] = None
     id_empresa: Optional[int] = None  # Agregar el campo id_empresa
     estado: Optional[bool] = None
+    id_user :Optional[int] = None
 
 class User(UserBase):
     id: int

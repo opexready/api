@@ -36,7 +36,8 @@ async def create_user(db: AsyncSession, user: schemas.UserCreate):
         cuenta_bancaria=user.cuenta_bancaria,  # Cuenta bancaria
         banco=user.banco,  # Banco asociado a la cuenta bancaria
         id_empresa=user.id_empresa,
-        estado=user.estado
+        estado=user.estado,
+        id_user = user.id_user
     )
 
     # Guardar el nuevo usuario en la base de datos
