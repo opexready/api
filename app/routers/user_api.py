@@ -100,3 +100,24 @@ async def read_user_by_email(email: str = Query(...), db: AsyncSession = Depends
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return user
+
+@router.put("/users/{user_id}", response_model=schemas.User)
+async def update_user(
+    user_id: int,
+    user: schemas.UserUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: schemas.User = Depends(auth.get_current_user)
+):
+    # Verificar si el usuario actual tiene permisos para actualizar
+    if current_user.id != user_id and current_user.role != "ADMIN":
+        raise HTTPException(
+            status_code=403,
+            detail="No tienes permisos para actualizar este usuario"
+        )
+
+    # Actualizar el usuario
+    updated_user = await crud.update_user(db, user_id, user)
+    if not updated_user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    return updated_user

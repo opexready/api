@@ -35,6 +35,24 @@ class UserLogin(BaseModel):
     email: str
     password: str
 
+class UserUpdate(BaseModel):
+    username: Optional[str] = None
+    email: Optional[str] = None
+    full_name: Optional[str] = None
+    role: Optional[str] = None
+    company_name: Optional[str] = None
+    cargo: Optional[str] = None
+    dni: Optional[str] = None
+    zona_venta: Optional[str] = None
+    area: Optional[str] = None
+    ceco: Optional[str] = None
+    gerencia: Optional[str] = None
+    jefe_id: Optional[int] = None
+    cuenta_bancaria: Optional[str] = None
+    banco: Optional[str] = None
+    id_empresa: Optional[int] = None
+    estado: Optional[bool] = None
+
 class DocumentoBase(BaseModel):
     id: Optional[int] = None
     fecha_solicitud: Optional[date] = None

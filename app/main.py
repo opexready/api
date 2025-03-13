@@ -208,43 +208,6 @@ async def login_for_access_token(form_data: schemas.UserLogin, db: AsyncSession 
         data={"sub": user.email}, expires_delta=access_token_expires)
     return {"access_token": access_token, "token_type": "bearer"}
 
-@app.get("/users/me/", response_model=schemas.User)
-async def read_users_me(current_user: schemas.User = Depends(auth.get_current_user)):
-    return current_user
-
-# @app.post("/users/", response_model=schemas.User)
-# async def create_user(user: schemas.UserCreate, db: AsyncSession = Depends(get_db)):
-#     db_user = await crud.get_user_by_email(db, email=user.email)
-#     if db_user:
-#         raise HTTPException(status_code=400, detail="Email already registered")
-#     if not hasattr(user, "id_empresa") or user.id_empresa is None:
-#         user.id_empresa = 2
-#     if not hasattr(user, "estado") or user.estado is None:
-#         user.estado = True
-#     return await crud.create_user(db=db, user=user)
-
-# @app.get("/users/", response_model=List[schemas.User])
-# async def read_users(db: AsyncSession = Depends(get_db)):
-#     return await crud.get_users(db)
-
-# @app.get("/users/by-company-and-role/", response_model=List[schemas.User])
-# async def read_users_by_company_and_role(company_name: str = Query(...), role: str = Query(...), db: AsyncSession = Depends(get_db)):
-#     users = await crud.get_users_by_company_and_role(db, company_name, role)
-#     if not users:
-#         raise HTTPException(
-#             status_code=404, detail="No users found for the specified company_name and role")
-#     return users
-
-# @app.get("/users/with-pending-documents/", response_model=List[schemas.UserWithPendingDocuments])
-# async def read_users_with_pending_documents(empresa: str = Query(...), db: AsyncSession = Depends(get_db)):
-#     return await crud.get_users_with_pending_documents(db, empresa)
-
-# @app.get("/users/by-email/", response_model=schemas.User)
-# async def read_user_by_email(email: str = Query(...), db: AsyncSession = Depends(get_db)):
-#     user = await crud.get_user_by_email(db, email=email)
-#     if not user:
-#         raise HTTPException(status_code=404, detail="User not found")
-#     return user
 
 @app.post("/documentos/", response_model=schemas.Documento)
 async def create_documento(documento: schemas.DocumentoCreate, db: AsyncSession = Depends(get_db)):
