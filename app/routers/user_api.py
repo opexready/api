@@ -24,10 +24,21 @@ def send_welcome_email(user: schemas.User):
     body = f"""
     Hola {user.username},
 
-    ¡Bienvenido a Arendir!
+    ¡Esperamos que te encuentres muy bien! Nos emociona presentarte Arendir, una herramienta revolucionaria diseñada para facilitar la gestión por rendición de gastos de tu empresa y optimizar el trabajo en equipo.
 
-    Gracias por registrarte. 
-    Para poder continuar ingrese a https://arendir.onrender.com/
+    Con Arendir, puedes olvidarte del tedioso proceso de registrar y controlar los gastos manualmente.
+
+    Para que puedas aprovechar al máximo Arendir, aquí tienes tres simples pasos que te serán muy útiles.
+
+   **1. Ingresar desde cualquier dispositivo:**
+       ¡Accede a Arendir desde tu computadora o dispositivo móvil, ya sea con iOS o Android!
+
+    **2. Trabajo en Conjunto:**
+       ¡El máximo potencial de Arendir se alcanza cuando todos colaboran! Invitar a tu equipo es muy fácil.
+
+    **3. ¿Dudas?**
+       [Reserva un espacio en mi calendario] o [envíame un Whatsapp](https://wa.me/51946643795) si prefieres una respuesta rápida.
+    ¡Mucho éxito!
 
     Atentamente,
     El equipo de Arendir
