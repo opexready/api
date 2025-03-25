@@ -464,7 +464,12 @@ class PDF(FPDF):
         else:
             print("No se pudo descargar la imagen.")
 
-        self.ln(20)
+        # self.ln(20)
+
+# Agregar la cabecera central "XXXXXXXXXXXX"
+        self.set_font('Arial', 'B', 14)  # Fuente en negrita y tamaño 14
+        self.cell(0, 10, 'XXXXXXXXXXXX', 0, 1, 'C')  # Centrado y con salto de línea
+        self.ln(10)  # Espacio después de la cabecera
 
         self.set_font('Arial', '', 8)
         self.set_xy(10, 30)
@@ -933,7 +938,8 @@ class DocumentoPDFMovilidad(FPDF):
         self.cell(0, 5, 'Solicitante: ' + documento.get('full_name', 'N/A'), 0, 1, 'L')
         self.cell(0, 5, 'DNI: ' + str(documento.get('dni', 'N/A')), 0, 1, 'L')
         self.cell(0, 5, 'CeCo: ' + documento.get('ceco', 'N/A'), 0, 1, 'R')
-        self.cell(0, 5, 'Gerencia: ' + documento.get('gerencia', 'N/A'), 0, 1, 'R')
+        gerencia = documento.get('gerencia', '')
+        self.cell(0, 5, 'Gerencia: ' + gerencia if gerencia else 'Gerencia: N/A', 0, 1, 'R')
         self.cell(0, 5, 'Moneda: ' + documento.get('moneda', 'N/A'), 0, 1, 'R')
         # self.cell(0, 5, 'Correlativo: ' + str(documento.get('correlativo', 'N/A')), 0, 1, 'R')
         self.ln(10)
@@ -1098,19 +1104,19 @@ async def get_distinct_numero_rendicion(
         raise HTTPException(
             status_code=500, detail=f"Error al obtener los números de rendición: {str(e)}")
 
-@app.get("/rendiciones/", response_model=list[schemas.Rendicion])
-async def read_rendiciones(db: AsyncSession = Depends(get_db)):
-    return await crud.get_rendiciones(db)
+# @app.get("/rendiciones/", response_model=list[schemas.Rendicion])
+# async def read_rendiciones(db: AsyncSession = Depends(get_db)):
+#     return await crud.get_rendiciones(db)
 
 
-@app.post("/rendicion/", response_model=RendicionCreateResponse)
-async def create_rendicion(rendicion_request: RendicionCreateRequest, db: AsyncSession = Depends(get_db)):
-    try:
-        id_user = rendicion_request.id_user
-        new_rendicion = await create_rendicion_with_increment(db, id_user)
-        return new_rendicion
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+# @app.post("/rendicion/", response_model=RendicionCreateResponse)
+# async def create_rendicion(rendicion_request: RendicionCreateRequest, db: AsyncSession = Depends(get_db)):
+#     try:
+#         id_user = rendicion_request.id_user
+#         new_rendicion = await create_rendicion_with_increment(db, id_user)
+#         return new_rendicion
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=str(e))
 
 # Método para obtener el último registro de rendición por id_user
 
@@ -1125,27 +1131,7 @@ async def create_solicitud(solicitud_request: SolicitudCreateRequest, db: AsyncS
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/rendicion/last", response_model=RendicionCreateResponse)
-async def get_last_rendicion(id_user: int, tipo: str, db: AsyncSession = Depends(get_db)):
-    try:
-        # Consulta para obtener la última rendición por id de usuario
-        result = await db.execute(
-            select(models.Rendicion)
-            .where(models.Rendicion.id_user == id_user)
-            .where(models.Rendicion.tipo == tipo)
-            .order_by(models.Rendicion.id.desc())
-            .limit(1)
-        )
 
-        last_rendicion = result.scalars().first()
-
-        if not last_rendicion:
-            raise HTTPException(
-                status_code=404, detail="No se encontró ninguna rendición para este usuario")
-
-        return last_rendicion
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/solicitud/last", response_model=Union[SolicitudCreateResponse, ErrorResponse])
@@ -1173,79 +1159,79 @@ async def get_last_solicitud(id_user: int, tipo: str, db: AsyncSession = Depends
             status_code=500, detail=f"Error interno del servidor: {str(e)}")
 
 
-@app.get("/rendicion/nombres", response_model=list[str])
-async def get_unique_rendicion_names(id_user: int, tipo: str, db: AsyncSession = Depends(get_db)):
-    try:
-        # Consulta para obtener los nombres de las rendiciones sin repetir, filtradas por id_user y tipo
-        result = await db.execute(
-            select(distinct(models.Rendicion.nombre))
-            .where(models.Rendicion.id_user == id_user, models.Rendicion.tipo == tipo)
-        )
+# @app.get("/rendicion/nombres", response_model=list[str])
+# async def get_unique_rendicion_names(id_user: int, tipo: str, db: AsyncSession = Depends(get_db)):
+#     try:
+#         # Consulta para obtener los nombres de las rendiciones sin repetir, filtradas por id_user y tipo
+#         result = await db.execute(
+#             select(distinct(models.Rendicion.nombre))
+#             .where(models.Rendicion.id_user == id_user, models.Rendicion.tipo == tipo)
+#         )
 
-        # Obtener todos los nombres únicos de la consulta
-        nombres_rendicion = result.scalars().all()
+#         # Obtener todos los nombres únicos de la consulta
+#         nombres_rendicion = result.scalars().all()
 
-        if not nombres_rendicion:
-            raise HTTPException(
-                status_code=404, detail="No se encontraron rendiciones para este usuario con el tipo especificado")
+#         if not nombres_rendicion:
+#             raise HTTPException(
+#                 status_code=404, detail="No se encontraron rendiciones para este usuario con el tipo especificado")
 
-        return nombres_rendicion
+#         return nombres_rendicion
 
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.get("/rendiciones/nombres", response_model=list[RendicionResponse])
-async def get_unique_rendicion_names(id_user: int, tipo: str, db: AsyncSession = Depends(get_db)):
-    try:
-        # Consulta para obtener los nombres de las rendiciones sin repetir, filtradas por id_user y tipo
-        result = await db.execute(
-            select(models.Rendicion)
-            .where(models.Rendicion.id_user == id_user, models.Rendicion.tipo == tipo)
-        )
-
-        # Obtener todos los nombres únicos de la consulta
-        nombres_rendicion = result.scalars().all()
-
-        if not nombres_rendicion:
-            raise HTTPException(
-                status_code=404, detail="No se encontraron rendiciones para este usuario con el tipo especificado")
-
-        return nombres_rendicion
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=str(e))
 
 
-class RendicionUpdate(BaseModel):
-    nombre: Optional[str] = None
-    tipo: Optional[str] = None
-    estado: Optional[str] = None
+# @app.get("/rendiciones/nombres", response_model=list[RendicionResponse])
+# async def get_unique_rendicion_names(id_user: int, tipo: str, db: AsyncSession = Depends(get_db)):
+#     try:
+#         # Consulta para obtener los nombres de las rendiciones sin repetir, filtradas por id_user y tipo
+#         result = await db.execute(
+#             select(models.Rendicion)
+#             .where(models.Rendicion.id_user == id_user, models.Rendicion.tipo == tipo)
+#         )
+
+#         # Obtener todos los nombres únicos de la consulta
+#         nombres_rendicion = result.scalars().all()
+
+#         if not nombres_rendicion:
+#             raise HTTPException(
+#                 status_code=404, detail="No se encontraron rendiciones para este usuario con el tipo especificado")
+
+#         return nombres_rendicion
+
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.put("/rendicion/{rendicion_id}", response_model=dict)
-async def update_rendicion(
-    rendicion_id: int,
-    rendicion_data: RendicionUpdate,
-    db: AsyncSession = Depends(get_db)
-):
-    # Buscar la rendición por ID
-    result = await db.execute(select(Rendicion).where(Rendicion.id == rendicion_id))
-    db_rendicion = result.scalars().first()
+# class RendicionUpdate(BaseModel):
+#     nombre: Optional[str] = None
+#     tipo: Optional[str] = None
+#     estado: Optional[str] = None
 
-    if not db_rendicion:
-        raise HTTPException(status_code=404, detail="Rendición no encontrada")
 
-    # Actualizar solo los campos proporcionados
-    update_data = rendicion_data.dict(exclude_unset=True)
-    for key, value in update_data.items():
-        setattr(db_rendicion, key, value)
+# @app.put("/rendicion/{rendicion_id}", response_model=dict)
+# async def update_rendicion(
+#     rendicion_id: int,
+#     rendicion_data: RendicionUpdate,
+#     db: AsyncSession = Depends(get_db)
+# ):
+#     # Buscar la rendición por ID
+#     result = await db.execute(select(Rendicion).where(Rendicion.id == rendicion_id))
+#     db_rendicion = result.scalars().first()
 
-    # Guardar cambios
-    await db.commit()
-    await db.refresh(db_rendicion)
+#     if not db_rendicion:
+#         raise HTTPException(status_code=404, detail="Rendición no encontrada")
 
-    return {"detail": "Rendición actualizada exitosamente"}
+#     # Actualizar solo los campos proporcionados
+#     update_data = rendicion_data.dict(exclude_unset=True)
+#     for key, value in update_data.items():
+#         setattr(db_rendicion, key, value)
+
+#     # Guardar cambios
+#     await db.commit()
+#     await db.refresh(db_rendicion)
+
+#     return {"detail": "Rendición actualizada exitosamente"}
 
 ###################
 

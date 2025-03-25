@@ -79,6 +79,7 @@ class Documento(Base):
     tipo_viaje = Column(String)
     id_user = Column(Integer, ForeignKey('users.id'))  
     id_numero_rendicion = Column(Integer)
+    id_empresa = Column(Integer, ForeignKey('companies.id'), nullable=True)
 
 class Company(Base):
     __tablename__ = "companies"
@@ -101,6 +102,7 @@ class Rendicion(Base):
     estado = Column(String, nullable=True)  
     fecha_registro = Column(Date, server_default=func.now())  
     fecha_actualizacion = Column(Date, onupdate=func.now())  
+    id_empresa = Column(Integer, ForeignKey('companies.id'), nullable=True)
 
     user = relationship("User")
 
@@ -114,6 +116,7 @@ class Solicitud(Base):
     estado = Column(String, nullable=True)
     fecha_registro = Column(Date, server_default=func.now())
     fecha_actualizacion = Column(Date, onupdate=func.now())
+    id_empresa = Column(Integer, ForeignKey('companies.id'), nullable=True)
 
     user = relationship("User")
 
