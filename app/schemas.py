@@ -18,6 +18,7 @@ class UserBase(BaseModel):
     cuenta_bancaria:Optional[str] = None
     banco :Optional[str] = None
     
+    
 
 class UserCreate(UserBase):
     password: Optional[str] = None
@@ -27,6 +28,7 @@ class UserCreate(UserBase):
 
 class User(UserBase):
     id: int
+    id_empresa : int
 
     class Config:
         from_attributes = True
@@ -104,7 +106,7 @@ class DocumentoBase(BaseModel):
     id_numero_rendicion: Optional[int] = None
 
 class DocumentoCreate(DocumentoBase):
-    pass
+    id_empresa : int
 
 class Documento(DocumentoBase):
     id: int
@@ -214,14 +216,17 @@ class RendicionCreateResponse(BaseModel):
     nombre: str
     tipo: Optional[str] = None  # Nuevo campo tipo
     estado: Optional[str] = None  # Nuevo campo estado
+    
 
     class Config:
         from_attributes = True
 
 class RendicionCreateRequest(BaseModel):
     id_user: int
+    id_empresa: int
 class SolicitudCreateRequest(BaseModel):
     id_user: int
+    id_empresa: int
 
 #######################
 

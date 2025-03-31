@@ -325,7 +325,8 @@ async def read_rendiciones(db: AsyncSession = Depends(get_db)):
 async def create_rendicion(rendicion_request: schemas.RendicionCreateRequest, db: AsyncSession = Depends(get_db)):
     try:
         id_user = rendicion_request.id_user
-        new_rendicion = await create_rendicion_with_increment(db, id_user)
+        id_empresa = rendicion_request.id_empresa
+        new_rendicion = await create_rendicion_with_increment(db, id_user, id_empresa)
         return new_rendicion
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

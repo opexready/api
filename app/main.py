@@ -268,7 +268,8 @@ async def create_documento(documento: schemas.DocumentoCreate, db: AsyncSession 
         origen=documento.origen,
         numero_rendicion=documento.numero_rendicion,
         id_user=documento.id_user,
-        id_numero_rendicion=documento.id_numero_rendicion
+        id_numero_rendicion=documento.id_numero_rendicion,
+        id_empresa=documento.id_empresa
 
     )
 
@@ -1047,6 +1048,7 @@ async def generar_pdf(data: dict, db: AsyncSession = Depends(get_db)):
         numero_rendicion=data['numero_rendicion'],
         id_numero_rendicion=data['id_numero_rendicion'],
         id_user=data['id_user'],
+        id_empresa=data['id_empresa'],
     )
     db_documento = await crud.create_documento(db=db, documento=documento_data)
     db_documento.archivo = public_url
@@ -1125,7 +1127,8 @@ async def get_distinct_numero_rendicion(
 async def create_solicitud(solicitud_request: SolicitudCreateRequest, db: AsyncSession = Depends(get_db)):
     try:
         id_user = solicitud_request.id_user
-        new_solicitud = await create_solicitud_with_increment(db, id_user)
+        id_empresa = solicitud_request.id_empresa
+        new_solicitud = await create_solicitud_with_increment(db, id_user, id_empresa)
         return new_solicitud
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

@@ -216,7 +216,7 @@ async def get_rendiciones(db: AsyncSession):
 
 # Método para crear una rendición con incremento en el nombre
 
-async def create_rendicion_with_increment(db: AsyncSession, id_user: int) -> models.Rendicion:
+async def create_rendicion_with_increment(db: AsyncSession, id_user: int, id_empresa: int) -> models.Rendicion:
     # Buscar el último registro de rendición del usuario
     result = await db.execute(
         select(models.Rendicion)
@@ -242,7 +242,8 @@ async def create_rendicion_with_increment(db: AsyncSession, id_user: int) -> mod
         nombre=new_nombre,
         estado="NUEVO",
         tipo="RENDICION",
-        fecha_registro=date.today()  # Inserta la fecha actual
+        fecha_registro=date.today(),
+        id_empresa=id_empresa  # Inserta la fecha actual
     )
 
     # Guardar en la base de datos
@@ -254,7 +255,7 @@ async def create_rendicion_with_increment(db: AsyncSession, id_user: int) -> mod
 
 
 # Método para crear una rendición con incremento en el nombre
-async def create_solicitud_with_increment(db: AsyncSession, id_user: int) -> models.Solicitud:
+async def create_solicitud_with_increment(db: AsyncSession, id_user: int, id_empresa: int) -> models.Solicitud:
     # Buscar el último registro de rendición del usuario
     result = await db.execute(
         select(models.Solicitud)
@@ -281,7 +282,8 @@ async def create_solicitud_with_increment(db: AsyncSession, id_user: int) -> mod
         nombre=new_nombre,
         fecha_registro=fecha_actual,
         estado="NUEVO",
-        tipo="ANTICIPO"
+        tipo="ANTICIPO",
+        id_empresa=id_empresa
     )
 
     # Guardar en la base de datos
