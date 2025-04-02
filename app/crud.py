@@ -90,19 +90,23 @@ async def get_users_with_pending_documents(db: AsyncSession, empresa: str):
     return result.all()
 
 async def update_user(db: AsyncSession, user_id: int, user: schemas.UserUpdate):
-    # Obtener el usuario de la base de datos
     db_user = await db.execute(select(models.User).filter(models.User.id == user_id))
     db_user = db_user.scalars().first()
 
     if not db_user:
-        return None  # Si el usuario no existe, retornar None
+        return None
 
-    # Actualizar los campos proporcionados
-    for key, value in user.dict().items():
-        if value is not None:  # Solo actualizar si el valor no es None
-            setattr(db_user, key, value)
+    update_data = user.dict(exclude_unset=True)
+    
+    # Manejo especial para la contraseña
+    if 'password' in update_data:
+        hashed_password = auth.get_password_hash(update_data['password'])
+        update_data['hashed_password'] = hashed_password
+        del update_data['password']  # Eliminar el campo de texto plano
 
-    # Guardar los cambios en la base de datos
+    for key, value in update_data.items():
+        setattr(db_user, key, value)
+
     await db.commit()
     await db.refresh(db_user)
     return db_user

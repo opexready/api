@@ -54,6 +54,7 @@ class UserUpdate(BaseModel):
     banco: Optional[str] = None
     id_empresa: Optional[int] = None
     estado: Optional[bool] = None
+    password: Optional[str] = None
 
 class DocumentoBase(BaseModel):
     id: Optional[int] = None

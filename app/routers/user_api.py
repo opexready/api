@@ -30,6 +30,8 @@ def send_welcome_email(user: schemas.User):
 
     Para que puedas aprovechar al máximo Arendir, aquí tienes tres simples pasos que te serán muy útiles.
 
+    Su contraseña temporal es: Xrosdh223i, ¡No olvide cambiarla!
+
    **1. Ingresar desde cualquier dispositivo:**
        ¡Accede a Arendir desde tu computadora o dispositivo móvil, ya sea con iOS o Android!
 
@@ -119,7 +121,7 @@ async def update_user(
     db: AsyncSession = Depends(get_db),
     current_user: schemas.User = Depends(auth.get_current_user)
 ):
-    # Verificar si el usuario actual tiene permisos para actualizar
+    # Verificar permisos
     if current_user.id != user_id and current_user.role != "ADMIN":
         raise HTTPException(
             status_code=403,
