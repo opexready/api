@@ -88,8 +88,8 @@ async def read_users(db: AsyncSession = Depends(get_db)):
     return await crud.get_users(db)
 
 @router.get("/users/by-company-and-role/", response_model=List[schemas.User])
-async def read_users_by_company_and_role(company_name: str = Query(...), role: str = Query(...), db: AsyncSession = Depends(get_db)):
-    users = await crud.get_users_by_company_and_role(db, company_name, role)
+async def read_users_by_company_and_role(id_empresa: int = Query(...), role: str = Query(...), db: AsyncSession = Depends(get_db)):
+    users = await crud.get_users_by_company_and_role(db, id_empresa, role)
     if not users:
         raise HTTPException(
             status_code=404, detail="No users found for the specified company_name and role")

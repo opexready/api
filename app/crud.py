@@ -57,8 +57,8 @@ async def get_users_by_id_user(db: AsyncSession, id_user: int):
     return users
 
 
-async def get_users_by_company_and_role(db: AsyncSession, company_name: str, role: str):
-    result = await db.execute(select(models.User).filter(models.User.company_name == company_name, models.User.role == role))
+async def get_users_by_company_and_role(db: AsyncSession, id_empresa: str, role: str):
+    result = await db.execute(select(models.User).filter(models.User.id_empresa == id_empresa, models.User.role == role))
     return result.scalars().all()
 
 
