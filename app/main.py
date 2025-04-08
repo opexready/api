@@ -219,9 +219,16 @@ async def decode_qr(file: UploadFile = File(...)):
         qr_data = raw_qr_data.split("|")
         result = {}
         monetary_values = []  # Lista para almacenar todos los valores monetarios
+        has_serie = False  # Bandera para indicar si ya se detectó la serie
         
-        for data in qr_data:
-            if re.match(r'^\d{8}$', data):  # DNI
+        for i, data in enumerate(qr_data):
+            if re.match(r'^\d{8}$', data) and not has_serie and 'numero' not in result:
+                # Si es un número de 8 dígitos y aún no se ha detectado serie ni número,
+                # podría ser el número de documento (no necesariamente DNI)
+                result["numero"] = data.zfill(8)
+                print(f"Número detectado: {data.zfill(8)}")
+            elif re.match(r'^\d{8}$', data) and 'numero' in result:
+                # Si ya tenemos un número y aparece otro de 8 dígitos, es el DNI
                 result["dni"] = data
                 print(f"DNI detectado: {data}")
             elif re.match(r'^\d{11}$', data):  # RUC
@@ -239,11 +246,14 @@ async def decode_qr(file: UploadFile = File(...)):
                 serie, numero = data.split('-')
                 result["serie"] = serie
                 result["numero"] = numero.zfill(8)
+                has_serie = True
                 print(f"Serie y número detectados: {serie}-{numero.zfill(8)}")
             elif re.match(r'^[A-Za-z0-9]{2,4}$', data):  # Serie sin guión
                 result["serie"] = data
+                has_serie = True
                 print(f"Serie detectada: {data}")
-            elif re.match(r'^\d+$', data) and 3 < len(data) < 9:  # Número sin guión
+            elif re.match(r'^\d+$', data) and 3 < len(data) < 9 and 'numero' not in result:
+                # Número sin guión (solo si no hemos detectado número antes)
                 result["numero"] = data.zfill(8)
                 print(f"Número detectado: {data.zfill(8)}")
             elif re.match(r'^\d+\.\d{1,2}$', data):  # Valor monetario (1 o 2 decimales)
@@ -255,15 +265,12 @@ async def decode_qr(file: UploadFile = File(...)):
         
         # Asignación inteligente de valores monetarios
         if monetary_values:
-            # El valor más alto será el total
             monetary_values_sorted = sorted(monetary_values, key=lambda x: float(x), reverse=True)
             result["total"] = monetary_values_sorted[0]
             
-            # Si hay más valores, el segundo más alto será el IGV
             if len(monetary_values_sorted) > 1:
                 result["igv"] = monetary_values_sorted[1]
             
-            # Si hay un tercer valor, podría ser el subtotal u otro concepto
             if len(monetary_values_sorted) > 2:
                 result["sub_total"] = monetary_values_sorted[2]
         
@@ -272,8 +279,7 @@ async def decode_qr(file: UploadFile = File(...)):
     except Exception as e:
         print(f"\nError al decodificar QR: {str(e)}")
         raise HTTPException(
-            status_code=500, detail=f"Failed to decode QR code: {str(e)}")              
-    
+            status_code=500, detail=f"Failed to decode QR code: {str(e)}")
 ########################################################################3333333
 
 @app.post("/decode-qr3/")
