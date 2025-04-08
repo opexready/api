@@ -136,6 +136,68 @@ def preprocess_image(image):
     return processed_image
 
 
+# @app.post("/decode-qr/")
+# async def decode_qr(file: UploadFile = File(...)):
+#     if file.content_type not in ['image/jpeg', 'image/png']:
+#         raise HTTPException(status_code=400, detail="Invalid file format")
+#     try:
+#         image_data = await file.read()
+#         image = Image.open(io.BytesIO(image_data))
+#         processed_image = preprocess_image(image)
+#         decoded_objects = decode(processed_image)
+#         if not decoded_objects:
+#             decoded_objects = decode(image)
+#         if not decoded_objects:
+#             return JSONResponse(content={"detail": "No QR code found in the image"})
+
+#         qr_data = decoded_objects[0].data.decode("utf-8").split("|")
+#         result = {}
+#         for data in qr_data:
+#             if re.match(r'^\d{8}$', data):  # Dato de 8 dígitos (DNI)
+#                 result["dni"] = data
+#             elif re.match(r'^\d{11}$', data):  # Dato de 11 dígitos (RUC)
+#                 result["ruc"] = data
+#             elif re.match(r'^\d{2}$', data):  # Dato de 2 dígitos (Tipo de Documento)
+#                 tipo_doc_map = {
+#                     "01": "Factura",
+#                     "02": "Recibo por Honorarios",
+#                     "03": "Boleta de Venta",
+#                     "05": "Boleto Aéreo",
+#                     "07": "Nota de Crédito",
+#                     "08": "Nota de Débito",
+#                     "12": "Ticket o cinta emitido por máquina registradora",
+#                     "14": "Recibo Servicio Público"
+#                 }
+#                 result["tipo"] = tipo_doc_map.get(data, "Desconocido")
+#             # Detectar serie con guion (formato BEW3-00425292)
+#             elif re.match(r'^[A-Za-z0-9]{4}-\d{7,8}$', data):
+#                 serie, numero = data.split('-')
+#                 result["serie"] = serie
+#                 # Rellena con ceros si es necesario
+#                 result["numero"] = numero.zfill(8)
+#             # Detectar serie (alfanumérico sin guion como BL22) seguida de un número
+#             # Detectar serie alfanumérica
+#             elif re.match(r'^[A-Za-z0-9]{2,4}$', data):
+#                 result["serie"] = data
+#             elif re.match(r'^\d+$', data) and 3 < len(data) < 9:  # Detectar número (sin guion)
+#                 # Rellenar con ceros si es necesario
+#                 result["numero"] = data.zfill(8)
+#             elif re.match(r'^\d+\.\d{2}$', data):  # Dato de valor decimal
+#                 if "total" not in result or float(data) > float(result["total"]):
+#                     if "total" in result:
+#                         result["igv"] = result["total"]
+#                     result["total"] = data
+#                 else:
+#                     result["igv"] = data
+#             elif re.match(r'^\d{4}-\d{2}-\d{2}$', data) or re.match(r'^\d{2}/\d{2}/\d{4}$', data):  # Fecha
+#                 result["fecha"] = data
+#         return JSONResponse(content=result)
+#     except Exception as e:
+#         raise HTTPException(
+#             status_code=500, detail=f"Failed to decode QR code: {str(e)}")
+
+################################################################################
+
 @app.post("/decode-qr/")
 async def decode_qr(file: UploadFile = File(...)):
     if file.content_type not in ['image/jpeg', 'image/png']:
@@ -148,15 +210,99 @@ async def decode_qr(file: UploadFile = File(...)):
         if not decoded_objects:
             decoded_objects = decode(image)
         if not decoded_objects:
+            print("No se encontró ningún código QR en la imagen")
             return JSONResponse(content={"detail": "No QR code found in the image"})
 
-        qr_data = decoded_objects[0].data.decode("utf-8").split("|")
+        raw_qr_data = decoded_objects[0].data.decode("utf-8")
+        print("\nDatos crudos del QR:", raw_qr_data)
+        
+        qr_data = raw_qr_data.split("|")
+        result = {}
+        monetary_values = []  # Lista para almacenar todos los valores monetarios
+        
+        for data in qr_data:
+            if re.match(r'^\d{8}$', data):  # DNI
+                result["dni"] = data
+                print(f"DNI detectado: {data}")
+            elif re.match(r'^\d{11}$', data):  # RUC
+                result["ruc"] = data
+                print(f"RUC detectado: {data}")
+            elif re.match(r'^\d{2}$', data):  # Tipo de Documento
+                tipo_doc_map = {
+                    "01": "Factura", "02": "Recibo por Honorarios", "03": "Boleta de Venta",
+                    "05": "Boleto Aéreo", "07": "Nota de Crédito", "08": "Nota de Débito",
+                    "12": "Ticket", "14": "Recibo Servicio Público"
+                }
+                result["tipo"] = tipo_doc_map.get(data, "Desconocido")
+                print(f"Tipo de documento detectado: {result['tipo']} ({data})")
+            elif re.match(r'^[A-Za-z0-9]{4}-\d{7,8}$', data):  # Serie con guión
+                serie, numero = data.split('-')
+                result["serie"] = serie
+                result["numero"] = numero.zfill(8)
+                print(f"Serie y número detectados: {serie}-{numero.zfill(8)}")
+            elif re.match(r'^[A-Za-z0-9]{2,4}$', data):  # Serie sin guión
+                result["serie"] = data
+                print(f"Serie detectada: {data}")
+            elif re.match(r'^\d+$', data) and 3 < len(data) < 9:  # Número sin guión
+                result["numero"] = data.zfill(8)
+                print(f"Número detectado: {data.zfill(8)}")
+            elif re.match(r'^\d+\.\d{1,2}$', data):  # Valor monetario (1 o 2 decimales)
+                monetary_values.append(data)
+                print(f"Valor monetario detectado: {data}")
+            elif re.match(r'^\d{4}-\d{2}-\d{2}$', data) or re.match(r'^\d{2}/\d{2}/\d{4}$', data):  # Fecha
+                result["fecha"] = data
+                print(f"Fecha detectada: {data}")
+        
+        # Asignación inteligente de valores monetarios
+        if monetary_values:
+            # El valor más alto será el total
+            monetary_values_sorted = sorted(monetary_values, key=lambda x: float(x), reverse=True)
+            result["total"] = monetary_values_sorted[0]
+            
+            # Si hay más valores, el segundo más alto será el IGV
+            if len(monetary_values_sorted) > 1:
+                result["igv"] = monetary_values_sorted[1]
+            
+            # Si hay un tercer valor, podría ser el subtotal u otro concepto
+            if len(monetary_values_sorted) > 2:
+                result["sub_total"] = monetary_values_sorted[2]
+        
+        print("\nResultado final procesado:", result)
+        return JSONResponse(content=result)
+    except Exception as e:
+        print(f"\nError al decodificar QR: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to decode QR code: {str(e)}")              
+    
+########################################################################3333333
+
+@app.post("/decode-qr3/")
+async def decode_qr(file: UploadFile = File(...)):
+    if file.content_type not in ['image/jpeg', 'image/png']:
+        raise HTTPException(status_code=400, detail="Invalid file format")
+    try:
+        image_data = await file.read()
+        image = Image.open(io.BytesIO(image_data))
+        processed_image = preprocess_image(image)
+        decoded_objects = decode(processed_image)
+        if not decoded_objects:
+            decoded_objects = decode(image)
+        if not decoded_objects:
+            print("No se encontró ningún código QR en la imagen")  # Mensaje en consola
+            return JSONResponse(content={"detail": "No QR code found in the image"})
+
+        raw_qr_data = decoded_objects[0].data.decode("utf-8")
+        print("\nDatos crudos del QR:", raw_qr_data)  # Imprime los datos crudos del QR
+        
+        qr_data = raw_qr_data.split("|")
         result = {}
         for data in qr_data:
             if re.match(r'^\d{8}$', data):  # Dato de 8 dígitos (DNI)
                 result["dni"] = data
+                print(f"DNI detectado: {data}")
             elif re.match(r'^\d{11}$', data):  # Dato de 11 dígitos (RUC)
                 result["ruc"] = data
+                print(f"RUC detectado: {data}")
             elif re.match(r'^\d{2}$', data):  # Dato de 2 dígitos (Tipo de Documento)
                 tipo_doc_map = {
                     "01": "Factura",
@@ -169,19 +315,23 @@ async def decode_qr(file: UploadFile = File(...)):
                     "14": "Recibo Servicio Público"
                 }
                 result["tipo"] = tipo_doc_map.get(data, "Desconocido")
+                print(f"Tipo de documento detectado: {result['tipo']} ({data})")
             # Detectar serie con guion (formato BEW3-00425292)
             elif re.match(r'^[A-Za-z0-9]{4}-\d{7,8}$', data):
                 serie, numero = data.split('-')
                 result["serie"] = serie
                 # Rellena con ceros si es necesario
                 result["numero"] = numero.zfill(8)
+                print(f"Serie y número detectados: {serie}-{numero.zfill(8)}")
             # Detectar serie (alfanumérico sin guion como BL22) seguida de un número
             # Detectar serie alfanumérica
             elif re.match(r'^[A-Za-z0-9]{2,4}$', data):
                 result["serie"] = data
+                print(f"Serie detectada: {data}")
             elif re.match(r'^\d+$', data) and 3 < len(data) < 9:  # Detectar número (sin guion)
                 # Rellenar con ceros si es necesario
                 result["numero"] = data.zfill(8)
+                print(f"Número detectado: {data.zfill(8)}")
             elif re.match(r'^\d+\.\d{2}$', data):  # Dato de valor decimal
                 if "total" not in result or float(data) > float(result["total"]):
                     if "total" in result:
@@ -189,14 +339,18 @@ async def decode_qr(file: UploadFile = File(...)):
                     result["total"] = data
                 else:
                     result["igv"] = data
+                print(f"Valor monetario detectado: {data}")
             elif re.match(r'^\d{4}-\d{2}-\d{2}$', data) or re.match(r'^\d{2}/\d{2}/\d{4}$', data):  # Fecha
                 result["fecha"] = data
+                print(f"Fecha detectada: {data}")
+        
+        print("\nResultado final procesado:", result)  # Imprime el diccionario resultante
         return JSONResponse(content=result)
     except Exception as e:
+        print(f"\nError al decodificar QR: {str(e)}")  # Imprime el error en consola
         raise HTTPException(
             status_code=500, detail=f"Failed to decode QR code: {str(e)}")
-
-
+    
 @app.post("/token", response_model=dict)
 async def login_for_access_token(form_data: schemas.UserLogin, db: AsyncSession = Depends(get_db)):
     user = await crud.get_user_by_email(db, email=form_data.email)
