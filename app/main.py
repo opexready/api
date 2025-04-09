@@ -604,6 +604,7 @@ async def export_documentos_excel(
     # Generar el archivo Excel
     df = pd.DataFrame([{
         "Item": i + 1,
+        "Empresa": doc.empresa,
         "Fecha": doc.fecha_emision,
         "RUC": doc.ruc,
         "TipoDoc": doc.tipo_documento,
@@ -611,7 +612,7 @@ async def export_documentos_excel(
         "Serie": doc.serie,
         "Correlativo": doc.correlativo,
         "Moneda": doc.moneda,
-        "Tipo de Cambio": doc.tc,
+        "Tipo de Cambio": doc.tipo_cambio,
         "Afecto": doc.afecto,
         "IGV": doc.igv,
         "Inafecto": doc.inafecto,
