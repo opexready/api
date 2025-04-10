@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Bienvenido a Arendir</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .step-image {
+            width: 80px;       /* Ancho fijo */
+            height: auto;       /* Altura proporcional */
+            max-width: 100%;    /* Para responsive */
+            display: block;     /* Mejor manejo de espacios */
+            border-radius: 5px; /* Bordes redondeados */
+            object-fit: cover;  /* Ajuste de la imagen */
+        }
+        .header {
+            text-align: center;
+            padding: 20px 0;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .logo {
+            max-width: 200px;
+            height: auto;
+        }
+        .content {
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .footer {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 12px;
+            color: #666;
+        }
+        .password {
+            background-color: #f0f0f0;
+            padding: 10px;
+            border-radius: 5px;
+            font-weight: bold;
+            text-align: center;
+            margin: 15px 0;
+        }
+        .step {
+            margin-bottom: 15px;
+            padding-left: 15px;
+            border-left: 3px solid #4CAF50;
+        }
+        .button {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    
+    
+    <div class="content">
+        <h2>Hola {username},</h2>
+        
+        <p>¡Esperamos que te encuentres muy bien! Nos emociona presentarte Arendir, una herramienta revolucionaria diseñada para facilitar la gestión por rendición de gastos de tu empresa y optimizar el trabajo en equipo.</p>
+        
+        <p>Con Arendir, puedes olvidarte del tedioso proceso de registrar y controlar los gastos manualmente.</p>
+        
+        <p>Para que puedas aprovechar al máximo Arendir, aquí tienes tres simples pasos que te serán muy útiles.</p>
+        
+        <div class="password">
+            Su contraseña temporal es: <strong>{temp_password}</strong><br>
+            ¡No olvide cambiarla!
+        </div>
+        
+        <div class="step">
+            <h3>1. Ingresar desde cualquier dispositivo</h3>
+            <img src="https://firebasestorage.googleapis.com/v0/b/hawejin-files.appspot.com/o/mail1.JPG?alt=media&token=80171b2e-6841-4ebe-b03e-316e8f3d23ce" alt="Dispositivos" class="step-image">
+        </div>
+            <p>¡Accede a Arendir desde tu computadora o dispositivo móvil, ya sea con iOS o Android!</p>
+        </div>
+        
+        <div class="step">
+            <h3>2. Trabajo en Conjunto</h3>
+            <img src="https://firebasestorage.googleapis.com/v0/b/hawejin-files.appspot.com/o/mail2.JPG?alt=media&token=71af7983-09cf-4126-978b-e33e0cad1aa1" alt="Dispositivos" class="step-image">
+            <p>¡El máximo potencial de Arendir se alcanza cuando todos colaboran! Invitar a tu equipo es muy fácil.</p>
+        </div>
+        
+        <div class="step">
+            <h3>3. ¿Dudas?</h3>
+            <img src="https://firebasestorage.googleapis.com/v0/b/hawejin-files.appspot.com/o/mail3.JPG?alt=media&token=e0c12a11-4235-4e04-814f-ee3930fcbcb7" alt="Dispositivos" class="step-image">
+            <p><a href="#" class="button">Reserva un espacio en mi calendario</a></p>
+            <p>O <a href="https://wa.me/51946643795">envíame un Whatsapp</a> si prefieres una respuesta rápida.</p>
+        </div>
+        
+        <p>¡Mucho éxito!</p>
+    </div>
+    
+    <div class="footer">
+        <p>Atentamente,<br>El equipo de Arendir</p>
+    </div>
+</body>
+</html>

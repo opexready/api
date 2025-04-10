@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import List
 from fastapi import APIRouter, HTTPException, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,46 +14,96 @@ router = APIRouter()
 sender_email = "ychacon.opexready@gmail.com"  # Tu correo electrónico
 sender_password = "ryqoyaslkxzmxysj"  # Tu contraseña de correo electrónico
 
+# def send_welcome_email(user: schemas.User):
+#     """Envía un correo electrónico de bienvenida al usuario."""
+
+#     msg = MIMEMultipart()
+#     msg['From'] = sender_email
+#     msg['To'] = user.email
+#     msg['Subject'] = "Bienvenido a Arendir"
+
+#     body = f"""
+#     Hola {user.username},
+
+#     ¡Esperamos que te encuentres muy bien! Nos emociona presentarte Arendir, una herramienta revolucionaria diseñada para facilitar la gestión por rendición de gastos de tu empresa y optimizar el trabajo en equipo.
+
+#     Con Arendir, puedes olvidarte del tedioso proceso de registrar y controlar los gastos manualmente.
+
+#     Para que puedas aprovechar al máximo Arendir, aquí tienes tres simples pasos que te serán muy útiles.
+
+#     Su contraseña temporal es: Xrosdh223i, ¡No olvide cambiarla!
+
+#    **1. Ingresar desde cualquier dispositivo:**
+#        ¡Accede a Arendir desde tu computadora o dispositivo móvil, ya sea con iOS o Android!
+
+#     **2. Trabajo en Conjunto:**
+#        ¡El máximo potencial de Arendir se alcanza cuando todos colaboran! Invitar a tu equipo es muy fácil.
+
+#     **3. ¿Dudas?**
+#        [Reserva un espacio en mi calendario] o [envíame un Whatsapp](https://wa.me/51946643795) si prefieres una respuesta rápida.
+#     ¡Mucho éxito!
+
+#     Atentamente,
+#     El equipo de Arendir
+#     """
+#     msg.attach(MIMEText(body, 'plain'))
+
+#     try:
+#         server = smtplib.SMTP('smtp.gmail.com', 587)
+#         server.starttls()
+#         server.login(sender_email, sender_password)
+#         text = msg.as_string()
+#         server.sendmail(sender_email, user.email, text)
+#         server.quit()
+#         print(f"Correo electrónico enviado a {user.email}")
+#     except Exception as e:
+#         print(f"Error al enviar el correo electrónico: {e}")
+
+def get_email_template(template_name: str, context: dict) -> str:
+    """Carga un template de email y reemplaza las variables del contexto."""
+    templates_dir = Path(__file__).parent.parent / "templates" / "email"
+    template_path = templates_dir / f"{template_name}.html"
+    
+    with open(template_path, "r", encoding="utf-8") as file:
+        html_content = file.read()
+    
+    # Reemplazar variables en el template
+    for key, value in context.items():
+        html_content = html_content.replace(f"{{{key}}}", str(value))
+    
+    return html_content
+
 def send_welcome_email(user: schemas.User):
     """Envía un correo electrónico de bienvenida al usuario."""
-
-    msg = MIMEMultipart()
+    msg = MIMEMultipart('related')
     msg['From'] = sender_email
     msg['To'] = user.email
     msg['Subject'] = "Bienvenido a Arendir"
 
-    body = f"""
-    Hola {user.username},
+    # Contexto para el template
+    context = {
+        "username": user.username,
+        "temp_password": "Xrosdh223i"  # Esto debería venir del usuario o generarse
+    }
 
-    ¡Esperamos que te encuentres muy bien! Nos emociona presentarte Arendir, una herramienta revolucionaria diseñada para facilitar la gestión por rendición de gastos de tu empresa y optimizar el trabajo en equipo.
+    # Obtener el template HTML
+    html_content = get_email_template("welcome_email", context)
+    
+    # Adjuntar HTML
+    msg.attach(MIMEText(html_content, 'html'))
 
-    Con Arendir, puedes olvidarte del tedioso proceso de registrar y controlar los gastos manualmente.
-
-    Para que puedas aprovechar al máximo Arendir, aquí tienes tres simples pasos que te serán muy útiles.
-
-    Su contraseña temporal es: Xrosdh223i, ¡No olvide cambiarla!
-
-   **1. Ingresar desde cualquier dispositivo:**
-       ¡Accede a Arendir desde tu computadora o dispositivo móvil, ya sea con iOS o Android!
-
-    **2. Trabajo en Conjunto:**
-       ¡El máximo potencial de Arendir se alcanza cuando todos colaboran! Invitar a tu equipo es muy fácil.
-
-    **3. ¿Dudas?**
-       [Reserva un espacio en mi calendario] o [envíame un Whatsapp](https://wa.me/51946643795) si prefieres una respuesta rápida.
-    ¡Mucho éxito!
-
-    Atentamente,
-    El equipo de Arendir
-    """
-    msg.attach(MIMEText(body, 'plain'))
+    # Adjuntar imágenes (opcional)
+    # logo_path = Path(__file__).parent.parent / "static" / "images" / "logo.png"
+    # with open(logo_path, 'rb') as img:
+    #     logo = MIMEImage(img.read())
+    #     logo.add_header('Content-ID', '<logo>')
+    #     msg.attach(logo)
 
     try:
         server = smtplib.SMTP('smtp.gmail.com', 587)
         server.starttls()
         server.login(sender_email, sender_password)
-        text = msg.as_string()
-        server.sendmail(sender_email, user.email, text)
+        server.sendmail(sender_email, user.email, msg.as_string())
         server.quit()
         print(f"Correo electrónico enviado a {user.email}")
     except Exception as e:
