@@ -198,7 +198,7 @@ def preprocess_image(image):
 
 ################################################################################
 
-@app.post("/decode-qr/")
+@app.post("/decode-qr333/")
 async def decode_qr(file: UploadFile = File(...)):
     if file.content_type not in ['image/jpeg', 'image/png']:
         raise HTTPException(status_code=400, detail="Invalid file format")
@@ -281,7 +281,7 @@ async def decode_qr(file: UploadFile = File(...)):
             status_code=500, detail=f"Failed to decode QR code: {str(e)}")
     
 ##############################################################################
-@app.post("/decode-qrokp/")
+@app.post("/decode-qr333/")
 async def decode_qr(file: UploadFile = File(...)):
     if file.content_type not in ['image/jpeg', 'image/png']:
         raise HTTPException(status_code=400, detail="Invalid file format")
@@ -348,7 +348,7 @@ async def decode_qr(file: UploadFile = File(...)):
         raise HTTPException(
             status_code=500, detail=f"Failed to decode QR code: {str(e)}")
 #############################################################################
-@app.post("/decode-qrok5/")
+@app.post("/decode-qr/")
 async def decode_qr(file: UploadFile = File(...)):
     if file.content_type not in ['image/jpeg', 'image/png']:
         raise HTTPException(status_code=400, detail="Invalid file format")
