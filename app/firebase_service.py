@@ -20,19 +20,6 @@ def upload_file_to_firebase(file, filename):
     blob.make_public()  # Hace el archivo accesible públicamente
     return blob.public_url
 
-# def upload_file_to_firebase(file_data: BytesIO, filename: str, content_type: str):
-#     """
-#     Sube un archivo a Firebase Storage desde un objeto BytesIO y retorna la URL pública.
-#     """
-#     try:
-#         blob = bucket.blob(filename)
-#         blob.upload_from_file(file_data, content_type=content_type)  # Subir desde BytesIO
-#         blob.make_public()  # Hace el archivo accesible públicamente
-#         return blob.public_url
-#     except Exception as e:
-#         raise Exception(f"Error al subir el archivo a Firebase: {str(e)}")
-
-
 def download_file_from_firebase(filename, local_path):
     """
     Descarga un archivo desde Firebase Storage y lo guarda localmente.
