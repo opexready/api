@@ -21,6 +21,8 @@ class UserBase(BaseModel):
     
 
 class UserCreate(UserBase):
+    username: str
+    email: str
     password: Optional[str] = None
     id_empresa: Optional[int] = None  # Agregar el campo id_empresa
     estado: Optional[bool] = None
@@ -34,7 +36,7 @@ class User(UserBase):
         from_attributes = True
 
 class UserLogin(BaseModel):
-    email: str
+    username: str
     password: str
 
 class UserUpdate(BaseModel):
@@ -177,6 +179,10 @@ class Company(CompanyBase):
 
     class Config:
         from_attributes = True
+
+class CompanyUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
 
 class UserWithPendingDocuments(BaseModel):
     username: str

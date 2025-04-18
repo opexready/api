@@ -222,7 +222,7 @@ async def decode_qr(file: UploadFile = File(...)):
         raise HTTPException(
             status_code=500, detail=f"Failed to decode QR code: {str(e)}")
  
-@app.post("/token", response_model=dict)
+@app.post("/token_mail", response_model=dict)
 async def login_for_access_token(form_data: schemas.UserLogin, db: AsyncSession = Depends(get_db)):
     user = await crud.get_user_by_email(db, email=form_data.email)
     if not user or not auth.verify_password(form_data.password, user.hashed_password):
@@ -231,6 +231,17 @@ async def login_for_access_token(form_data: schemas.UserLogin, db: AsyncSession 
     access_token_expires = timedelta(minutes=auth.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = auth.create_access_token(
         data={"sub": user.email}, expires_delta=access_token_expires)
+    return {"access_token": access_token, "token_type": "bearer"}
+
+@app.post("/token", response_model=dict)
+async def login_for_access_token(form_data: schemas.UserLogin, db: AsyncSession = Depends(get_db)):
+    user = await crud.get_user_by_username(db, username=form_data.username)  # Cambiar esta línea
+    if not user or not auth.verify_password(form_data.password, user.hashed_password):
+        raise HTTPException(
+            status_code=400, detail="Incorrect username or password")  # Actualizar mensaje de error
+    access_token_expires = timedelta(minutes=auth.ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = auth.create_access_token(
+        data={"sub": user.username}, expires_delta=access_token_expires)  # Usar username en el token
     return {"access_token": access_token, "token_type": "bearer"}
 
 
@@ -431,12 +442,14 @@ logger = logging.getLogger(__name__)
 async def export_documentos_excel(
     empresa: str = Query(None, alias="company_name"),
     estado: str = Query(None),
-    username: int = Query(None),
+    username: Optional[str] = Query(None, alias="username"),  # Cambiado a str
     id_empresa: int = Query(None),
     fecha_desde: date = Query(None),
     fecha_hasta: date = Query(None),
     db: AsyncSession = Depends(get_db)
 ):
+    # Convertir username a int si no está vacío
+    user_id = int(username) if username and username.strip() else None
 
     # Construir la consulta base sin filtros obligatorios
     query = select(models.Documento)
@@ -451,9 +464,8 @@ async def export_documentos_excel(
     if estado:
         logger.info(f"Filtrando por estado: {estado}")
         query = query.filter(models.Documento.estado == estado)
-    if username:
-        logger.info(f"Filtrando por usuario: {username}")
-        query = query.filter(models.Documento.id_user == username)
+    if user_id:  # Usar el user_id convertido
+        query = query.filter(models.Documento.id_user == user_id)
     if fecha_desde:
         logger.info(f"Filtrando por fecha desde: {fecha_desde}")
         query = query.filter(models.Documento.fecha_solicitud >= fecha_desde)

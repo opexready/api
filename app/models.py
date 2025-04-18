@@ -9,7 +9,7 @@ class User(Base):
     id_user = Column(Integer, index=True)
     username = Column(String, unique=True, index=True)
     full_name = Column(String)
-    email = Column(String, unique=True, index=True)
+    email = Column(String, index=True)
     hashed_password = Column(String)
     role = Column(String)
     company_name = Column(String)

@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.exc import IntegrityError
 from app.database import get_db
-from app.schemas import CompanyCreate, Company
+from app.schemas import CompanyCreate, Company, CompanyUpdate
 from app.models import Company as CompanyModel
 
 router = APIRouter()
@@ -70,7 +70,7 @@ async def read_companies(db: AsyncSession = Depends(get_db)):
 # Actualizar una compañía
 @router.put("/companies/{company_id}", response_model=Company)
 async def update_company(
-    company_id: int, company: CompanyCreate, db: AsyncSession = Depends(get_db)
+    company_id: int, company: CompanyUpdate, db: AsyncSession = Depends(get_db)
 ):
     """
     Actualiza los detalles de una compañía específica.

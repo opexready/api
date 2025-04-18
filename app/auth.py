@@ -32,6 +32,10 @@ def create_access_token(data: dict, expires_delta: timedelta = None):
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
+async def get_user_by_username(db: AsyncSession, username: str):
+    result = await db.execute(select(models.User).filter(models.User.username == username))
+    return result.scalars().first()
+
 async def get_user(db: AsyncSession, email: str):
     result = await db.execute(select(models.User).filter(models.User.email == email))
     return result.scalars().first()
@@ -48,12 +52,12 @@ async def get_current_user(db: AsyncSession = Depends(get_db), token: str = Depe
     )
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        email: str = payload.get("sub")
-        if email is None:
+        username: str = payload.get("sub")  # Cambiado de email a username
+        if username is None:
             raise credentials_exception
     except JWTError:
         raise credentials_exception
-    user = await get_user(db, email=email)
+    user = await get_user_by_username(db, username=username)  # Cambiado a buscar por username
     if user is None:
         raise credentials_exception
     return user
