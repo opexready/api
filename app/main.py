@@ -24,7 +24,7 @@ import pytesseract
 import httpx
 import uuid
 from pyzbar.pyzbar import decode  # type: ignore
-from num2words import num2words # type: ignore
+from num2words import num2words  # type: ignore
 from pyzxing import BarCodeReader  # type: ignore
 from . import crud, models, schemas, auth
 from .database import engine, SessionLocal
@@ -55,7 +55,8 @@ app.add_middleware(
 
 # Registrar los routers
 app.include_router(company_api.router, prefix="/api", tags=["Companies"])
-app.include_router(qr_processing_api.router, prefix="/api", tags=["QR Processing"])
+app.include_router(qr_processing_api.router,
+                   prefix="/api", tags=["QR Processing"])
 app.include_router(solicitud_api.router, prefix="/api", tags=["Solicitud"])
 app.include_router(rendicion_api.router, prefix="/api", tags=["Rendicion"])
 app.include_router(user_api.router, prefix="/api", tags=["User"])
@@ -135,6 +136,7 @@ def preprocess_image(image):
         open_cv_image, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
     return processed_image
 
+
 @app.post("/decode-qr/")
 async def decode_qr(file: UploadFile = File(...)):
     if file.content_type not in ['image/jpeg', 'image/png']:
@@ -152,19 +154,20 @@ async def decode_qr(file: UploadFile = File(...)):
 
         raw_qr_data = decoded_objects[0].data.decode("utf-8")
         print("\nDatos crudos del QR:", raw_qr_data)
-        
+
         # qr_data = raw_qr_data.split("|")
         qr_data = [data.strip() for data in raw_qr_data.split("|")]
         result = {}
         monetary_values = []  # Lista para almacenar todos los valores monetarios
         has_serie = False  # Bandera para indicar si ya se detectó la serie
-        
+
         # El primer elemento es siempre el RUC
         if len(qr_data) > 0 and re.match(r'^\d{11}$', qr_data[0]):
             result["ruc"] = qr_data[0]
             print(f"RUC detectado (primer elemento): {qr_data[0]}")
-        
-        for i, data in enumerate(qr_data[1:]):  # Procesamos desde el segundo elemento
+
+        # Procesamos desde el segundo elemento
+        for i, data in enumerate(qr_data[1:]):
             if re.match(r'^\d{8}$', data) and not has_serie and 'numero' not in result:
                 # Si es un número de 8 dígitos y aún no se ha detectado serie ni número,
                 # podría ser el número de documento (no necesariamente DNI)
@@ -181,14 +184,16 @@ async def decode_qr(file: UploadFile = File(...)):
                     "12": "Ticket", "14": "Recibo Servicio Público"
                 }
                 result["tipo"] = tipo_doc_map.get(data, "Desconocido")
-                print(f"Tipo de documento detectado: {result['tipo']} ({data})")
+                print(
+                    f"Tipo de documento detectado: {result['tipo']} ({data})")
             elif re.match(r'^[A-Za-z0-9]{4}-\d{7,8}$', data):  # Serie con guión
                 serie, numero = data.split('-')
                 result["serie"] = serie
                 result["numero"] = numero.zfill(8)
                 has_serie = True
                 print(f"Serie y número detectados: {serie}-{numero.zfill(8)}")
-            elif re.match(r'^[A-Za-z]{1,3}\d{1,3}$', data):  # Serie sin guión (formato B205, B003, etc.)
+            # Serie sin guión (formato B205, B003, etc.)
+            elif re.match(r'^[A-Za-z]{1,3}\d{1,3}$', data):
                 result["serie"] = data
                 has_serie = True
                 print(f"Serie detectada: {data}")
@@ -197,31 +202,34 @@ async def decode_qr(file: UploadFile = File(...)):
                 # Solo si tiene entre 4 y 8 dígitos
                 result["numero"] = data.zfill(8)
                 print(f"Número detectado: {data.zfill(8)}")
-            elif re.match(r'^\d+\.\d{1,2}$', data):  # Valor monetario (1 o 2 decimales)
+            # Valor monetario (1 o 2 decimales)
+            elif re.match(r'^\d+\.\d{1,2}$', data):
                 monetary_values.append(data)
                 print(f"Valor monetario detectado: {data}")
             elif re.match(r'^\d{4}-\d{2}-\d{2}$', data) or re.match(r'^\d{2}/\d{2}/\d{4}$', data):  # Fecha
                 result["fecha"] = data
                 print(f"Fecha detectada: {data}")
-        
+
         # Asignación inteligente de valores monetarios
         if monetary_values:
-            monetary_values_sorted = sorted(monetary_values, key=lambda x: float(x), reverse=True)
+            monetary_values_sorted = sorted(
+                monetary_values, key=lambda x: float(x), reverse=True)
             result["total"] = monetary_values_sorted[0]
-            
+
             if len(monetary_values_sorted) > 1:
                 result["igv"] = monetary_values_sorted[1]
-            
+
             if len(monetary_values_sorted) > 2:
                 result["sub_total"] = monetary_values_sorted[2]
-        
+
         print("\nResultado final procesado:", result)
         return JSONResponse(content=result)
     except Exception as e:
         print(f"\nError al decodificar QR: {str(e)}")
         raise HTTPException(
             status_code=500, detail=f"Failed to decode QR code: {str(e)}")
- 
+
+
 @app.post("/token_mail", response_model=dict)
 async def login_for_access_token(form_data: schemas.UserLogin, db: AsyncSession = Depends(get_db)):
     user = await crud.get_user_by_email(db, email=form_data.email)
@@ -233,15 +241,19 @@ async def login_for_access_token(form_data: schemas.UserLogin, db: AsyncSession 
         data={"sub": user.email}, expires_delta=access_token_expires)
     return {"access_token": access_token, "token_type": "bearer"}
 
+
 @app.post("/token", response_model=dict)
 async def login_for_access_token(form_data: schemas.UserLogin, db: AsyncSession = Depends(get_db)):
-    user = await crud.get_user_by_username(db, username=form_data.username)  # Cambiar esta línea
+    # Cambiar esta línea
+    user = await crud.get_user_by_username(db, username=form_data.username)
     if not user or not auth.verify_password(form_data.password, user.hashed_password):
         raise HTTPException(
-            status_code=400, detail="Incorrect username or password")  # Actualizar mensaje de error
+            # Actualizar mensaje de error
+            status_code=400, detail="Incorrect username or password")
     access_token_expires = timedelta(minutes=auth.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = auth.create_access_token(
-        data={"sub": user.username}, expires_delta=access_token_expires)  # Usar username en el token
+        # Usar username en el token
+        data={"sub": user.username}, expires_delta=access_token_expires)
     return {"access_token": access_token, "token_type": "bearer"}
 
 
@@ -250,7 +262,7 @@ async def create_documento(documento: schemas.DocumentoCreate, db: AsyncSession 
     # Log para verificar los datos recibidos
     print(f"Datos recibidos en el request2222222222: {documento}")
 
-      # Verificar si ya existe un documento con los mismos campos clave
+    # Verificar si ya existe un documento con los mismos campos clave
     existing_document = await db.execute(
         select(models.Documento)
         .where(models.Documento.fecha_emision == documento.fecha_emision)
@@ -259,7 +271,7 @@ async def create_documento(documento: schemas.DocumentoCreate, db: AsyncSession 
         .where(models.Documento.total == documento.total)
         .limit(1)
     )
-    
+
     if existing_document.scalars().first():
         raise HTTPException(
             status_code=400,
@@ -489,6 +501,7 @@ async def export_documentos_excel(
     # Generar el archivo Excel
     df = pd.DataFrame([{
         "Item": i + 1,
+        "Codigo": doc.numero_rendicion,
         "Empresa": doc.empresa,
         "Usuario": doc.usuario,
         "Dni": doc.dni,
@@ -539,7 +552,8 @@ class PDF(FPDF):
 
 # Agregar la cabecera central "XXXXXXXXXXXX"
         self.set_font('Arial', 'B', 14)  # Fuente en negrita y tamaño 14
-        self.cell(0, 10, self.company_name, 0, 1, 'C')  # Usar self.company_name
+        self.cell(0, 10, self.company_name, 0, 1,
+                  'C')  # Usar self.company_name
         self.ln(10)  # Espacio después de la cabecera
 
         self.set_font('Arial', '', 8)
@@ -552,11 +566,14 @@ class PDF(FPDF):
         self.set_xy(10, 60)
         self.cell(0, 10, f'Zona: {self.zona}', 0, 1, 'L')
         self.set_xy(-95, 30)
-        self.cell(0, 10, f'Área responsable: {self.area_responsable}', 0, 1, 'R')
+        self.cell(
+            0, 10, f'Área responsable: {self.area_responsable}', 0, 1, 'R')
         self.set_xy(-95, 40)
-        self.cell(0, 10, f'Fecha de solicitud: {self.fecha_solicitud}', 0, 1, 'R')
+        self.cell(
+            0, 10, f'Fecha de solicitud: {self.fecha_solicitud}', 0, 1, 'R')
         self.set_xy(-95, 50)
-        self.cell(0, 10, f'Fecha de rendición: {self.fecha_rendicion}', 0, 1, 'R')
+        self.cell(
+            0, 10, f'Fecha de rendición: {self.fecha_rendicion}', 0, 1, 'R')
         self.set_xy(-95, 60)
         self.cell(0, 10, f'Tipo de gasto: {self.tipo_gasto}', 0, 1, 'R')
         self.ln(20)
@@ -593,14 +610,16 @@ class PDF(FPDF):
         self.cell(spacing, 10, '', border=0, ln=0)
         self.cell(col_width, 10, 'Recibido por:', border=1, ln=0, align='L')
         self.cell(spacing, 10, '', border=0, ln=0)
-        self.cell(col_width, 10, f'Total Anticipo: {total_anticipo}', border=1, ln=1, align='L')
+        self.cell(
+            col_width, 10, f'Total Anticipo: {total_anticipo}', border=1, ln=1, align='L')
         self.cell(col_width, 10, nombre_solicitante, border=1, ln=0, align='R')
         self.cell(spacing, 10, '', border=0, ln=0)
         self.cell(col_width, 10, nombre_aprobador, border=1, ln=0, align='R')
         self.cell(spacing, 10, '', border=0, ln=0)
         self.cell(col_width, 10, nombre_contador, border=1, ln=0, align='R')
         self.cell(spacing, 10, '', border=0, ln=0)
-        self.cell(col_width, 10, f'Total Gasto: {total_gasto}', border=1, ln=1, align='L')
+        self.cell(col_width, 10,
+                  f'Total Gasto: {total_gasto}', border=1, ln=1, align='L')
         self.cell(col_width, 10, ' ', border=0, ln=0, align='L')
         self.cell(spacing, 10, '', border=0, ln=0)
         self.cell(col_width, 10, ' ', border=0, ln=0, align='L')
@@ -610,14 +629,28 @@ class PDF(FPDF):
         self.cell(
             col_width, 10, f'Reembolsar / (-)Devolver: {reembolso}', border=1, ln=1, align='L')
 
+
 @app.get("/documentos/export/pdf")
 async def export_documentos_pdf(
-    id_rendicion: int = Query(..., description="ID de rendición (obligatorio)"),
+    id_rendicion: int = Query(...,
+                              description="ID de rendición (obligatorio)"),
     id_usuario: int = Query(..., description="ID del usuario (obligatorio)"),
     db: AsyncSession = Depends(get_db)
 ):
 
-    query_usuario = select(User).filter(User.id == id_usuario)
+   # Primero obtener la rendición para extraer el id_user
+    query_rendicion = select(Rendicion).filter(Rendicion.id == id_rendicion)
+    result_rendicion = await db.execute(query_rendicion)
+    rendicion = result_rendicion.scalar_one_or_none()
+
+    if not rendicion:
+        raise HTTPException(
+            status_code=404,
+            detail="No se encontró la rendición con el ID proporcionado."
+        )
+
+    # Ahora obtener el usuario asociado a la rendición
+    query_usuario = select(User).filter(User.id == rendicion.id_user)
     result_usuario = await db.execute(query_usuario)
     usuario = result_usuario.scalar_one_or_none()
 
@@ -631,12 +664,12 @@ async def export_documentos_pdf(
         raise HTTPException(
             status_code=400, detail="El campo 'id_rendicion' es obligatorio."
         )
-    
+
      # Obtener información de la rendición
     query_rendicion = select(Rendicion).filter(Rendicion.id == id_rendicion)
     result_rendicion = await db.execute(query_rendicion)
     rendicion = result_rendicion.scalar_one_or_none()
-     # Obtener el company_name del usuario (asumiendo que existe este campo en el modelo User)
+    # Obtener el company_name del usuario (asumiendo que existe este campo en el modelo User)
     company_name = usuario.company_name if usuario.company_name else "ARENDIR"  # Valor por defe
 
     if not rendicion:
@@ -647,7 +680,8 @@ async def export_documentos_pdf(
 
     # Obtener los documentos de la rendición
     query = select(models.Documento).filter(
-        models.Documento.id_numero_rendicion == id_rendicion
+        models.Documento.id_numero_rendicion == id_rendicion,
+        models.Documento.estado != "RECHAZADO"  # Excluir documentos rechazados
     )
     result = await db.execute(query)
     documentos = result.scalars().all()
@@ -675,7 +709,8 @@ async def export_documentos_pdf(
         # Consultar documentos basados en los valores de `solicitud_id`
         query_documentos = select(models.Documento).filter(
             models.Documento.id_numero_rendicion.in_(solicitud_ids),
-            models.Documento.tipo_solicitud == "ANTICIPO"
+            models.Documento.tipo_solicitud == "ANTICIPO",
+            models.Documento.estado != "RECHAZADO"  # Excluir documentos rechazados
         )
         result_documentos = await db.execute(query_documentos)
         documentos_anticipo = result_documentos.scalars().all()
@@ -710,7 +745,8 @@ async def export_documentos_pdf(
 
     # Agregar datos de la tabla
     table_data = [
-        [i + 1, doc.fecha_emision, doc.ruc, doc.tipo_documento, doc.cuenta_contable, doc.serie, doc.correlativo, doc.moneda, doc.tc, doc.afecto, doc.igv, doc.inafecto, doc.total]
+        [i + 1, doc.fecha_emision, doc.ruc, doc.tipo_documento, doc.cuenta_contable, doc.serie,
+            doc.correlativo, doc.moneda, doc.tc, doc.afecto, doc.igv, doc.inafecto, doc.total]
         for i, doc in enumerate(documentos)
     ]
     pdf.add_table(table_header, table_data)
@@ -721,8 +757,8 @@ async def export_documentos_pdf(
     nombre_contador = rendicion.nom_contador or "Por firmar"
 
    # Agregar las firmas con los nombres reales
-    pdf.add_firmas(pdf.total_anticipo, pdf.total_gasto, pdf.reembolso, 
-                  nombre_solicitante, nombre_aprobador, nombre_contador)
+    pdf.add_firmas(pdf.total_anticipo, pdf.total_gasto, pdf.reembolso,
+                   nombre_solicitante, nombre_aprobador, nombre_contador)
 
     # Guardar el PDF generado
     pdf_file = f"documentos_{id_rendicion}.pdf"
@@ -730,12 +766,14 @@ async def export_documentos_pdf(
 
     return FileResponse(path=pdf_file, filename=f"documentos_{id_rendicion}.pdf")
 
+
 class DocumentoPDFCustom(FPDF):
     def __init__(self):
         super().__init__()
         # Márgenes (izquierdo, superior, derecho)
         self.set_margins(15, 15, 15)  # Márgenes más amplios
-        self.set_auto_page_break(auto=True, margin=15)  # Salto automático de página con margen inferior
+        # Salto automático de página con margen inferior
+        self.set_auto_page_break(auto=True, margin=15)
 
     def header(self):
         self.set_font('Arial', 'B', 14)
@@ -819,7 +857,6 @@ class DocumentoPDFCustom(FPDF):
         self.ln(10)
 
 
-
 @app.post("/documentos/crear-con-pdf-custom/", response_model=schemas.Documento)
 async def create_documento_con_pdf_custom(
     documento: schemas.DocumentoCreate,
@@ -873,7 +910,8 @@ class DocumentoPDFLocal(FPDF):
         super().__init__()
         # Establece márgenes (izquierdo, superior, derecho)
         self.set_margins(15, 15, 15)  # Márgenes de 15 mm en todos los lados
-        self.set_auto_page_break(auto=True, margin=15)  # Salto automático de página con margen inferior
+        # Salto automático de página con margen inferior
+        self.set_auto_page_break(auto=True, margin=15)
 
     def header(self):
         self.set_font('Arial', 'B', 14)
@@ -897,31 +935,40 @@ class DocumentoPDFLocal(FPDF):
         self.cell(ancho_celda1, 10, 'DNI:', 1)
         self.cell(ancho_celda2, 10, documento.dni if documento.dni else 'N/A', 1)
         self.cell(ancho_celda1, 10, 'Solicitado el:', 1)
-        self.cell(ancho_celda2, 10, str(documento.fecha_emision) if documento.fecha_emision else 'N/A', 1)
+        self.cell(ancho_celda2, 10, str(documento.fecha_emision)
+                  if documento.fecha_emision else 'N/A', 1)
         self.ln(10)
 
         self.cell(ancho_celda1, 10, 'Responsable:', 1)
-        self.cell(ancho_celda2, 10, documento.responsable if documento.responsable else 'N/A', 1)
+        self.cell(ancho_celda2, 10,
+                  documento.responsable if documento.responsable else 'N/A', 1)
         self.cell(ancho_celda1, 10, 'Gerencia:', 1)
-        self.cell(ancho_celda2, 10, documento.gerencia if documento.gerencia else 'N/A', 1)
+        self.cell(ancho_celda2, 10,
+                  documento.gerencia if documento.gerencia else 'N/A', 1)
         self.ln(10)
 
         self.cell(ancho_celda1, 10, 'Área:', 1)
-        self.cell(ancho_celda2, 10, documento.area if documento.area else 'N/A', 1)
+        self.cell(ancho_celda2, 10,
+                  documento.area if documento.area else 'N/A', 1)
         self.cell(ancho_celda1, 10, 'CeCo:', 1)
-        self.cell(ancho_celda2, 10, documento.ceco if documento.ceco else 'N/A', 1)
+        self.cell(ancho_celda2, 10,
+                  documento.ceco if documento.ceco else 'N/A', 1)
         self.ln(10)
 
         self.cell(ancho_celda1, 10, 'Breve motivo:', 1)
-        self.cell(ancho_celda2, 10, documento.motivo if documento.motivo else 'N/A', 1)
+        self.cell(ancho_celda2, 10,
+                  documento.motivo if documento.motivo else 'N/A', 1)
         self.cell(ancho_celda1, 10, 'Banco y N° de Cuenta:', 1)
-        self.cell(ancho_celda2, 10, documento.numero_cuenta if documento.numero_cuenta else 'N/A', 1)
+        self.cell(ancho_celda2, 10,
+                  documento.numero_cuenta if documento.numero_cuenta else 'N/A', 1)
         self.ln(10)
 
         self.cell(ancho_celda1, 10, 'Moneda:', 1)
-        self.cell(ancho_celda2, 10, documento.moneda if documento.moneda else 'N/A', 1)
+        self.cell(ancho_celda2, 10,
+                  documento.moneda if documento.moneda else 'N/A', 1)
         self.cell(ancho_celda1, 10, 'Presupuesto:', 1)
-        self.cell(ancho_celda2, 10, f"{documento.total:.2f}" if documento.total else "0.00", 1)
+        self.cell(ancho_celda2, 10,
+                  f"{documento.total:.2f}" if documento.total else "0.00", 1)
         self.ln(10)
 
         # Firmas
@@ -929,7 +976,8 @@ class DocumentoPDFLocal(FPDF):
         self.cell(0, 10, 'Firmas electrónicas desde la Plataforma', 0, 1, 'C')
         self.set_font('Arial', '', 10)
         self.cell(ancho_celda1, 10, 'Usuario Responsable:', 1)
-        self.cell(ancho_celda2, 10, documento.responsable if documento.responsable else 'N/A', 1)
+        self.cell(ancho_celda2, 10,
+                  documento.responsable if documento.responsable else 'N/A', 1)
         self.cell(ancho_celda1, 10, 'Aprobado por:', 1)
         self.cell(ancho_celda2, 10, '', 1)
         self.ln(10)
@@ -994,11 +1042,13 @@ class DocumentoPDFMovilidad(FPDF):
         self.set_font('Arial', '', 10)
 
         # Información principal
-        self.cell(0, 5, 'Solicitante: ' + documento.get('full_name', 'N/A'), 0, 1, 'L')
+        self.cell(0, 5, 'Solicitante: ' +
+                  documento.get('full_name', 'N/A'), 0, 1, 'L')
         self.cell(0, 5, 'DNI: ' + str(documento.get('dni', 'N/A')), 0, 1, 'L')
         self.cell(0, 5, 'CeCo: ' + documento.get('ceco', 'N/A'), 0, 1, 'R')
         gerencia = documento.get('gerencia', '')
-        self.cell(0, 5, 'Gerencia: ' + gerencia if gerencia else 'Gerencia: N/A', 0, 1, 'R')
+        self.cell(0, 5, 'Gerencia: ' +
+                  gerencia if gerencia else 'Gerencia: N/A', 0, 1, 'R')
         self.cell(0, 5, 'Moneda: ' + documento.get('moneda', 'N/A'), 0, 1, 'R')
         # self.cell(0, 5, 'Correlativo: ' + str(documento.get('correlativo', 'N/A')), 0, 1, 'R')
         self.ln(10)
@@ -1027,7 +1077,8 @@ class DocumentoPDFMovilidad(FPDF):
         self.cell(30, 6, documento.get('destino', 'N/A'), 1, 0, 'C')  # Destino
         self.cell(50, 6, documento.get('motivo', 'N/A'), 1, 0, 'C')  # Motivo
         self.cell(30, 6, 'S/ ' + str(documento.get('total', '0.00')), 1, 0, 'C')
-        self.cell(30, 6, 'S/ ' + str(documento.get('gasto_no_deducible', '0.00')), 1, 0, 'C')
+        self.cell(30, 6, 'S/ ' +
+                  str(documento.get('gasto_no_deducible', '0.00')), 1, 0, 'C')
         self.cell(30, 6, 'S/ ' + str(documento.get('total', '0.00')), 1, 1, 'C')
         self.set_font('Arial', 'B', 10)
         self.cell(210, 6, 'Total', 1, 0, 'R')
@@ -1042,7 +1093,7 @@ class DocumentoPDFMovilidad(FPDF):
             total_text = f"{num2words(entero, lang='es')} y {decimal}/100"
         else:
             total_text = 'N/A'
-    
+
         self.cell(0, 5, 'Son: ' + total_text + ' Soles', 0, 1, 'L')
         self.ln(5)
         self.cell(0, 5, 'Firmas electrónicas desde Plataforma', 0, 1, 'L')
@@ -1050,10 +1101,10 @@ class DocumentoPDFMovilidad(FPDF):
         self.cell(90, 6, 'Colaborador', 1, 0, 'C')
         self.cell(90, 6, 'Aprobador', 1, 0, 'C')
         self.cell(90, 6, 'Administrador/Contabilidad', 1, 1, 'C')
-        
+
         self.cell(90, 6, documento.get('full_name', 'N/A'), 1, 0, 'C')
         self.cell(90, 6, '', 1, 0, 'C')  # Celda en blanco
-        self.cell(90, 6, '', 1, 1, 'C') 
+        self.cell(90, 6, '', 1, 1, 'C')
 
 
 @app.post("/generar-pdf-movilidad/")
@@ -1158,7 +1209,8 @@ async def get_distinct_numero_rendicion(
         )
         result = await db.execute(query)
         numeros_rendicion = result.scalars().all()
-        numeros_rendicion = [str(num) for num in numeros_rendicion if num is not None]
+        numeros_rendicion = [str(num)
+                             for num in numeros_rendicion if num is not None]
         return numeros_rendicion
     except Exception as e:
         raise HTTPException(
