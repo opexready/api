@@ -103,8 +103,16 @@ class Rendicion(Base):
     fecha_registro = Column(Date, server_default=func.now())  
     fecha_actualizacion = Column(Date, onupdate=func.now())  
     id_empresa = Column(Integer, ForeignKey('companies.id'), nullable=True)
+   # Nuevos campos (todos nullable=True)
+    id_aprobador = Column(Integer, ForeignKey('users.id'), nullable=True)  
+    nom_aprobador = Column(String, nullable=True)  
+    id_contador = Column(Integer, ForeignKey('users.id'), nullable=True)  
+    nom_contador = Column(String, nullable=True)  
 
-    user = relationship("User")
+    # Relaciones (ESPECIFICA foreign_keys para evitar ambigüedad)
+    user = relationship("User", foreign_keys=[id_user])
+    aprobador = relationship("User", foreign_keys=[id_aprobador])
+    contador = relationship("User", foreign_keys=[id_contador])
 
 class Solicitud(Base):
     __tablename__ = "solicitud"
@@ -117,8 +125,16 @@ class Solicitud(Base):
     fecha_registro = Column(Date, server_default=func.now())
     fecha_actualizacion = Column(Date, onupdate=func.now())
     id_empresa = Column(Integer, ForeignKey('companies.id'), nullable=True)
+    # Nuevos campos (todos nullable=True)
+    id_aprobador = Column(Integer, ForeignKey('users.id'), nullable=True)  
+    nom_aprobador = Column(String, nullable=True)  
+    id_contador = Column(Integer, ForeignKey('users.id'), nullable=True)  
+    nom_contador = Column(String, nullable=True)  
 
-    user = relationship("User")
+    # Relaciones (ESPECIFICA foreign_keys para evitar ambigüedad)
+    user = relationship("User", foreign_keys=[id_user])
+    aprobador = relationship("User", foreign_keys=[id_aprobador])
+    contador = relationship("User", foreign_keys=[id_contador])
 
 class RendicionSolicitud(Base):
     __tablename__ = "rendicion_solicitud"

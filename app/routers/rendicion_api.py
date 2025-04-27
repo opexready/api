@@ -9,6 +9,8 @@ from app import models, schemas
 from sqlalchemy import distinct
 from app.database import get_db  # Asegúrate de tener esta dependencia
 from pydantic import BaseModel
+from sqlalchemy.orm import joinedload
+from fastapi.logger import logger
 
 router = APIRouter()
 
@@ -411,7 +413,9 @@ async def get_rendiciones_y_solicitudes_con_documentos(
         for rendicion, full_name in rendiciones:
             documentos_query = await db.execute(
                 select(models.Documento).where(
-                    models.Documento.id_numero_rendicion == rendicion.id)
+                    models.Documento.id_numero_rendicion == rendicion.id,
+                    models.Documento.estado != "RECHAZADO"  # Filtro añadido
+                )
             )
             documentos = documentos_query.scalars().all()
 
@@ -485,7 +489,9 @@ async def get_rendiciones_y_solicitudes_con_documentos(
         for solicitud, full_name in solicitudes:
             documentos_query = await db.execute(
                 select(models.Documento).where(
-                    models.Documento.id_numero_rendicion == solicitud.id)
+                    models.Documento.id_numero_rendicion == solicitud.id,
+                    models.Documento.estado != "RECHAZADO"  # Filtro añadido
+                )
             )
             documentos = documentos_query.scalars().all()
 
@@ -557,31 +563,133 @@ async def get_last_rendicion(id_user: int, tipo: str, db: AsyncSession = Depends
         raise HTTPException(status_code=500, detail=str(e))
     
 class RendicionUpdate(BaseModel):
-        nombre: Optional[str] = None
-        tipo: Optional[str] = None
-        estado: Optional[str] = None
+    nombre: Optional[str] = None
+    tipo: Optional[str] = None
+    estado: Optional[str] = None
+    id_aprobador: Optional[int] = None
+    id_contador: Optional[int] = None
+    nom_aprobador: Optional[str] = None
+    nom_contador: Optional[str] = None
     
+# @router.put("/rendicion/{rendicion_id}", response_model=dict)
+# async def update_rendicion(
+#     rendicion_id: int,
+#     rendicion_data: RendicionUpdate,  # Cambia esto de schemas.RendicionUpdate a RendicionUpdate
+#     db: AsyncSession = Depends(get_db)
+# ):
+#     # Buscar la rendición por ID
+#     result = await db.execute(select(models.Rendicion).where(models.Rendicion.id == rendicion_id))
+#     db_rendicion = result.scalars().first()
+
+#     if not db_rendicion:
+#         raise HTTPException(status_code=404, detail="Rendición no encontrada")
+
+#     # Actualizar solo los campos proporcionados
+#     update_data = rendicion_data.dict(exclude_unset=True)
+#     for key, value in update_data.items():
+#         setattr(db_rendicion, key, value)
+
+#     # Guardar cambios
+#     await db.commit()
+#     await db.refresh(db_rendicion)
+
+#     return {"detail": "Rendición actualizada exitosamente"}
+
 @router.put("/rendicion/{rendicion_id}", response_model=dict)
 async def update_rendicion(
     rendicion_id: int,
-    rendicion_data: RendicionUpdate,  # Cambia esto de schemas.RendicionUpdate a RendicionUpdate
+    rendicion_data: RendicionUpdate,
     db: AsyncSession = Depends(get_db)
 ):
+    # Log the incoming request data
+    logger.info(f"Received update request for rendicion_id: {rendicion_id}")
+    logger.info(f"Request body: {rendicion_data.dict()}")
+    
     # Buscar la rendición por ID
-    result = await db.execute(select(models.Rendicion).where(models.Rendicion.id == rendicion_id))
+    result = await db.execute(
+        select(models.Rendicion)
+        .where(models.Rendicion.id == rendicion_id)
+        .options(
+            joinedload(models.Rendicion.aprobador),
+            joinedload(models.Rendicion.contador)
+        )
+    )
     db_rendicion = result.scalars().first()
 
     if not db_rendicion:
+        logger.error(f"Rendición no encontrada con ID: {rendicion_id}")
         raise HTTPException(status_code=404, detail="Rendición no encontrada")
+
+    # Log current state before update
+    logger.info(f"Current rendicion state before update:")
+    logger.info(f"Nombre: {db_rendicion.nombre}")
+    logger.info(f"Tipo: {db_rendicion.tipo}")
+    logger.info(f"Estado: {db_rendicion.estado}")
+    logger.info(f"ID Aprobador: {db_rendicion.id_aprobador}")
+    logger.info(f"Nom Aprobador: {db_rendicion.nom_aprobador}")
+    logger.info(f"ID Contador: {db_rendicion.id_contador}")
+    logger.info(f"Nom Contador: {db_rendicion.nom_contador}")
 
     # Actualizar solo los campos proporcionados
     update_data = rendicion_data.dict(exclude_unset=True)
+    logger.info(f"Update data received: {update_data}")
+    
+    # Verificar si nom_aprobador viene directamente en el request
+    if 'nom_aprobador' in update_data:
+        logger.info(f"Direct nom_aprobador update received: {update_data['nom_aprobador']}")
+        # Si viene directamente, lo usamos sin buscar por ID
+        pass
+    
+    # Actualizar nombres si se proporcionan IDs
+    if 'id_aprobador' in update_data:
+        logger.info(f"id_aprobador received: {update_data['id_aprobador']}")
+        if update_data['id_aprobador'] is not None:
+            user_result = await db.execute(select(models.User).where(models.User.id == update_data['id_aprobador']))
+            aprobador = user_result.scalars().first()
+            if aprobador:
+                update_data['nom_aprobador'] = aprobador.full_name
+                logger.info(f"Found aprobador user: {aprobador.full_name}")
+            else:
+                logger.warning(f"No user found for id_aprobador: {update_data['id_aprobador']}")
+        else:
+            update_data['nom_aprobador'] = None
+            logger.info("id_aprobador is None, setting nom_aprobador to None")
+    
+    if 'id_contador' in update_data:
+        logger.info(f"id_contador received: {update_data['id_contador']}")
+        if update_data['id_contador'] is not None:
+            user_result = await db.execute(select(models.User).where(models.User.id == update_data['id_contador']))
+            contador = user_result.scalars().first()
+            if contador:
+                update_data['nom_contador'] = contador.full_name
+                logger.info(f"Found contador user: {contador.full_name}")
+            else:
+                logger.warning(f"No user found for id_contador: {update_data['id_contador']}")
+        else:
+            update_data['nom_contador'] = None
+            logger.info("id_contador is None, setting nom_contador to None")
+
+    # Log what will be updated
+    logger.info(f"Fields to be updated: {list(update_data.keys())}")
+    
+    # Aplicar las actualizaciones
     for key, value in update_data.items():
+        logger.info(f"Updating {key} from {getattr(db_rendicion, key)} to {value}")
         setattr(db_rendicion, key, value)
 
     # Guardar cambios
     await db.commit()
     await db.refresh(db_rendicion)
+    
+    # Log state after update
+    logger.info(f"Rendicion state after update:")
+    logger.info(f"Nombre: {db_rendicion.nombre}")
+    logger.info(f"Tipo: {db_rendicion.tipo}")
+    logger.info(f"Estado: {db_rendicion.estado}")
+    logger.info(f"ID Aprobador: {db_rendicion.id_aprobador}")
+    logger.info(f"Nom Aprobador: {db_rendicion.nom_aprobador}")
+    logger.info(f"ID Contador: {db_rendicion.id_contador}")
+    logger.info(f"Nom Contador: {db_rendicion.nom_contador}")
 
     return {"detail": "Rendición actualizada exitosamente"}
 
@@ -628,7 +736,4 @@ async def get_unique_rendicion_names(id_user: int, tipo: str, db: AsyncSession =
         raise HTTPException(status_code=500, detail=str(e))
 
 
-class RendicionUpdate(BaseModel):
-    nombre: Optional[str] = None
-    tipo: Optional[str] = None
-    estado: Optional[str] = None
+

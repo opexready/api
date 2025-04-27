@@ -249,6 +249,10 @@ class SolicitudUpdate(BaseModel):
     nombre: Optional[str] = None
     tipo: Optional[str] = None
     estado: Optional[str] = None
+    id_aprobador: Optional[int] = None
+    id_contador: Optional[int] = None
+    nom_aprobador: Optional[str] = None
+    nom_contador: Optional[str] = None
 
 class SolicitudCreate(SolicitudBase):
     id_user: int

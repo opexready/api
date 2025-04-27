@@ -446,6 +446,7 @@ async def export_documentos_excel(
     id_empresa: int = Query(None),
     fecha_desde: date = Query(None),
     fecha_hasta: date = Query(None),
+    tipo_solicitud: str = Query(None),
     db: AsyncSession = Depends(get_db)
 ):
     # Convertir username a int si no está vacío
@@ -472,6 +473,9 @@ async def export_documentos_excel(
     if fecha_hasta:
         logger.info(f"Filtrando por fecha hasta: {fecha_hasta}")
         query = query.filter(models.Documento.fecha_solicitud <= fecha_hasta)
+    if tipo_solicitud:  # Nuevo filtro por tipo_solicitud
+        logger.info(f"Filtrando por tipo_solicitud: {tipo_solicitud}")
+        query = query.filter(models.Documento.tipo_solicitud == tipo_solicitud)
 
     # Ejecutar la consulta
     result = await db.execute(query)
@@ -492,6 +496,7 @@ async def export_documentos_excel(
         "Fecha": doc.fecha_emision,
         "RUC": doc.ruc,
         "TipoDoc": doc.tipo_documento,
+        "Tipo Solicitud": doc.tipo_solicitud,
         "Cuenta Contable": doc.cuenta_contable,
         "Serie": doc.serie,
         "Correlativo": doc.correlativo,
@@ -512,6 +517,10 @@ async def export_documentos_excel(
 
 
 class PDF(FPDF):
+    def __init__(self, orientation='P', company_name="ARENDIR"):
+        super().__init__(orientation=orientation)  # Pasar orientation al padre
+        self.company_name = company_name
+
     def header(self):
         # URL del logo
         logo_url = 'https://firebasestorage.googleapis.com/v0/b/hawejin-files.appspot.com/o/logo.png?alt=media&token=a58583c4-fed3-468d-abe6-92252a1c1fff'
@@ -530,7 +539,7 @@ class PDF(FPDF):
 
 # Agregar la cabecera central "XXXXXXXXXXXX"
         self.set_font('Arial', 'B', 14)  # Fuente en negrita y tamaño 14
-        self.cell(0, 10, 'ARENDIR', 0, 1, 'C')  # Centrado y con salto de línea
+        self.cell(0, 10, self.company_name, 0, 1, 'C')  # Usar self.company_name
         self.ln(10)  # Espacio después de la cabecera
 
         self.set_font('Arial', '', 8)
@@ -570,7 +579,7 @@ class PDF(FPDF):
                 self.cell(col_width, row_height, str(item), border=1)
             self.ln(row_height)
 
-    def add_firmas(self, total_anticipo, total_gasto, reembolso):
+    def add_firmas(self, total_anticipo, total_gasto, reembolso, nombre_solicitante, nombre_aprobador, nombre_contador):
         col_width = (self.w - 30) / 4
         spacing = 5
 
@@ -585,11 +594,11 @@ class PDF(FPDF):
         self.cell(col_width, 10, 'Recibido por:', border=1, ln=0, align='L')
         self.cell(spacing, 10, '', border=0, ln=0)
         self.cell(col_width, 10, f'Total Anticipo: {total_anticipo}', border=1, ln=1, align='L')
-        self.cell(col_width, 10, 'Nombre', border=1, ln=0, align='R')
+        self.cell(col_width, 10, nombre_solicitante, border=1, ln=0, align='R')
         self.cell(spacing, 10, '', border=0, ln=0)
-        self.cell(col_width, 10, 'Nombre', border=1, ln=0, align='R')
+        self.cell(col_width, 10, nombre_aprobador, border=1, ln=0, align='R')
         self.cell(spacing, 10, '', border=0, ln=0)
-        self.cell(col_width, 10, 'Nombre', border=1, ln=0, align='R')
+        self.cell(col_width, 10, nombre_contador, border=1, ln=0, align='R')
         self.cell(spacing, 10, '', border=0, ln=0)
         self.cell(col_width, 10, f'Total Gasto: {total_gasto}', border=1, ln=1, align='L')
         self.cell(col_width, 10, ' ', border=0, ln=0, align='L')
@@ -621,6 +630,19 @@ async def export_documentos_pdf(
     if not id_rendicion:
         raise HTTPException(
             status_code=400, detail="El campo 'id_rendicion' es obligatorio."
+        )
+    
+     # Obtener información de la rendición
+    query_rendicion = select(Rendicion).filter(Rendicion.id == id_rendicion)
+    result_rendicion = await db.execute(query_rendicion)
+    rendicion = result_rendicion.scalar_one_or_none()
+     # Obtener el company_name del usuario (asumiendo que existe este campo en el modelo User)
+    company_name = usuario.company_name if usuario.company_name else "ARENDIR"  # Valor por defe
+
+    if not rendicion:
+        raise HTTPException(
+            status_code=404,
+            detail="No se encontró la rendición con el ID proporcionado."
         )
 
     # Obtener los documentos de la rendición
@@ -668,7 +690,7 @@ async def export_documentos_pdf(
 
     fecha_actual = datetime.now().strftime("%d-%m-%Y")
     # Crear el PDF
-    pdf = PDF(orientation='L')
+    pdf = PDF(orientation='L', company_name=company_name)
     pdf.usuario = usuario.full_name
     pdf.dni = usuario.dni
     pdf.cargo = usuario.cargo
@@ -693,8 +715,14 @@ async def export_documentos_pdf(
     ]
     pdf.add_table(table_header, table_data)
 
-    # Agregar las firmas
-    pdf.add_firmas(pdf.total_anticipo, pdf.total_gasto, pdf.reembolso)
+    # Obtener nombres para las firmas
+    nombre_solicitante = usuario.full_name
+    nombre_aprobador = rendicion.nom_aprobador or "Por firmar"
+    nombre_contador = rendicion.nom_contador or "Por firmar"
+
+   # Agregar las firmas con los nombres reales
+    pdf.add_firmas(pdf.total_anticipo, pdf.total_gasto, pdf.reembolso, 
+                  nombre_solicitante, nombre_aprobador, nombre_contador)
 
     # Guardar el PDF generado
     pdf_file = f"documentos_{id_rendicion}.pdf"
