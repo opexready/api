@@ -309,6 +309,14 @@ class RendicionSolicitudResponse(BaseModel):
     fecha_actualizacion: Optional[datetime] = None
     estado: Optional[str] = None
 
-    class Config:
-        from_attributes = True
+class Config:
+    from_attributes = True
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str
+
+class RequestPasswordReset(BaseModel):
+    email: str
+
 

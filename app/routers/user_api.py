@@ -134,3 +134,86 @@ async def update_user(
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
 
     return updated_user
+
+# Añadir estos esquemas al inicio del archivo
+
+
+# Añadir estas rutas al router
+@router.post("/users/request-password-reset/")
+async def request_password_reset(
+    request: schemas.RequestPasswordReset,
+    db: AsyncSession = Depends(get_db)
+):
+    """Solicita un restablecimiento de contraseña enviando un correo con token"""
+    user = await crud.get_user_by_email(db, email=request.email)
+    if not user:
+        # No revelamos que el email no existe por seguridad
+        return {"message": "Si el email existe, se ha enviado un correo con instrucciones"}
+
+    # Generar token de restablecimiento
+    reset_token = auth.create_reset_token(data={"sub": user.email})
+    
+    # Enviar correo con el token
+    send_reset_email(user, reset_token)
+    
+    return {"message": "Si el email existe, se ha enviado un correo con instrucciones"}
+
+@router.post("/users/reset-password/")
+async def reset_password(
+    reset_data: schemas.ResetPasswordRequest,
+    db: AsyncSession = Depends(get_db)
+):
+    """Restablece la contraseña usando un token válido"""
+    email = auth.verify_reset_token(reset_data.token)
+    if not email:
+        raise HTTPException(
+            status_code=400,
+            detail="Token inválido o expirado"
+        )
+        
+    user = await crud.get_user_by_email(db, email=email)
+    if not user:
+        raise HTTPException(
+            status_code=404,
+            detail="Usuario no encontrado"
+        )
+        
+    # Actualizar la contraseña
+    hashed_password = auth.get_password_hash(reset_data.new_password)
+    user.hashed_password = hashed_password
+    db.add(user)
+    await db.commit()
+    
+    return {"message": "Contraseña actualizada correctamente"}
+
+# Añadir esta función auxiliar para enviar emails de restablecimiento
+def send_reset_email(user: schemas.User, reset_token: str):
+    """Envía un correo electrónico con el enlace para restablecer la contraseña"""
+    msg = MIMEMultipart('related')
+    msg['From'] = sender_email
+    msg['To'] = user.email
+    msg['Subject'] = "Restablecer tu contraseña en Arendir"
+
+    reset_link = f"https://arendir.onrender.com/login?token={reset_token}"
+    
+    context = {
+        "username": user.full_name,
+        "reset_link": reset_link
+    }
+    
+    html_content = get_email_template("reset_password", context)
+    msg.attach(MIMEText(html_content, 'html'))
+
+    try:
+        server = smtplib.SMTP('smtp.gmail.com', 587)
+        server.starttls()
+        server.login(sender_email, sender_password)
+        server.sendmail(sender_email, user.email, msg.as_string())
+        server.quit()
+        print(f"Correo de restablecimiento enviado a {user.email}")
+    except Exception as e:
+        print(f"Error al enviar el correo de restablecimiento: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail="Error al enviar el correo de restablecimiento"
+        )
