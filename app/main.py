@@ -989,6 +989,41 @@ class DocumentoPDFLocal(FPDF):
         self.ln(10)
 
 
+# @app.post("/documentos/crear-con-pdf-local/", response_model=schemas.Documento)
+# async def create_documento_con_pdf_local(
+#     documento: schemas.DocumentoCreate,
+#     db: AsyncSession = Depends(get_db)
+# ):
+#     # Crear el documento en la base de datos
+#     db_documento = await crud.create_documento(db=db, documento=documento)
+
+#     pdf = DocumentoPDFLocal()  # Instancia de la clase correctamente
+#     pdf.add_page()
+#     pdf.add_document_details(documento)  # Pasar el objeto documento
+
+#     pdf_data = BytesIO()
+
+#     try:
+#         pdf_output = pdf.output(dest='S').encode('latin1')
+#         pdf_data.write(pdf_output)
+#         pdf_data.seek(0)
+#         unique_filename = f"documento_local_{str(uuid.uuid4())}.pdf"
+#         public_url = upload_file_to_firebase_pdf(
+#             pdf_data, unique_filename, content_type="application/pdf")
+
+#     except Exception as e:
+#         logging.error(f"Error al generar o subir el PDF: {str(e)}")
+#         raise HTTPException(
+#             status_code=500, detail=f"Error al generar o subir el archivo a Firebase: {str(e)}")
+
+#     # Asignar la URL del PDF generado
+#     db_documento.archivo = public_url
+#     db_documento.numero_rendicion = documento.numero_rendicion  # Guardar numero_rendicion
+#     await db.commit()
+#     await db.refresh(db_documento)
+
+#     return db_documento
+
 @app.post("/documentos/crear-con-pdf-local/", response_model=schemas.Documento)
 async def create_documento_con_pdf_local(
     documento: schemas.DocumentoCreate,
@@ -997,15 +1032,20 @@ async def create_documento_con_pdf_local(
     # Crear el documento en la base de datos
     db_documento = await crud.create_documento(db=db, documento=documento)
 
-    pdf = DocumentoPDFLocal()  # Instancia de la clase correctamente
+    pdf = DocumentoPDFLocal()
     pdf.add_page()
-    pdf.add_document_details(documento)  # Pasar el objeto documento
+    pdf.add_document_details(documento)
 
     pdf_data = BytesIO()
 
     try:
-        pdf_output = pdf.output(dest='S').encode('latin1')
-        pdf_data.write(pdf_output)
+        # Modificación aquí - manejar ambos casos (str y bytearray)
+        pdf_output = pdf.output(dest='S')
+        if isinstance(pdf_output, str):
+            pdf_data.write(pdf_output.encode('latin1'))
+        else:  # Si es bytearray o bytes
+            pdf_data.write(pdf_output)
+            
         pdf_data.seek(0)
         unique_filename = f"documento_local_{str(uuid.uuid4())}.pdf"
         public_url = upload_file_to_firebase_pdf(
@@ -1018,12 +1058,11 @@ async def create_documento_con_pdf_local(
 
     # Asignar la URL del PDF generado
     db_documento.archivo = public_url
-    db_documento.numero_rendicion = documento.numero_rendicion  # Guardar numero_rendicion
+    db_documento.numero_rendicion = documento.numero_rendicion
     await db.commit()
     await db.refresh(db_documento)
 
     return db_documento
-
 
 class DocumentoPDFMovilidad(FPDF):
 
