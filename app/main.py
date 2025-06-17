@@ -57,7 +57,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Registrar los routers
+# Registrar los routers  sdsdsdsdsdsd
 app.include_router(company_api.router, prefix="/api", tags=["Companies"])
 app.include_router(qr_processing_api.router,
                    prefix="/api", tags=["QR Processing"])
