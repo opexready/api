@@ -4,7 +4,7 @@ import os
 from io import BytesIO
 
 # Inicializa Firebase con las credenciales y el bucket de almacenamiento
-cred = credentials.Certificate("config/hawejin-files-firebase-adminsdk-ladhr-629932220b.json")
+cred = credentials.Certificate("config/hawejin-files-firebase-adminsdk-ladhr-3d648e3e69.json")
 firebase_admin.initialize_app(cred, {
     'storageBucket': 'hawejin-files.appspot.com'
 })
