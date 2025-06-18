@@ -1,31 +1,23 @@
-# Usa una imagen base oficial de Python con la versión necesaria
 FROM python:3.10-slim
 
-# Establecer el directorio de trabajo
 WORKDIR /app
 
-# Instalar dependencias del sistema primero (para optimizar las capas de Docker)
+# Dependencias del sistema
 RUN apt-get update && apt-get install -y \
-    libzbar0 \
-    tesseract-ocr \
-    libtesseract-dev \
-    wkhtmltopdf \
-    python3-dev \
-    build-essential \
-    && rm -rf /var/lib/apt/lists/*
+    libzbar0 tesseract-ocr libtesseract-dev wkhtmltopdf python3-dev build-essential \
+  && rm -rf /var/lib/apt/lists/*
 
-# Copiar los archivos de requerimientos para instalar las dependencias
+# Instala dependencias de Python
 COPY requirements.txt .
+RUN pip install --upgrade pip wheel setuptools \
+  && pip install --no-cache-dir -r requirements.txt
 
-# Instalar dependencias de Python optimizado
-RUN pip install --upgrade pip wheel setuptools && \
-    pip install --no-cache-dir -r requirements.txt
-
-# Copiar el resto de la aplicación (esto va después para aprovechar el cache de Docker)
+# Copia TODO el proyecto (incluye config/)
 COPY . .
 
-# Exponer el puerto en el que correrá FastAPI (por defecto 8000)
+# Define la variable de entorno para Firebase
+ENV GOOGLE_APPLICATION_CREDENTIALS=/app/config/arendir-909a2-firebase-adminsdk-fbsvc-80cd4666e0.json
+
 EXPOSE 8000
 
-# Comando para iniciar la aplicación FastAPI usando uvicorn
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

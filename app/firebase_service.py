@@ -1,13 +1,28 @@
+import os
+import io
+import json
 import firebase_admin
 from firebase_admin import credentials, storage
-import os
-from io import BytesIO
+from fastapi import UploadFile
+from io import BytesIO 
 
-# Inicializa Firebase con las credenciales y el bucket de almacenamiento
-cred = credentials.Certificate("config/arendir-909a2-firebase-adminsdk-fbsvc-80cd4666e0.json")
-firebase_admin.initialize_app(cred, {
-    'storageBucket': 'arendir-909a2.firebasestorage.app'
-})
+# 1) Carga credenciales:
+if os.getenv("FIREBASE_CREDENTIALS_JSON"):
+    info = json.loads(os.getenv("FIREBASE_CREDENTIALS_JSON"))
+    cred = credentials.Certificate(info)
+else:
+    cred_path = os.getenv(
+        "GOOGLE_APPLICATION_CREDENTIALS",
+        "config/arendir-909a2-firebase-adminsdk-fbsvc-80cd4666e0.json"
+    )
+    cred = credentials.Certificate(cred_path)
+
+# 2) Inicializa la app (solo una vez)
+if not firebase_admin._apps:
+    firebase_admin.initialize_app(cred, {
+        # Mismo nombre que ves en la consola: *.firebasestorage.app
+        "storageBucket": "arendir-909a2.firebasestorage.app"
+    })
 
 bucket = storage.bucket()
 
