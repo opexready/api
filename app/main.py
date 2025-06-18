@@ -47,17 +47,13 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://arendirperu.pe",
-        "https://www.arendirperu.pe",
-        "https://arendir.onrender.com"
-    ],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Registrar los routers  sdsdsdsdsdsd
+# Registrar los routers
 app.include_router(company_api.router, prefix="/api", tags=["Companies"])
 app.include_router(qr_processing_api.router,
                    prefix="/api", tags=["QR Processing"])
