@@ -194,7 +194,7 @@ def send_reset_email(user: schemas.User, reset_token: str):
     msg['To'] = user.email
     msg['Subject'] = "Restablecer tu contraseña en Arendir"
 
-    reset_link = f"https://arendir.onrender.com/login?token={reset_token}"
+    reset_link = f"https://api.arendirperu.pe/login?token={reset_token}"
     
     context = {
         "username": user.full_name,
