@@ -45,24 +45,24 @@ from email.mime.multipart import MIMEMultipart
 
 app = FastAPI()
 
-# app.add_middleware(
-#     CORSMiddleware,
-#     allow_origins=["*"],
-#     allow_credentials=True,
-#     allow_methods=["*"],
-#     allow_headers=["*"],
-# )
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://www.arendirperu.pe",
-        "https://arendirperu.pe",
-    ],
-    allow_credentials=True,    # Solo si necesitas enviar cookies o auth
+    allow_origins=["*"],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# app.add_middleware(
+#     CORSMiddleware,
+#     allow_origins=[
+#         "https://www.arendirperu.pe",
+#         "https://arendirperu.pe",
+#     ],
+#     allow_credentials=True,    # Solo si necesitas enviar cookies o auth
+#     allow_methods=["*"],
+#     allow_headers=["*"],
+# )
 
 # Registrar los routers
 app.include_router(company_api.router, prefix="/api", tags=["Companies"])
