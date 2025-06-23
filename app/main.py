@@ -894,46 +894,90 @@ class DocumentoPDFCustom(FPDF):
         self.ln(10)
 
 
+# @app.post("/documentos/crear-con-pdf-custom/", response_model=schemas.Documento)
+# async def create_documento_con_pdf_custom(
+#     documento: schemas.DocumentoCreate,
+#     db: AsyncSession = Depends(get_db)
+# ):
+#     # Crear el documento en la base de datos
+#     db_documento = await crud.create_documento(db=db, documento=documento)
+
+#     # Generar el PDF con los detalles del documento
+#     pdf = DocumentoPDFCustom()
+#     pdf.add_page()
+#     pdf.add_document_details(documento)
+
+#     # Crear un objeto BytesIO para almacenar el PDF
+#     pdf_data = BytesIO()
+
+#     try:
+#         # Guardar el contenido del PDF en el objeto BytesIO
+#         # El argumento 'S' devuelve el PDF como una cadena
+#         pdf_output = pdf.output(dest='S').encode('latin1')
+#         pdf_data.write(pdf_output)
+#         # Asegúrate de que el puntero esté al inicio del archivo
+#         pdf_data.seek(0)
+
+#         # Crear un nombre de archivo aleatorio usando UUID
+#         unique_filename = f"documento_{str(uuid.uuid4())}.pdf"
+
+#         # Subir el archivo PDF a Firebase
+#         public_url = upload_file_to_firebase_pdf(
+#             pdf_data, unique_filename, content_type="application/pdf")
+
+#     except Exception as e:
+#         logging.error(f"Error al generar o subir el PDF: {str(e)}")
+#         raise HTTPException(
+#             status_code=500, detail=f"Error al generar o subir el archivo a Firebase: {str(e)}")
+#     db_documento.archivo = public_url
+#     await db.commit()
+#     await db.refresh(db_documento)
+#     return db_documento
+
 @app.post("/documentos/crear-con-pdf-custom/", response_model=schemas.Documento)
 async def create_documento_con_pdf_custom(
     documento: schemas.DocumentoCreate,
     db: AsyncSession = Depends(get_db)
 ):
-    # Crear el documento en la base de datos
+    # 1) Crear el documento en la base de datos
     db_documento = await crud.create_documento(db=db, documento=documento)
 
-    # Generar el PDF con los detalles del documento
+    # 2) Generar el PDF
     pdf = DocumentoPDFCustom()
     pdf.add_page()
     pdf.add_document_details(documento)
 
-    # Crear un objeto BytesIO para almacenar el PDF
     pdf_data = BytesIO()
-
     try:
-        # Guardar el contenido del PDF en el objeto BytesIO
-        # El argumento 'S' devuelve el PDF como una cadena
-        pdf_output = pdf.output(dest='S').encode('latin1')
-        pdf_data.write(pdf_output)
-        # Asegúrate de que el puntero esté al inicio del archivo
+        # 3) Obtener la salida del PDF en memoria
+        pdf_output = pdf.output(dest='S')
+        if isinstance(pdf_output, str):
+            # cuando es str, lo codificamos
+            output_bytes = pdf_output.encode('latin1')
+        else:
+            # cuando es bytearray o bytes, lo usamos directamente
+            output_bytes = bytes(pdf_output)
+        pdf_data.write(output_bytes)
         pdf_data.seek(0)
 
-        # Crear un nombre de archivo aleatorio usando UUID
-        unique_filename = f"documento_{str(uuid.uuid4())}.pdf"
-
-        # Subir el archivo PDF a Firebase
+        # 4) Subir a Firebase con un nombre único
+        unique_filename = f"documento_{uuid.uuid4()}.pdf"
         public_url = upload_file_to_firebase_pdf(
-            pdf_data, unique_filename, content_type="application/pdf")
+            pdf_data, unique_filename, content_type="application/pdf"
+        )
 
     except Exception as e:
-        logging.error(f"Error al generar o subir el PDF: {str(e)}")
+        logging.error(f"Error al generar o subir el PDF: {e}")
         raise HTTPException(
-            status_code=500, detail=f"Error al generar o subir el archivo a Firebase: {str(e)}")
+            status_code=500,
+            detail=f"Error al generar o subir el archivo a Firebase: {e}"
+        )
+
+    # 5) Guardar la URL en la base y devolver
     db_documento.archivo = public_url
     await db.commit()
     await db.refresh(db_documento)
     return db_documento
-
 
 async def get_db():
     async with SessionLocal() as session:
