@@ -319,7 +319,7 @@ async def get_rendiciones_y_solicitudes_con_documentos(
     
 
 ##################
-@router.get("/rendiciones-solicitudes/con-documentos/", response_model=List[dict])
+@router.get("/rendiciones-solicitudes/con-documentos2/", response_model=List[dict])
 async def get_rendiciones_y_solicitudes_con_documentos(
     tipo: Optional[str] = Query(None, description="Filtrar por tipo"),
     estado: Optional[str] = Query(None, description="Filtrar por estado"),
@@ -523,6 +523,131 @@ async def get_rendiciones_y_solicitudes_con_documentos(
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
 ###################
+
+###################################################
+@router.get("/rendiciones-solicitudes/con-documentos/", response_model=List[dict])
+async def get_rendiciones_y_solicitudes_con_documentos(
+    estado: Optional[str] = Query(None, description="Filtrar por estado"),
+    fecha_registro_from: Optional[date] = Query(None, description="Filtrar desde esta fecha de registro"),
+    fecha_registro_to: Optional[date] = Query(None, description="Filtrar hasta esta fecha de registro"),
+    fecha_actualizacion_from: Optional[date] = Query(None, description="Filtrar desde esta fecha de actualización"),
+    fecha_actualizacion_to: Optional[date] = Query(None, description="Filtrar hasta esta fecha de actualización"),
+    id_user: Optional[int] = Query(None, description="Filtrar por ID de usuario"),
+    id_empresa: Optional[int] = Query(None, description="Filtrar por ID de empresa"),
+    db: AsyncSession = Depends(get_db)
+):
+    try:
+        # 1) Consultar padres Rendición
+        q_rend = select(models.Rendicion, models.User.full_name) \
+            .join(models.User, models.Rendicion.id_user == models.User.id) \
+            .where(models.Rendicion.estado != "NUEVO")
+        if estado:
+            q_rend = q_rend.where(models.Rendicion.estado == estado)
+        if fecha_registro_from:
+            q_rend = q_rend.where(models.Rendicion.fecha_registro >= fecha_registro_from)
+        if fecha_registro_to:
+            q_rend = q_rend.where(models.Rendicion.fecha_registro <= fecha_registro_to)
+        if fecha_actualizacion_from:
+            q_rend = q_rend.where(models.Rendicion.fecha_actualizacion >= fecha_actualizacion_from)
+        if fecha_actualizacion_to:
+            q_rend = q_rend.where(models.Rendicion.fecha_actualizacion <= fecha_actualizacion_to)
+        if id_user:
+            q_rend = q_rend.where(models.Rendicion.id_user == id_user)
+        if id_empresa:
+            q_rend = q_rend.where(models.Rendicion.id_empresa == id_empresa)
+
+        rendiciones = (await db.execute(q_rend)).all()
+
+        # 2) Consultar padres Solicitud
+        q_sol = select(models.Solicitud, models.User.full_name) \
+            .join(models.User, models.Solicitud.id_user == models.User.id) \
+            .where(models.Solicitud.estado != "NUEVO")
+        if estado:
+            q_sol = q_sol.where(models.Solicitud.estado == estado)
+        if fecha_registro_from:
+            q_sol = q_sol.where(models.Solicitud.fecha_registro >= fecha_registro_from)
+        if fecha_registro_to:
+            q_sol = q_sol.where(models.Solicitud.fecha_registro <= fecha_registro_to)
+        if fecha_actualizacion_from:
+            q_sol = q_sol.where(models.Solicitud.fecha_actualizacion >= fecha_actualizacion_from)
+        if fecha_actualizacion_to:
+            q_sol = q_sol.where(models.Solicitud.fecha_actualizacion <= fecha_actualizacion_to)
+        if id_user:
+            q_sol = q_sol.where(models.Solicitud.id_user == id_user)
+        if id_empresa:
+            q_sol = q_sol.where(models.Solicitud.id_empresa == id_empresa)
+
+        solicitudes = (await db.execute(q_sol)).all()
+
+        resultado = []
+
+        # 3) Procesar Rendiciones
+        for rend, full_name in rendiciones:
+            docs = (await db.execute(
+                select(models.Documento).where(
+                    models.Documento.id_numero_rendicion == rend.id,
+                    models.Documento.tipo_solicitud == rend.tipo,
+                    models.Documento.estado != "RECHAZADO"
+                )
+            )).scalars().all()
+            if docs:
+                resultado.append({
+                    "rendicion": {
+                        "id": rend.id,
+                        "id_user": rend.id_user,
+                        "nombre": rend.nombre,
+                        "tipo": rend.tipo,
+                        "estado": rend.estado,
+                        "fecha_registro": rend.fecha_registro,
+                        "fecha_actualizacion": rend.fecha_actualizacion,
+                        "nombre_usuario": full_name,
+                        "id_empresa": rend.id_empresa,
+                    },
+                    "documentos": [
+                        {
+                            key: getattr(doc, key)
+                            for key in models.Documento.__table__.columns.keys()
+                        }
+                        for doc in docs
+                    ]
+                })
+
+        # 4) Procesar Solicitudes
+        for sol, full_name in solicitudes:
+            docs = (await db.execute(
+                select(models.Documento).where(
+                    models.Documento.id_numero_rendicion == sol.id,
+                    models.Documento.tipo_solicitud == sol.tipo,
+                    models.Documento.estado != "RECHAZADO"
+                )
+            )).scalars().all()
+            if docs:
+                resultado.append({
+                    "rendicion": {
+                        "id": sol.id,
+                        "id_user": sol.id_user,
+                        "nombre": sol.nombre,
+                        "tipo": sol.tipo,
+                        "estado": sol.estado,
+                        "fecha_registro": sol.fecha_registro,
+                        "fecha_actualizacion": sol.fecha_actualizacion,
+                        "nombre_usuario": full_name,
+                        "id_empresa": sol.id_empresa,
+                    },
+                    "documentos": [
+                        {
+                            key: getattr(doc, key)
+                            for key in models.Documento.__table__.columns.keys()
+                        }
+                        for doc in docs
+                    ]
+                })
+
+        return resultado
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al obtener datos: {e}")
+#################################################
     
 
 @router.get("/rendiciones/", response_model=list[schemas.Rendicion])

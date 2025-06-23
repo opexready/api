@@ -45,24 +45,24 @@ from email.mime.multipart import MIMEMultipart
 
 app = FastAPI()
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 # app.add_middleware(
 #     CORSMiddleware,
-#     allow_origins=[
-#         "https://www.arendirperu.pe",
-#         "https://arendirperu.pe",
-#     ],
-#     allow_credentials=True,    # Solo si necesitas enviar cookies o auth
+#     allow_origins=["*"],
+#     allow_credentials=True,
 #     allow_methods=["*"],
 #     allow_headers=["*"],
 # )
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "https://www.arendirperu.pe",
+        "https://arendirperu.pe",
+    ],
+    allow_credentials=True,    # Solo si necesitas enviar cookies o auth
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Registrar los routers
 app.include_router(company_api.router, prefix="/api", tags=["Companies"])
@@ -414,15 +414,40 @@ async def read_documentos(
     return result.scalars().all()
 
 
+# @app.put("/documentos/{documento_id}", response_model=schemas.Documento)
+# async def update_documento(documento_id: int, documento: schemas.DocumentoUpdate, db: AsyncSession = Depends(get_db)):
+#     db_documento = await crud.get_documento(db, documento_id=documento_id)
+#     if not db_documento:
+#         raise HTTPException(status_code=404, detail="Documento not found")
+
+#     update_data = documento.dict(exclude_unset=True)
+#     for key, value in update_data.items():
+#         setattr(db_documento, key, value)
+
+#     await db.commit()
+#     await db.refresh(db_documento)
+#     return db_documento
+
 @app.put("/documentos/{documento_id}", response_model=schemas.Documento)
-async def update_documento(documento_id: int, documento: schemas.DocumentoUpdate, db: AsyncSession = Depends(get_db)):
+async def update_documento(
+    documento_id: int,
+    documento: schemas.DocumentoUpdate,
+    db: AsyncSession = Depends(get_db)
+):
     db_documento = await crud.get_documento(db, documento_id=documento_id)
     if not db_documento:
         raise HTTPException(status_code=404, detail="Documento not found")
 
     update_data = documento.dict(exclude_unset=True)
+    nuevo_estado = update_data.get("estado")
+
+    # Aplica los cambios enviados en el body
     for key, value in update_data.items():
         setattr(db_documento, key, value)
+
+    # Si el estado queda en ABONADO o RECHAZADO, fijamos la fecha de rendición
+    if nuevo_estado in ("ABONADO", "RECHAZADO"):
+        db_documento.fecha_rendicion = date.today()
 
     await db.commit()
     await db.refresh(db_documento)
@@ -692,6 +717,7 @@ async def export_documentos_pdf(
     # Obtener los documentos de la rendición
     query = select(models.Documento).filter(
         models.Documento.id_numero_rendicion == id_rendicion,
+        models.Documento.tipo_solicitud == 'RENDICION',
         models.Documento.estado != "RECHAZADO"  # Excluir documentos rechazados
     )
     result = await db.execute(query)
@@ -1167,10 +1193,25 @@ async def generar_pdf(data: dict, db: AsyncSession = Depends(get_db)):
     pdf_data = BytesIO()
 
     try:
-        pdf_output = pdf.output(dest='S').encode('latin1')
-        pdf_data.write(pdf_output)
+        # pdf_output = pdf.output(dest='S').encode('latin1')
+        # pdf_data.write(pdf_output)
+        # pdf_data.seek(0)
+        # pdf_filename = f"reporte_movilidad_{str(uuid.uuid4())}.pdf"
+        # public_url = upload_file_to_firebase_pdf(
+        #     pdf_data, pdf_filename, content_type="application/pdf")
+
+        # Generar el PDF en memoria
+        pdf_output = pdf.output(dest='S')
+        # Si es str, lo codificamos; si es bytes/bytearray, lo usamos directamente
+        if isinstance(pdf_output, str):
+            pdf_bytes = pdf_output.encode('latin-1')
+        else:
+            pdf_bytes = bytes(pdf_output)
+        pdf_data.write(pdf_bytes)
         pdf_data.seek(0)
-        pdf_filename = f"reporte_movilidad_{str(uuid.uuid4())}.pdf"
+
+        # Subir a Firebase
+        pdf_filename = f"reporte_movilidad_{uuid.uuid4()}.pdf"
         public_url = upload_file_to_firebase_pdf(
             pdf_data, pdf_filename, content_type="application/pdf")
 
@@ -1187,6 +1228,7 @@ async def generar_pdf(data: dict, db: AsyncSession = Depends(get_db)):
         ruc=data['ruc'],
         dni=data['dni'],
         tipo_cambio=data['tipo_cambio'],
+        tc=data['tipo_cambio'],
         afecto=data['afecto'],
         inafecto=data['inafecto'],
         igv=data['igv'],
