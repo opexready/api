@@ -60,7 +60,7 @@ async def create_user(user: schemas.UserCreate, db: AsyncSession = Depends(get_d
     if db_user_by_username:
         raise HTTPException(
             status_code=400, 
-            detail="Username already registered"
+            detail="El nombre del usuario ya se encuentra registrado"
         )
     
 
