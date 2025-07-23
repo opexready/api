@@ -1428,7 +1428,7 @@ async def create_rendicion_solicitud(
             status_code=500, detail=f"Error al crear la relación: {str(e)}")
     
 
-CREDENTIALS_PATH = "credentials/google-vision.json"  # Asegúrate que esta ruta es relativa a main.py
+CREDENTIALS_PATH = "credentials/google-vision.json"  
 
 credentials = service_account.Credentials.from_service_account_file(CREDENTIALS_PATH)
 client = vision.ImageAnnotatorClient(credentials=credentials)
