@@ -7,6 +7,8 @@ from typing import List, Optional, Union
 from datetime import date, timedelta, datetime
 from sqlalchemy import distinct
 import shutil
+from google.cloud import vision
+from google.oauth2 import service_account
 import os
 import requests
 import cv2
@@ -1424,3 +1426,70 @@ async def create_rendicion_solicitud(
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Error al crear la relación: {str(e)}")
+    
+
+CREDENTIALS_PATH = "credentials/google-vision.json"  # Asegúrate que esta ruta es relativa a main.py
+
+credentials = service_account.Credentials.from_service_account_file(CREDENTIALS_PATH)
+client = vision.ImageAnnotatorClient(credentials=credentials)
+
+@app.post("/extract-ticket/")
+async def extract_ticket_google(file: UploadFile = File(...)):
+    if file.content_type not in ['image/jpeg', 'image/png']:
+        raise HTTPException(status_code=400, detail="Archivo no compatible")
+
+    try:
+        image_data = await file.read()
+        image = vision.Image(content=image_data)
+
+        response = client.text_detection(image=image)
+        texts = response.text_annotations
+
+        if not texts:
+            return {"message": "No se encontró texto"}
+
+        full_text = texts[0].description
+        lines = [line.strip() for line in full_text.split("\n") if line.strip()]
+
+        result = {
+            "ruc": None,
+            "empresa": None,
+            "fecha": None,
+            "hora": None,
+            "habitacion": None,
+            "total": None
+        }
+
+        for line in lines:
+            if not result["ruc"]:
+                match = re.search(r'\b\d{11}\b', line)
+                if match:
+                    result["ruc"] = match.group()
+
+            if not result["fecha"]:
+                match = re.search(r'\d{2}[-/]\d{2}[-/]\d{4}', line)
+                if match:
+                    result["fecha"] = match.group()
+
+            if not result["hora"]:
+                match = re.search(r'\d{1,2}:\d{2}\s*(am|pm)', line.lower())
+                if match:
+                    result["hora"] = match.group()
+
+            if not result["total"] and "total" in line.lower():
+                match = re.search(r'(\d+\.\d{2})', line)
+                if match:
+                    result["total"] = match.group()
+
+            if not result["empresa"] and "SAC" in line:
+                result["empresa"] = line
+
+            if not result["habitacion"] and "habitacion" in line.lower():
+                match = re.search(r'\b\d+\b', line)
+                if match:
+                    result["habitacion"] = match.group()
+
+        return result
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al usar Google Vision: {str(e)}")
