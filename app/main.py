@@ -1432,7 +1432,7 @@ async def create_rendicion_solicitud(
 # CREDENTIALS_PATH = "credentials/google-vision.json"  
 
 # credentials = service_account.Credentials.from_service_account_file(CREDENTIALS_PATH)
-# client = vision.ImageAnnotatorClient(credentials=credentials)
+
 
 # Cargar credenciales desde variable de entorno
 credentials_json = os.getenv("GOOGLE_CREDENTIALS_JSON")
@@ -1441,7 +1441,7 @@ if not credentials_json:
 
 credentials_info = json.loads(credentials_json)
 credentials = service_account.Credentials.from_service_account_info(credentials_info)
-
+client = vision.ImageAnnotatorClient(credentials=credentials)
 @app.post("/extract-ticket/")
 async def extract_ticket_google(file: UploadFile = File(...)):
     if file.content_type not in ['image/jpeg', 'image/png']:
