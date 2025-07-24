@@ -7,6 +7,7 @@ from typing import List, Optional, Union
 from datetime import date, timedelta, datetime
 from sqlalchemy import distinct
 import shutil
+import json
 from google.cloud import vision
 from google.oauth2 import service_account
 import os
@@ -1428,10 +1429,18 @@ async def create_rendicion_solicitud(
             status_code=500, detail=f"Error al crear la relación: {str(e)}")
     
 
-CREDENTIALS_PATH = "credentials/google-vision.json"  
+# CREDENTIALS_PATH = "credentials/google-vision.json"  
 
-credentials = service_account.Credentials.from_service_account_file(CREDENTIALS_PATH)
-client = vision.ImageAnnotatorClient(credentials=credentials)
+# credentials = service_account.Credentials.from_service_account_file(CREDENTIALS_PATH)
+# client = vision.ImageAnnotatorClient(credentials=credentials)
+
+# Cargar credenciales desde variable de entorno
+credentials_json = os.getenv("GOOGLE_CREDENTIALS_JSON")
+if not credentials_json:
+    raise RuntimeError("La variable de entorno GOOGLE_CREDENTIALS_JSON no está definida")
+
+credentials_info = json.loads(credentials_json)
+credentials = service_account.Credentials.from_service_account_info(credentials_info)
 
 @app.post("/extract-ticket/")
 async def extract_ticket_google(file: UploadFile = File(...)):
