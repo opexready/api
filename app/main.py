@@ -1152,8 +1152,10 @@ async def create_documento_con_pdf_local(
 
 class DocumentoPDFMovilidad(FPDF):
 
-    def __init__(self):
+    def __init__(self, empresa: str, ruc: str):
         super().__init__('L')
+        self.empresa = empresa
+        self.ruc = ruc
 
     def header(self):
         self.set_font('Arial', 'B', 12)
