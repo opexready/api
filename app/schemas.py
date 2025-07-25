@@ -184,6 +184,12 @@ class CompanyUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
 
+class UserWithCompanyDescription(User):
+    description: Optional[str] = None
+    
+    class Config:
+        from_attributes = True
+
 class UserWithPendingDocuments(BaseModel):
     username: str
     full_name: str

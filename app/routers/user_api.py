@@ -2,11 +2,12 @@ from pathlib import Path
 from typing import List
 from fastapi import APIRouter, HTTPException, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from app import auth, crud, schemas
+from app import auth, crud, schemas, models
 from app.database import get_db
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+
 
 router = APIRouter()
 
@@ -79,9 +80,43 @@ async def create_user(user: schemas.UserCreate, db: AsyncSession = Depends(get_d
     return created_user
 
 
-@router.get("/users/me/", response_model=schemas.User)
-async def read_users_me(current_user: schemas.User = Depends(auth.get_current_user)):
-    return current_user
+# @router.get("/users/me/", response_model=schemas.User)
+# async def read_users_me(current_user: schemas.User = Depends(auth.get_current_user)):
+#     return current_user
+
+@router.get("/users/me/", response_model=schemas.UserWithCompanyDescription)
+async def read_users_me(
+    current_user: models.User = Depends(auth.get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    # Convertir el objeto SQLAlchemy a un diccionario
+    user_data = {
+        "id": current_user.id,
+        "username": current_user.username,
+        "email": current_user.email,
+        "full_name": current_user.full_name,
+        "role": current_user.role,
+        "company_name": current_user.company_name,
+        "cargo": current_user.cargo,
+        "dni": current_user.dni,
+        "zona_venta": current_user.zona_venta,
+        "area": current_user.area,
+        "ceco": current_user.ceco,
+        "gerencia": current_user.gerencia,
+        "jefe_id": current_user.jefe_id,
+        "cuenta_bancaria": current_user.cuenta_bancaria,
+        "banco": current_user.banco,
+        "id_empresa": current_user.id_empresa,
+        "description": None  # Valor por defecto
+    }
+
+    # Obtener la descripción de la compañía si existe
+    if current_user.id_empresa:
+        company = await crud.get_company_by_id(db, current_user.id_empresa)
+        if company:
+            user_data["description"] = company.description
+
+    return user_data
 
 @router.get("/users/", response_model=List[schemas.User])
 async def read_users(db: AsyncSession = Depends(get_db)):
