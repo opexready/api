@@ -46,26 +46,27 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
 
-app = FastAPI()
 
-# app.add_middleware(
-#     CORSMiddleware,
-#     allow_origins=["*"],
-#     allow_credentials=True,
-#     allow_methods=["*"],
-#     allow_headers=["*"],
-# )
+app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://www.arendirperu.pe",
-        "https://arendirperu.pe",
-    ],
-    allow_credentials=True,    # Solo si necesitas enviar cookies o auth
+    allow_origins=["*"],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# app.add_middleware(
+#     CORSMiddleware,
+#     allow_origins=[
+#         "https://www.arendirperu.pe",
+#         "https://arendirperu.pe",
+#     ],
+#     allow_credentials=True,    # Solo si necesitas enviar cookies o auth
+#     allow_methods=["*"],
+#     allow_headers=["*"],
+# )
 
 # Registrar los routers
 app.include_router(company_api.router, prefix="/api", tags=["Companies"])
@@ -1158,8 +1159,10 @@ class DocumentoPDFMovilidad(FPDF):
         self.set_font('Arial', 'B', 12)
         self.cell(0, 10, 'Reporte de Gastos movilidad / Local', 0, 1, 'L')
         self.set_font('Arial', '', 10)
-        self.cell(0, 5, 'OPEX READY SAC', 0, 1, 'L')
-        self.cell(0, 5, '20612958271', 0, 1, 'L')
+        # self.cell(0, 5, 'OPEX READY SAC', 0, 1, 'L')
+        # self.cell(0, 5, '20612958271', 0, 1, 'L')
+        self.cell(0, 5, self.empresa, 0, 1, 'L')  # Usar self.empresa del JSON
+        self.cell(0, 5, self.ruc, 0, 1, 'L')  
         self.ln(5)
 
     def add_document_details(self, documento):
@@ -1234,7 +1237,8 @@ class DocumentoPDFMovilidad(FPDF):
 @app.post("/generar-pdf-movilidad/")
 async def generar_pdf(data: dict, db: AsyncSession = Depends(get_db)):
 
-    pdf = DocumentoPDFMovilidad()
+    # pdf = DocumentoPDFMovilidad()
+    pdf = DocumentoPDFMovilidad(empresa=data['empresa'], ruc=data['ruc'])
     pdf.add_page()
     pdf.add_document_details(data)
 
@@ -1429,18 +1433,18 @@ async def create_rendicion_solicitud(
             status_code=500, detail=f"Error al crear la relación: {str(e)}")
     
 
-# CREDENTIALS_PATH = "credentials/google-vision.json"  
+CREDENTIALS_PATH = "credentials/google-vision.json"  
 
-# credentials = service_account.Credentials.from_service_account_file(CREDENTIALS_PATH)
+credentials = service_account.Credentials.from_service_account_file(CREDENTIALS_PATH)
 
 
 # Cargar credenciales desde variable de entorno
-credentials_json = os.getenv("GOOGLE_CREDENTIALS_JSON")
-if not credentials_json:
-    raise RuntimeError("La variable de entorno GOOGLE_CREDENTIALS_JSON no está definida")
+# credentials_json = os.getenv("GOOGLE_CREDENTIALS_JSON")
+# if not credentials_json:
+#     raise RuntimeError("La variable de entorno GOOGLE_CREDENTIALS_JSON no está definida")
 
-credentials_info = json.loads(credentials_json)
-credentials = service_account.Credentials.from_service_account_info(credentials_info)
+# credentials_info = json.loads(credentials_json)
+# credentials = service_account.Credentials.from_service_account_info(credentials_info)
 client = vision.ImageAnnotatorClient(credentials=credentials)
 @app.post("/extract-ticket/")
 async def extract_ticket_google(file: UploadFile = File(...)):
