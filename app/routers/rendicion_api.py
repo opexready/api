@@ -147,386 +147,387 @@ async def get_rendiciones_con_documentos_filtradas(
 
 
 ########################
-@router.get("/rendiciones-solicitudes3/con-documentos/", response_model=List[dict])
-async def get_rendiciones_y_solicitudes_con_documentos(
-    tipo: Optional[str] = Query(None, description="Filtrar por tipo"),
-    estado: Optional[str] = Query(None, description="Filtrar por estado"),
-    fecha_registro_from: Optional[date] = Query(None, description="Filtrar desde esta fecha de registro"),
-    fecha_registro_to: Optional[date] = Query(None, description="Filtrar hasta esta fecha de registro"),
-    fecha_actualizacion_from: Optional[date] = Query(None, description="Filtrar desde esta fecha de actualización"),
-    fecha_actualizacion_to: Optional[date] = Query(None, description="Filtrar hasta esta fecha de actualización"),
-    id_user: Optional[int] = Query(None, description="Filtrar por ID de usuario"),
-    db: AsyncSession = Depends(get_db)
-):
-    """
-    Devuelve una lista combinada de rendiciones y solicitudes con sus documentos asociados, aplicando filtros opcionales.
-    Excluye registros con estado "NUEVO".
-    """
-    try:
-        # Consultas base para rendiciones y solicitudes, excluyendo estado "NUEVO"
-        query_rendiciones = (
-            select(models.Rendicion, models.User.full_name)
-            .join(models.User, models.Rendicion.id_user == models.User.id)
-            .join(models.Documento, models.Documento.numero_rendicion == models.Rendicion.nombre)
-            .where(models.Rendicion.estado != "NUEVO")  # Excluir estado "NUEVO"
-            .distinct()
-        )
-        query_solicitudes = (
-            select(models.Solicitud, models.User.full_name)
-            .join(models.User, models.Solicitud.id_user == models.User.id)
-            .join(models.Documento, models.Documento.numero_rendicion == models.Solicitud.nombre)
-            .where(models.Solicitud.estado != "NUEVO")  # Excluir estado "NUEVO"
-            .distinct()
-        )
+# @router.get("/rendiciones-solicitudes3/con-documentos/", response_model=List[dict])
+# async def get_rendiciones_y_solicitudes_con_documentos(
+#     tipo: Optional[str] = Query(None, description="Filtrar por tipo"),
+#     estado: Optional[str] = Query(None, description="Filtrar por estado"),
+#     fecha_registro_from: Optional[date] = Query(None, description="Filtrar desde esta fecha de registro"),
+#     fecha_registro_to: Optional[date] = Query(None, description="Filtrar hasta esta fecha de registro"),
+#     fecha_actualizacion_from: Optional[date] = Query(None, description="Filtrar desde esta fecha de actualización"),
+#     fecha_actualizacion_to: Optional[date] = Query(None, description="Filtrar hasta esta fecha de actualización"),
+#     id_user: Optional[int] = Query(None, description="Filtrar por ID de usuario"),
+#     db: AsyncSession = Depends(get_db)
+# ):
+#     """
+#     Devuelve una lista combinada de rendiciones y solicitudes con sus documentos asociados, aplicando filtros opcionales.
+#     Excluye registros con estado "NUEVO".
+#     """
+#     try:
+#         # Consultas base para rendiciones y solicitudes, excluyendo estado "NUEVO"
+#         query_rendiciones = (
+#             select(models.Rendicion, models.User.full_name)
+#             .join(models.User, models.Rendicion.id_user == models.User.id)
+#             .join(models.Documento, models.Documento.numero_rendicion == models.Rendicion.nombre)
+#             .where(models.Rendicion.estado != "NUEVO")  # Excluir estado "NUEVO"
+#             .distinct()
+#         )
+#         query_solicitudes = (
+#             select(models.Solicitud, models.User.full_name)
+#             .join(models.User, models.Solicitud.id_user == models.User.id)
+#             .join(models.Documento, models.Documento.numero_rendicion == models.Solicitud.nombre)
+#             .where(models.Solicitud.estado != "NUEVO")  # Excluir estado "NUEVO"
+#             .distinct()
+#         )
 
-        # Aplicar filtros a las consultas
-        if tipo:
-            query_rendiciones = query_rendiciones.where(models.Rendicion.tipo == tipo)
-            query_solicitudes = query_solicitudes.where(models.Solicitud.tipo == tipo)
-        if estado:
-            query_rendiciones = query_rendiciones.where(models.Rendicion.estado == estado)
-            query_solicitudes = query_solicitudes.where(models.Solicitud.estado == estado)
-        if fecha_registro_from:
-            query_rendiciones = query_rendiciones.where(models.Rendicion.fecha_registro >= fecha_registro_from)
-            query_solicitudes = query_solicitudes.where(models.Solicitud.fecha_registro >= fecha_registro_from)
-        if fecha_registro_to:
-            query_rendiciones = query_rendiciones.where(models.Rendicion.fecha_registro <= fecha_registro_to)
-            query_solicitudes = query_solicitudes.where(models.Solicitud.fecha_registro <= fecha_registro_to)
-        if fecha_actualizacion_from:
-            query_rendiciones = query_rendiciones.where(models.Rendicion.fecha_actualizacion >= fecha_actualizacion_from)
-            query_solicitudes = query_solicitudes.where(models.Solicitud.fecha_actualizacion >= fecha_actualizacion_from)
-        if fecha_actualizacion_to:
-            query_rendiciones = query_rendiciones.where(models.Rendicion.fecha_actualizacion <= fecha_actualizacion_to)
-            query_solicitudes = query_solicitudes.where(models.Solicitud.fecha_actualizacion <= fecha_actualizacion_to)
-        if id_user:
-            query_rendiciones = query_rendiciones.where(models.Rendicion.id_user == id_user)
-            query_solicitudes = query_solicitudes.where(models.Solicitud.id_user == id_user)
+#         # Aplicar filtros a las consultas
+#         if tipo:
+#             query_rendiciones = query_rendiciones.where(models.Rendicion.tipo == tipo)
+#             query_solicitudes = query_solicitudes.where(models.Solicitud.tipo == tipo)
+#         if estado:
+#             query_rendiciones = query_rendiciones.where(models.Rendicion.estado == estado)
+#             query_solicitudes = query_solicitudes.where(models.Solicitud.estado == estado)
+#         if fecha_registro_from:
+#             query_rendiciones = query_rendiciones.where(models.Rendicion.fecha_registro >= fecha_registro_from)
+#             query_solicitudes = query_solicitudes.where(models.Solicitud.fecha_registro >= fecha_registro_from)
+#         if fecha_registro_to:
+#             query_rendiciones = query_rendiciones.where(models.Rendicion.fecha_registro <= fecha_registro_to)
+#             query_solicitudes = query_solicitudes.where(models.Solicitud.fecha_registro <= fecha_registro_to)
+#         if fecha_actualizacion_from:
+#             query_rendiciones = query_rendiciones.where(models.Rendicion.fecha_actualizacion >= fecha_actualizacion_from)
+#             query_solicitudes = query_solicitudes.where(models.Solicitud.fecha_actualizacion >= fecha_actualizacion_from)
+#         if fecha_actualizacion_to:
+#             query_rendiciones = query_rendiciones.where(models.Rendicion.fecha_actualizacion <= fecha_actualizacion_to)
+#             query_solicitudes = query_solicitudes.where(models.Solicitud.fecha_actualizacion <= fecha_actualizacion_to)
+#         if id_user:
+#             query_rendiciones = query_rendiciones.where(models.Rendicion.id_user == id_user)
+#             query_solicitudes = query_solicitudes.where(models.Solicitud.id_user == id_user)
 
-        # Ejecutar las consultas
-        rendiciones_query = await db.execute(query_rendiciones)
-        solicitudes_query = await db.execute(query_solicitudes)
+#         # Ejecutar las consultas
+#         rendiciones_query = await db.execute(query_rendiciones)
+#         solicitudes_query = await db.execute(query_solicitudes)
 
-        rendiciones = rendiciones_query.all()  # Incluye (Rendicion, full_name)
-        solicitudes = solicitudes_query.all()  # Incluye (Solicitud, full_name)
+#         rendiciones = rendiciones_query.all()  # Incluye (Rendicion, full_name)
+#         solicitudes = solicitudes_query.all()  # Incluye (Solicitud, full_name)
 
-        # Combinar resultados y transformar al formato esperado
-        resultado = []
+#         # Combinar resultados y transformar al formato esperado
+#         resultado = []
 
-        # Procesar rendiciones
-        for rendicion, full_name in rendiciones:
-            documentos_query = await db.execute(
-                select(models.Documento).where(models.Documento.numero_rendicion == rendicion.nombre)
-            )
-            documentos = documentos_query.scalars().all()
+#         # Procesar rendiciones
+#         for rendicion, full_name in rendiciones:
+#             documentos_query = await db.execute(
+#                 select(models.Documento).where(models.Documento.numero_rendicion == rendicion.nombre)
+#             )
+#             documentos = documentos_query.scalars().all()
 
-            if documentos:
-                resultado.append({
-                    "rendicion": {
-                        "id": rendicion.id,
-                        "id_user": rendicion.id_user,
-                        "nombre": rendicion.nombre,
-                        "tipo": rendicion.tipo,
-                        "estado": rendicion.estado,
-                        "fecha_registro": rendicion.fecha_registro,
-                        "fecha_actualizacion": rendicion.fecha_actualizacion,
-                        "nombre_usuario": full_name,
-                    },
-                    "documentos": [
-                        {
-                            "id": doc.id,
-                            "fecha_solicitud": doc.fecha_solicitud,
-                            "fecha_rendicion": doc.fecha_rendicion,
-                            "dni": doc.dni,
-                            "usuario": doc.usuario,
-                            "gerencia": doc.gerencia,
-                            "ruc": doc.ruc,
-                            "proveedor": doc.proveedor,
-                            "fecha_emision": doc.fecha_emision,
-                            "moneda": doc.moneda,
-                            "tipo_documento": doc.tipo_documento,
-                            "serie": doc.serie,
-                            "correlativo": doc.correlativo,
-                            "tipo_gasto": doc.tipo_gasto,
-                            "sub_total": doc.sub_total,
-                            "igv": doc.igv,
-                            "no_gravadas": doc.no_gravadas,
-                            "importe_facturado": doc.importe_facturado,
-                            "tc": doc.tc,
-                            "anticipo": doc.anticipo,
-                            "total": doc.total,
-                            "pago": doc.pago,
-                            "detalle": doc.detalle,
-                            "estado": doc.estado,
-                            "empresa": doc.empresa,
-                            "archivo": doc.archivo,
-                            "tipo_solicitud": doc.tipo_solicitud,
-                            "tipo_cambio": doc.tipo_cambio,
-                            "afecto": doc.afecto,
-                            "inafecto": doc.inafecto,
-                            "rubro": doc.rubro,
-                            "cuenta_contable": doc.cuenta_contable,
-                            "responsable": doc.responsable,
-                            "area": doc.area,
-                            "ceco": doc.ceco,
-                            "tipo_anticipo": doc.tipo_anticipo,
-                            "motivo": doc.motivo,
-                            "fecha_viaje": doc.fecha_viaje,
-                            "dias": doc.dias,
-                            "presupuesto": doc.presupuesto,
-                            "banco": doc.banco,
-                            "numero_cuenta": doc.numero_cuenta,
-                            "origen": doc.origen,
-                            "destino": doc.destino,
-                            "numero_rendicion": doc.numero_rendicion,
-                            "tipo_viaje": doc.tipo_viaje,
-                        }
-                        for doc in documentos
-                    ]
-                })
+#             if documentos:
+#                 resultado.append({
+#                     "rendicion": {
+#                         "id": rendicion.id,
+#                         "id_user": rendicion.id_user,
+#                         "nombre": rendicion.nombre,
+#                         "tipo": rendicion.tipo,
+#                         "estado": rendicion.estado,
+#                         "fecha_registro": rendicion.fecha_registro,
+#                         "fecha_actualizacion": rendicion.fecha_actualizacion,
+#                         "nombre_usuario": full_name,
+#                     },
+#                     "documentos": [
+#                         {
+#                             "id": doc.id,
+#                             "fecha_solicitud": doc.fecha_solicitud,
+#                             "fecha_rendicion": doc.fecha_rendicion,
+#                             "dni": doc.dni,
+#                             "usuario": doc.usuario,
+#                             "gerencia": doc.gerencia,
+#                             "ruc": doc.ruc,
+#                             "proveedor": doc.proveedor,
+#                             "fecha_emision": doc.fecha_emision,
+#                             "moneda": doc.moneda,
+#                             "tipo_documento": doc.tipo_documento,
+#                             "serie": doc.serie,
+#                             "correlativo": doc.correlativo,
+#                             "tipo_gasto": doc.tipo_gasto,
+#                             "sub_total": doc.sub_total,
+#                             "igv": doc.igv,
+#                             "no_gravadas": doc.no_gravadas,
+#                             "importe_facturado": doc.importe_facturado,
+#                             "tc": doc.tc,
+#                             "anticipo": doc.anticipo,
+#                             "total": doc.total,
+#                             "pago": doc.pago,
+#                             "detalle": doc.detalle,
+#                             "estado": doc.estado,
+#                             "empresa": doc.empresa,
+#                             "archivo": doc.archivo,
+#                             "tipo_solicitud": doc.tipo_solicitud,
+#                             "tipo_cambio": doc.tipo_cambio,
+#                             "afecto": doc.afecto,
+#                             "inafecto": doc.inafecto,
+#                             "rubro": doc.rubro,
+#                             "cuenta_contable": doc.cuenta_contable,
+#                             "responsable": doc.responsable,
+#                             "area": doc.area,
+#                             "ceco": doc.ceco,
+#                             "tipo_anticipo": doc.tipo_anticipo,
+#                             "motivo": doc.motivo,
+#                             "fecha_viaje": doc.fecha_viaje,
+#                             "dias": doc.dias,
+#                             "presupuesto": doc.presupuesto,
+#                             "banco": doc.banco,
+#                             "numero_cuenta": doc.numero_cuenta,
+#                             "origen": doc.origen,
+#                             "destino": doc.destino,
+#                             "numero_rendicion": doc.numero_rendicion,
+#                             "tipo_viaje": doc.tipo_viaje,
+#                         }
+#                         for doc in documentos
+#                     ]
+#                 })
 
-        # Procesar solicitudes
-        for solicitud, full_name in solicitudes:
-            documentos_query = await db.execute(
-                select(models.Documento).where(models.Documento.numero_rendicion == solicitud.nombre)
-            )
-            documentos = documentos_query.scalars().all()
+#         # Procesar solicitudes
+#         for solicitud, full_name in solicitudes:
+#             documentos_query = await db.execute(
+#                 select(models.Documento).where(models.Documento.numero_rendicion == solicitud.nombre)
+#             )
+#             documentos = documentos_query.scalars().all()
 
-            if documentos:
-                resultado.append({
-                    "solicitud": {
-                        "id": solicitud.id,
-                        "id_user": solicitud.id_user,
-                        "nombre": solicitud.nombre,
-                        "tipo": solicitud.tipo,
-                        "estado": solicitud.estado,
-                        "fecha_registro": solicitud.fecha_registro,
-                        "fecha_actualizacion": solicitud.fecha_actualizacion,
-                        "nombre_usuario": full_name,
-                    },
-                    "documentos": [
-                        {
-                            "id": doc.id,
-                            **{key: getattr(doc, key) for key in models.Documento.__table__.columns.keys()}
-                        }
-                        for doc in documentos
-                    ]
-                })
+#             if documentos:
+#                 resultado.append({
+#                     "solicitud": {
+#                         "id": solicitud.id,
+#                         "id_user": solicitud.id_user,
+#                         "nombre": solicitud.nombre,
+#                         "tipo": solicitud.tipo,
+#                         "estado": solicitud.estado,
+#                         "fecha_registro": solicitud.fecha_registro,
+#                         "fecha_actualizacion": solicitud.fecha_actualizacion,
+#                         "nombre_usuario": full_name,
+#                     },
+#                     "documentos": [
+#                         {
+#                             "id": doc.id,
+#                             **{key: getattr(doc, key) for key in models.Documento.__table__.columns.keys()}
+#                         }
+#                         for doc in documentos
+#                     ]
+#                 })
 
-        return resultado
+#         return resultado
 
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
     
 
-##################
-@router.get("/rendiciones-solicitudes/con-documentos2/", response_model=List[dict])
-async def get_rendiciones_y_solicitudes_con_documentos(
-    tipo: Optional[str] = Query(None, description="Filtrar por tipo"),
-    estado: Optional[str] = Query(None, description="Filtrar por estado"),
-    fecha_registro_from: Optional[date] = Query(
-        None, description="Filtrar desde esta fecha de registro"),
-    fecha_registro_to: Optional[date] = Query(
-        None, description="Filtrar hasta esta fecha de registro"),
-    fecha_actualizacion_from: Optional[date] = Query(
-        None, description="Filtrar desde esta fecha de actualización"),
-    fecha_actualizacion_to: Optional[date] = Query(
-        None, description="Filtrar hasta esta fecha de actualización"),
-    id_user: Optional[int] = Query(
-        None, description="Filtrar por ID de usuario"),
-    id_empresa: Optional[int] = Query(
-        None, description="Filtrar por ID de empresa"),
-    db: AsyncSession = Depends(get_db)
-):
-    """
-    Devuelve una lista combinada de rendiciones y solicitudes con sus documentos asociados, aplicando filtros opcionales.
-    """
-    try:
-        # Consultas base para rendiciones y solicitudes
-        query_rendiciones = (
-            select(models.Rendicion, models.User.full_name)
-            .join(models.User, models.Rendicion.id_user == models.User.id)
-            .join(models.Documento, models.Documento.numero_rendicion == models.Rendicion.nombre)
-            .where(models.Rendicion.estado != "NUEVO")
-            .distinct()
-        )
-        query_solicitudes = (
-            select(models.Solicitud, models.User.full_name)
-            .join(models.User, models.Solicitud.id_user == models.User.id)
-            .join(models.Documento, models.Documento.numero_rendicion == models.Solicitud.nombre)
-            .where(models.Solicitud.estado != "NUEVO")
-            .distinct()
-        )
+# ##################
+# @router.get("/rendiciones-solicitudes/con-documentos2/", response_model=List[dict])
+# async def get_rendiciones_y_solicitudes_con_documentos(
+#     tipo: Optional[str] = Query(None, description="Filtrar por tipo"),
+#     estado: Optional[str] = Query(None, description="Filtrar por estado"),
+#     fecha_registro_from: Optional[date] = Query(
+#         None, description="Filtrar desde esta fecha de registro"),
+#     fecha_registro_to: Optional[date] = Query(
+#         None, description="Filtrar hasta esta fecha de registro"),
+#     fecha_actualizacion_from: Optional[date] = Query(
+#         None, description="Filtrar desde esta fecha de actualización"),
+#     fecha_actualizacion_to: Optional[date] = Query(
+#         None, description="Filtrar hasta esta fecha de actualización"),
+#     id_user: Optional[int] = Query(
+#         None, description="Filtrar por ID de usuario"),
+#     id_empresa: Optional[int] = Query(
+#         None, description="Filtrar por ID de empresa"),
+#     db: AsyncSession = Depends(get_db)
+# ):
+#     """
+#     Devuelve una lista combinada de rendiciones y solicitudes con sus documentos asociados, aplicando filtros opcionales.
+#     """
+#     try:
+#         # Consultas base para rendiciones y solicitudes
+#         query_rendiciones = (
+#             select(models.Rendicion, models.User.full_name)
+#             .join(models.User, models.Rendicion.id_user == models.User.id)
+#             .join(models.Documento, models.Documento.numero_rendicion == models.Rendicion.nombre)
+#             .where(models.Rendicion.estado != "NUEVO")
+#             .distinct()
+#         )
+#         query_solicitudes = (
+#             select(models.Solicitud, models.User.full_name)
+#             .join(models.User, models.Solicitud.id_user == models.User.id)
+#             .join(models.Documento, models.Documento.numero_rendicion == models.Solicitud.nombre)
+#             .where(models.Solicitud.estado != "NUEVO")
+#             .distinct()
+#         )
 
-        # Aplicar filtros a las consultas
-        if tipo:
-            query_rendiciones = query_rendiciones.where(
-                models.Rendicion.tipo == tipo)
-            query_solicitudes = query_solicitudes.where(
-                models.Solicitud.tipo == tipo)
-        if estado:
-            query_rendiciones = query_rendiciones.where(
-                models.Rendicion.estado == estado)
-            query_solicitudes = query_solicitudes.where(
-                models.Solicitud.estado == estado)
-        if fecha_registro_from:
-            query_rendiciones = query_rendiciones.where(
-                models.Rendicion.fecha_registro >= fecha_registro_from)
-            query_solicitudes = query_solicitudes.where(
-                models.Solicitud.fecha_registro >= fecha_registro_from)
-        if fecha_registro_to:
-            query_rendiciones = query_rendiciones.where(
-                models.Rendicion.fecha_registro <= fecha_registro_to)
-            query_solicitudes = query_solicitudes.where(
-                models.Solicitud.fecha_registro <= fecha_registro_to)
-        if fecha_actualizacion_from:
-            query_rendiciones = query_rendiciones.where(
-                models.Rendicion.fecha_actualizacion >= fecha_actualizacion_from)
-            query_solicitudes = query_solicitudes.where(
-                models.Solicitud.fecha_actualizacion >= fecha_actualizacion_from)
-        if fecha_actualizacion_to:
-            query_rendiciones = query_rendiciones.where(
-                models.Rendicion.fecha_actualizacion <= fecha_actualizacion_to)
-            query_solicitudes = query_solicitudes.where(
-                models.Solicitud.fecha_actualizacion <= fecha_actualizacion_to)
-        if id_user:
-            query_rendiciones = query_rendiciones.where(
-                models.Rendicion.id_user == id_user)
-            query_solicitudes = query_solicitudes.where(
-                models.Solicitud.id_user == id_user)
-        if id_empresa:
-            query_rendiciones = query_rendiciones.where(
-                models.Rendicion.id_empresa == id_empresa)
-            query_solicitudes = query_solicitudes.where(
-                models.Solicitud.id_empresa == id_empresa)
+#         # Aplicar filtros a las consultas
+#         if tipo:
+#             query_rendiciones = query_rendiciones.where(
+#                 models.Rendicion.tipo == tipo)
+#             query_solicitudes = query_solicitudes.where(
+#                 models.Solicitud.tipo == tipo)
+#         if estado:
+#             query_rendiciones = query_rendiciones.where(
+#                 models.Rendicion.estado == estado)
+#             query_solicitudes = query_solicitudes.where(
+#                 models.Solicitud.estado == estado)
+#         if fecha_registro_from:
+#             query_rendiciones = query_rendiciones.where(
+#                 models.Rendicion.fecha_registro >= fecha_registro_from)
+#             query_solicitudes = query_solicitudes.where(
+#                 models.Solicitud.fecha_registro >= fecha_registro_from)
+#         if fecha_registro_to:
+#             query_rendiciones = query_rendiciones.where(
+#                 models.Rendicion.fecha_registro <= fecha_registro_to)
+#             query_solicitudes = query_solicitudes.where(
+#                 models.Solicitud.fecha_registro <= fecha_registro_to)
+#         if fecha_actualizacion_from:
+#             query_rendiciones = query_rendiciones.where(
+#                 models.Rendicion.fecha_actualizacion >= fecha_actualizacion_from)
+#             query_solicitudes = query_solicitudes.where(
+#                 models.Solicitud.fecha_actualizacion >= fecha_actualizacion_from)
+#         if fecha_actualizacion_to:
+#             query_rendiciones = query_rendiciones.where(
+#                 models.Rendicion.fecha_actualizacion <= fecha_actualizacion_to)
+#             query_solicitudes = query_solicitudes.where(
+#                 models.Solicitud.fecha_actualizacion <= fecha_actualizacion_to)
+#         if id_user:
+#             query_rendiciones = query_rendiciones.where(
+#                 models.Rendicion.id_user == id_user)
+#             query_solicitudes = query_solicitudes.where(
+#                 models.Solicitud.id_user == id_user)
+#         if id_empresa:
+#             query_rendiciones = query_rendiciones.where(
+#                 models.Rendicion.id_empresa == id_empresa)
+#             query_solicitudes = query_solicitudes.where(
+#                 models.Solicitud.id_empresa == id_empresa)
 
-        # Ejecutar las consultas
-        rendiciones_query = await db.execute(query_rendiciones)
-        solicitudes_query = await db.execute(query_solicitudes)
+#         # Ejecutar las consultas
+#         rendiciones_query = await db.execute(query_rendiciones)
+#         solicitudes_query = await db.execute(query_solicitudes)
 
-        rendiciones = rendiciones_query.all()  # Incluye (Rendicion, full_name)
-        solicitudes = solicitudes_query.all()  # Incluye (Solicitud, full_name)
+#         rendiciones = rendiciones_query.all()  # Incluye (Rendicion, full_name)
+#         solicitudes = solicitudes_query.all()  # Incluye (Solicitud, full_name)
 
-        # Combinar resultados y transformar al formato esperado
-        resultado = []
+#         # Combinar resultados y transformar al formato esperado
+#         resultado = []
 
-        # Procesar rendiciones
-        for rendicion, full_name in rendiciones:
-            documentos_query = await db.execute(
-                select(models.Documento).where(
-                    models.Documento.id_numero_rendicion == rendicion.id,
-                    models.Documento.estado != "RECHAZADO"  # Filtro añadido
-                )
-            )
-            documentos = documentos_query.scalars().all()
+#         # Procesar rendiciones
+#         for rendicion, full_name in rendiciones:
+#             documentos_query = await db.execute(
+#                 select(models.Documento).where(
+#                     models.Documento.id_numero_rendicion == rendicion.id,
+#                     models.Documento.estado != "RECHAZADO"  # Filtro añadido
+#                 )
+#             )
+#             documentos = documentos_query.scalars().all()
 
-            if documentos:
-                resultado.append({
-                    "rendicion": {
-                        "id": rendicion.id,
-                        "id_user": rendicion.id_user,
-                        "nombre": rendicion.nombre,
-                        "tipo": rendicion.tipo,
-                        "estado": rendicion.estado,
-                        "fecha_registro": rendicion.fecha_registro,
-                        "fecha_actualizacion": rendicion.fecha_actualizacion,
-                        "nombre_usuario": full_name,
-                        "id_empresa": rendicion.id_empresa,
-                    },
-                    "documentos": [
-                        {
-                            "id": doc.id,
-                            "fecha_solicitud": doc.fecha_solicitud,
-                            "fecha_rendicion": doc.fecha_rendicion,
-                            "dni": doc.dni,
-                            "usuario": doc.usuario,
-                            "gerencia": doc.gerencia,
-                            "ruc": doc.ruc,
-                            "proveedor": doc.proveedor,
-                            "fecha_emision": doc.fecha_emision,
-                            "moneda": doc.moneda,
-                            "tipo_documento": doc.tipo_documento,
-                            "serie": doc.serie,
-                            "correlativo": doc.correlativo,
-                            "tipo_gasto": doc.tipo_gasto,
-                            "sub_total": doc.sub_total,
-                            "igv": doc.igv,
-                            "no_gravadas": doc.no_gravadas,
-                            "importe_facturado": doc.importe_facturado,
-                            "tc": doc.tc,
-                            "anticipo": doc.anticipo,
-                            "total": doc.total,
-                            "pago": doc.pago,
-                            "detalle": doc.detalle,
-                            "estado": doc.estado,
-                            "empresa": doc.empresa,
-                            "archivo": doc.archivo,
-                            "tipo_solicitud": doc.tipo_solicitud,
-                            "tipo_cambio": doc.tipo_cambio,
-                            "afecto": doc.afecto,
-                            "inafecto": doc.inafecto,
-                            "rubro": doc.rubro,
-                            "cuenta_contable": doc.cuenta_contable,
-                            "responsable": doc.responsable,
-                            "area": doc.area,
-                            "ceco": doc.ceco,
-                            "tipo_anticipo": doc.tipo_anticipo,
-                            "motivo": doc.motivo,
-                            "fecha_viaje": doc.fecha_viaje,
-                            "dias": doc.dias,
-                            "presupuesto": doc.presupuesto,
-                            "banco": doc.banco,
-                            "numero_cuenta": doc.numero_cuenta,
-                            "origen": doc.origen,
-                            "destino": doc.destino,
-                            "numero_rendicion": doc.numero_rendicion,
-                            "tipo_viaje": doc.tipo_viaje,
-                        }
-                        for doc in documentos
-                    ]
-                })
+#             if documentos:
+#                 resultado.append({
+#                     "rendicion": {
+#                         "id": rendicion.id,
+#                         "id_user": rendicion.id_user,
+#                         "nombre": rendicion.nombre,
+#                         "tipo": rendicion.tipo,
+#                         "estado": rendicion.estado,
+#                         "fecha_registro": rendicion.fecha_registro,
+#                         "fecha_actualizacion": rendicion.fecha_actualizacion,
+#                         "nombre_usuario": full_name,
+#                         "id_empresa": rendicion.id_empresa,
+#                     },
+#                     "documentos": [
+#                         {
+#                             "id": doc.id,
+#                             "fecha_solicitud": doc.fecha_solicitud,
+#                             "fecha_rendicion": doc.fecha_rendicion,
+#                             "dni": doc.dni,
+#                             "usuario": doc.usuario,
+#                             "gerencia": doc.gerencia,
+#                             "ruc": doc.ruc,
+#                             "proveedor": doc.proveedor,
+#                             "fecha_emision": doc.fecha_emision,
+#                             "moneda": doc.moneda,
+#                             "tipo_documento": doc.tipo_documento,
+#                             "serie": doc.serie,
+#                             "correlativo": doc.correlativo,
+#                             "tipo_gasto": doc.tipo_gasto,
+#                             "sub_total": doc.sub_total,
+#                             "igv": doc.igv,
+#                             "no_gravadas": doc.no_gravadas,
+#                             "importe_facturado": doc.importe_facturado,
+#                             "tc": doc.tc,
+#                             "anticipo": doc.anticipo,
+#                             "total": doc.total,
+#                             "pago": doc.pago,
+#                             "detalle": doc.detalle,
+#                             "estado": doc.estado,
+#                             "empresa": doc.empresa,
+#                             "archivo": doc.archivo,
+#                             "tipo_solicitud": doc.tipo_solicitud,
+#                             "tipo_cambio": doc.tipo_cambio,
+#                             "afecto": doc.afecto,
+#                             "inafecto": doc.inafecto,
+#                             "rubro": doc.rubro,
+#                             "cuenta_contable": doc.cuenta_contable,
+#                             "responsable": doc.responsable,
+#                             "area": doc.area,
+#                             "ceco": doc.ceco,
+#                             "tipo_anticipo": doc.tipo_anticipo,
+#                             "motivo": doc.motivo,
+#                             "fecha_viaje": doc.fecha_viaje,
+#                             "dias": doc.dias,
+#                             "presupuesto": doc.presupuesto,
+#                             "banco": doc.banco,
+#                             "numero_cuenta": doc.numero_cuenta,
+#                             "origen": doc.origen,
+#                             "destino": doc.destino,
+#                             "numero_rendicion": doc.numero_rendicion,
+#                             "tipo_viaje": doc.tipo_viaje,
+#                         }
+#                         for doc in documentos
+#                     ]
+#                 })
 
-        # Procesar solicitudes
-        for solicitud, full_name in solicitudes:
-            documentos_query = await db.execute(
-                select(models.Documento).where(
-                    models.Documento.id_numero_rendicion == solicitud.id,
-                    models.Documento.estado != "RECHAZADO"  # Filtro añadido
-                )
-            )
-            documentos = documentos_query.scalars().all()
+#         # Procesar solicitudes
+#         for solicitud, full_name in solicitudes:
+#             documentos_query = await db.execute(
+#                 select(models.Documento).where(
+#                     models.Documento.id_numero_rendicion == solicitud.id,
+#                     models.Documento.estado != "RECHAZADO"  # Filtro añadido
+#                 )
+#             )
+#             documentos = documentos_query.scalars().all()
 
-            if documentos:
-                resultado.append({
-                    "rendicion": {
-                        "id": solicitud.id,
-                        "id_user": solicitud.id_user,
-                        "nombre": solicitud.nombre,
-                        "tipo": solicitud.tipo,
-                        "estado": solicitud.estado,
-                        "fecha_registro": solicitud.fecha_registro,
-                        "fecha_actualizacion": solicitud.fecha_actualizacion,
-                        "nombre_usuario": full_name,
-                        "id_empresa": solicitud.id_empresa,
-                    },
-                    "documentos": [
-                        {
-                            "id": doc.id,
-                            **{key: getattr(doc, key) for key in models.Documento.__table__.columns.keys()}
-                        }
-                        for doc in documentos
-                    ]
-                })
+#             if documentos:
+#                 resultado.append({
+#                     "rendicion": {
+#                         "id": solicitud.id,
+#                         "id_user": solicitud.id_user,
+#                         "nombre": solicitud.nombre,
+#                         "tipo": solicitud.tipo,
+#                         "estado": solicitud.estado,
+#                         "fecha_registro": solicitud.fecha_registro,
+#                         "fecha_actualizacion": solicitud.fecha_actualizacion,
+#                         "nombre_usuario": full_name,
+#                         "id_empresa": solicitud.id_empresa,
+#                     },
+#                     "documentos": [
+#                         {
+#                             "id": doc.id,
+#                             **{key: getattr(doc, key) for key in models.Documento.__table__.columns.keys()}
+#                         }
+#                         for doc in documentos
+#                     ]
+#                 })
 
-        return resultado
+#         return resultado
 
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
 ###################
 
 ###################################################
 @router.get("/rendiciones-solicitudes/con-documentos/", response_model=List[dict])
 async def get_rendiciones_y_solicitudes_con_documentos(
+    tipo: Optional[str] = Query(None, description="Filtrar por tipo"),
     estado: Optional[str] = Query(None, description="Filtrar por estado"),
     fecha_registro_from: Optional[date] = Query(None, description="Filtrar desde esta fecha de registro"),
     fecha_registro_to: Optional[date] = Query(None, description="Filtrar hasta esta fecha de registro"),
@@ -555,6 +556,8 @@ async def get_rendiciones_y_solicitudes_con_documentos(
             q_rend = q_rend.where(models.Rendicion.id_user == id_user)
         if id_empresa:
             q_rend = q_rend.where(models.Rendicion.id_empresa == id_empresa)
+        if tipo:
+            q_rend = q_rend.where(models.Rendicion.tipo == tipo)
 
         rendiciones = (await db.execute(q_rend)).all()
 
@@ -576,6 +579,8 @@ async def get_rendiciones_y_solicitudes_con_documentos(
             q_sol = q_sol.where(models.Solicitud.id_user == id_user)
         if id_empresa:
             q_sol = q_sol.where(models.Solicitud.id_empresa == id_empresa)
+        if tipo:
+            q_sol = q_sol.where(models.Solicitud.tipo == tipo)
 
         solicitudes = (await db.execute(q_sol)).all()
 
