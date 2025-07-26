@@ -619,22 +619,68 @@ class PDF(FPDF):
         self.cell(0, 10, f'Tipo de gasto: {self.tipo_gasto}', 0, 1, 'R')
         self.ln(20)
 
+    # def add_table(self, header, data):
+    #     self.set_font('Arial', 'B', 8)
+    #     col_width = (self.w - 20) / len(header)
+    #     row_height = self.font_size * 1.5
+
+    #     self.set_fill_color(0, 0, 139)
+    #     self.set_text_color(255, 255, 255)
+    #     for item in header:
+    #         self.cell(col_width, row_height, item, border=1, fill=True)
+    #     self.ln(row_height)
+
+    #     self.set_font('Arial', '', 8)
+    #     self.set_text_color(0, 0, 0)
+    #     for row in data:
+    #         for item in row:
+    #             self.cell(col_width, row_height, str(item), border=1)
+    #         self.ln(row_height)
+
     def add_table(self, header, data):
         self.set_font('Arial', 'B', 8)
-        col_width = (self.w - 20) / len(header)
+        
+        # Definir anchos personalizados para cada columna
+        column_widths = {
+            "Item": 10,          # Más estrecho (antes era ~27.5)
+            "Fecha": 20,
+            "RUC": 25,
+            "Tip. Doc": 25,      # Más ancho (antes era ~27.5)
+            "Cta Contable": 20,  # Más estrecho (antes era ~27.5)
+            "Serie": 15,         # Más estrecho (antes era ~27.5)
+            "Correlativo": 20,
+            "Moneda": 15,
+            "Tip. Cambio": 15,
+            "Afecto": 15,
+            "IGV": 15,
+            "Inafecto": 15,
+            "Total": 15
+        }
+        
+        # Calcular el ancho total asignado
+        total_width = sum(column_widths.values())
+        
+        # Ajustar los anchos proporcionalmente para que quepan en la página (ancho actual ~280)
+        scale_factor = (self.w - 20) / total_width
+        scaled_widths = {col: width * scale_factor for col, width in column_widths.items()}
+        
+        # Cabecera de la tabla
         row_height = self.font_size * 1.5
-
         self.set_fill_color(0, 0, 139)
         self.set_text_color(255, 255, 255)
-        for item in header:
-            self.cell(col_width, row_height, item, border=1, fill=True)
+        
+        for col in header:
+            self.cell(scaled_widths[col], row_height, col, border=1, fill=True)
         self.ln(row_height)
-
+        
+        # Datos de la tabla
         self.set_font('Arial', '', 8)
         self.set_text_color(0, 0, 0)
+        
         for row in data:
-            for item in row:
-                self.cell(col_width, row_height, str(item), border=1)
+            for i, item in enumerate(row):
+                col_name = header[i]
+                self.cell(scaled_widths[col_name], row_height, str(item), border=1)
             self.ln(row_height)
 
     def add_firmas(self, total_anticipo, total_gasto, reembolso, nombre_solicitante, nombre_aprobador, nombre_contador):
