@@ -49,13 +49,13 @@ from email.mime.multipart import MIMEMultipart
 
 app = FastAPI()
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# app.add_middleware(
+#     CORSMiddleware,
+#     allow_origins=["*"],
+#     allow_credentials=True,
+#     allow_methods=["*"],
+#     allow_headers=["*"],
+# )
 
 # app.add_middleware(
 #     CORSMiddleware,
@@ -67,6 +67,18 @@ app.add_middleware(
 #     allow_methods=["*"],
 #     allow_headers=["*"],
 # )
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",  # Añade esta línea para desarrollo
+        "https://www.arendirperu.pe",
+        "https://arendirperu.pe",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Registrar los routers
 app.include_router(company_api.router, prefix="/api", tags=["Companies"])
@@ -98,10 +110,13 @@ async def on_startup():
 async def get_db():
     async with SessionLocal() as session:
         yield session
-
-API_SUNAT_URL = "https://api.apis.net.pe/v2/sunat/ruc"
-API_TOKEN = "apis-token-9806.XVdywB8B1e4rdsDlPuTSZZ6D9RLx2sBX"
-API_URL = "https://api.apis.net.pe/v2/sunat/tipo-cambio"
+#
+#API_SUNAT_URL = "https://api.apis.net.pe/v2/sunat/ruc"
+API_SUNAT_URL = "https://api.decolecta.com/v1/sunat/ruc"
+#API_TOKEN = "apis-token-9806.XVdywB8B1e4rdsDlPuTSZZ6D9RLx2sBX"
+API_TOKEN = "sk_9349.bCNB5O799On3PVMKt6vddCENXopOSVT5"
+#API_URL = "https://api.apis.net.pe/v2/sunat/tipo-cambio"
+API_URL = "https://api.decolecta.com/v1/tipo-cambio/sunat"
 
 
 @app.get("/consulta-ruc/")
@@ -123,24 +138,46 @@ async def consulta_ruc(ruc: str = Query(..., min_length=11, max_length=11)):
                                 detail="Error al consultar el RUC")
 
 
+# @app.get("/tipo-cambio/", response_model=schemas.TipoCambioResponse)
+# async def obtener_tipo_cambio(fecha: str):
+#     headers = {
+#         "Authorization": f"Bearer {API_TOKEN}"
+#     }
+#     params = {
+#         "date": fecha
+#     }
+
+#     async with httpx.AsyncClient() as client:
+#         response = await client.get(API_URL, headers=headers, params=params)
+
+#         if response.status_code == 200:
+#             return response.json()
+#         else:
+#             raise HTTPException(status_code=response.status_code,
+#                                 detail="Error al consultar el tipo de cambio")
+
 @app.get("/tipo-cambio/", response_model=schemas.TipoCambioResponse)
 async def obtener_tipo_cambio(fecha: str):
-    headers = {
-        "Authorization": f"Bearer {API_TOKEN}"
-    }
-    params = {
-        "date": fecha
-    }
+    headers = {"Authorization": f"Bearer {API_TOKEN}"}
+    params = {"date": fecha}
 
     async with httpx.AsyncClient() as client:
         response = await client.get(API_URL, headers=headers, params=params)
 
         if response.status_code == 200:
-            return response.json()
+            data = response.json()
+            # Transforma los campos al formato esperado
+            return {
+                "precioCompra": float(data["buy_price"]),
+                "precioVenta": float(data["sell_price"]),
+                "moneda": data["quote_currency"],  # o "base_currency", según lo que necesites
+                "fecha": data["date"]
+            }
         else:
-            raise HTTPException(status_code=response.status_code,
-                                detail="Error al consultar el tipo de cambio")
-
+            raise HTTPException(
+                status_code=response.status_code,
+                detail="Error al consultar el tipo de cambio"
+            )
 
 def preprocess_image(image):
     gray_image = ImageOps.grayscale(image)
