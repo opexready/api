@@ -51,14 +51,6 @@ app = FastAPI()
 
 # app.add_middleware(
 #     CORSMiddleware,
-#     allow_origins=["*"],
-#     allow_credentials=True,
-#     allow_methods=["*"],
-#     allow_headers=["*"],
-# )
-
-# app.add_middleware(
-#     CORSMiddleware,
 #     allow_origins=[
 #         "https://www.arendirperu.pe",
 #         "https://arendirperu.pe",
@@ -1518,25 +1510,387 @@ async def create_rendicion_solicitud(
             status_code=500, detail=f"Error al crear la relación: {str(e)}")
     
 
-CREDENTIALS_PATH = "credentials/google-vision.json"  
+# CREDENTIALS_PATH = "credentials/google-vision.json"  
 
-credentials = service_account.Credentials.from_service_account_file(CREDENTIALS_PATH)
+# credentials = service_account.Credentials.from_service_account_file(CREDENTIALS_PATH)
 
 
 # Cargar credenciales desde variable de entorno
-# credentials_json = os.getenv("GOOGLE_CREDENTIALS_JSON")
-# if not credentials_json:
-#     raise RuntimeError("La variable de entorno GOOGLE_CREDENTIALS_JSON no está definida")
+credentials_json = os.getenv("GOOGLE_CREDENTIALS_JSON")
+if not credentials_json:
+    raise RuntimeError("La variable de entorno GOOGLE_CREDENTIALS_JSON no está definida")
 
-# credentials_info = json.loads(credentials_json)
-# credentials = service_account.Credentials.from_service_account_info(credentials_info)
+credentials_info = json.loads(credentials_json)
+credentials = service_account.Credentials.from_service_account_info(credentials_info)
 client = vision.ImageAnnotatorClient(credentials=credentials)
+import logging
+
+# @app.post("/extract-ticket/")
+# async def extract_ticket_google(file: UploadFile = File(...)):
+#     if file.content_type not in ['image/jpeg', 'image/png']:
+#         raise HTTPException(status_code=400, detail="Archivo no compatible")
+
+#     try:
+#         # Configuración básica de logging
+#         logging.basicConfig(level=logging.INFO)
+#         logger = logging.getLogger(__name__)
+
+#         image_data = await file.read()
+#         image = vision.Image(content=image_data)
+
+#         response = client.text_detection(image=image)
+#         texts = response.text_annotations
+
+#         if not texts:
+#             logger.info("Google Vision no detectó texto en la imagen")
+#             return {"message": "No se encontró texto"}
+
+#         full_text = texts[0].description
+#         logger.info("\n=== TEXTO COMPLETO DETECTADO POR GOOGLE VISION ===")
+#         logger.info(full_text)
+#         logger.info("==================================================\n")
+
+#         lines = [line.strip() for line in full_text.split("\n") if line.strip()]
+
+#         # Mapeo de tipos de documento con sus variantes
+#         tipo_documento_map = {
+#             "factura": "Factura",
+#             "recibo por honorarios": "Recibo por Honorarios",
+#             "boleta": "Boleta de Venta",
+#             "boleto aéreo": "Boleto Aéreo",
+#             "nota de crédito": "Nota de Crédito",
+#             "nota de débito": "Nota de Débito",
+#             "ticket": "Ticket",
+#             "recibo servicio público": "Recibo Servicio Público",
+#             "débito": "Nota de Débito",
+#             "crédito": "Nota de Crédito",
+#             "honorarios": "Recibo por Honorarios",
+#             "servicio público": "Recibo Servicio Público"
+#         }
+
+#         result = {
+#             "ruc": None,
+#             "tipo": "Boleta de Venta",  # Valor por defecto
+#             "serie": None,
+#             "numero": None,
+#             "fecha": None,
+#             "dni": "00000000",
+#             "total": None,
+#             "igv": None,
+#             "sub_total": None
+#         }
+
+#         # Primera pasada para detectar el tipo de documento
+#         for line in lines:
+#             line_lower = line.lower()
+#             for keyword, doc_type in tipo_documento_map.items():
+#                 if keyword in line_lower:
+#                     result["tipo"] = doc_type
+#                     logger.info(f"Tipo de documento detectado: {result['tipo']}")
+#                     break
+#             if result["tipo"] != "Boleta de Venta":  # Si encontramos algo, salimos
+#                 break
+
+#         # Segunda pasada para el resto de campos
+#         for i, line in enumerate(lines):
+#             logger.info(f"Procesando línea {i+1}: {line}")
+            
+#             # Extraer RUC (formato: RUC 12345678901)
+#             if not result["ruc"] and line.startswith("RUC"):
+#                 ruc_parts = line.split()
+#                 logger.info(f"Posible RUC encontrado: {ruc_parts}")
+#                 if len(ruc_parts) >= 2 and len(ruc_parts[1]) == 11:
+#                     result["ruc"] = ruc_parts[1]
+#                     logger.info(f"RUC extraído: {result['ruc']}")
+
+#             # Extraer serie y número con validación mejorada
+#             if not result["serie"]:
+#                 # Función para validar serie (debe contener al menos un número)
+#                 def is_valid_serie(serie):
+#                     return bool(re.search(r'\d', serie)) and len(serie) in (3, 4)
+
+#                 # Función para validar número (máximo 8 dígitos)
+#                 def is_valid_numero(numero):
+#                     return numero.isdigit() and len(numero) <= 8
+
+#                 # Patrones de búsqueda en orden de prioridad
+#                 patterns = [
+#                     r'([A-Za-z0-9]{3,4})\s*-\s*(\d{4,8})',  # Formato B001-00114050
+#                     r'No\.?\s*([A-Za-z0-9]{3,4})\s*-\s*(\d{4,8})',  # Formato No. B001-00114050
+#                     r'DOCUM\s*:\s*([A-Za-z0-9]{3,4})\s*-\s*(\d{4,8})',  # Formato DOCUM:B001-00114050
+#                     r'([A-Za-z0-9]{3,4})\s+(\d{4,8})'  # Formato B001 00114050
+#                 ]
+
+#                 for pattern in patterns:
+#                     match = re.search(pattern, line, re.IGNORECASE)
+#                     if match:
+#                         serie_candidate = match.group(1).strip().upper()
+#                         numero_candidate = match.group(2).strip()
+                        
+#                         if is_valid_serie(serie_candidate) and is_valid_numero(numero_candidate):
+#                             result["serie"] = serie_candidate
+#                             result["numero"] = numero_candidate.zfill(8)
+#                             logger.info(f"Formato válido detectado: {result['serie']}-{result['numero']}")
+#                             break
+#                         else:
+#                             logger.warning(f"Formato inválido descartado: {serie_candidate}-{numero_candidate}")
+
+#             # Extraer fecha
+#             if not result["fecha"] and line.startswith("FECHA"):
+#                 date_parts = line.split(":")
+#                 logger.info(f"Posible fecha encontrada: {date_parts}")
+#                 if len(date_parts) >= 2:
+#                     date_str = date_parts[1].strip().split()[0]
+#                     date_match = re.search(r'(\d{2})[-/](\d{2})[-/](\d{4})', date_str)
+#                     if date_match:
+#                         day, month, year = date_match.groups()
+#                         result["fecha"] = f"{year}-{month}-{day}"
+#                         logger.info(f"Fecha extraída: {result['fecha']}")
+
+#             # Extraer montos
+#             if "SUB TOTAL" in line.upper():
+#                 amount_match = re.search(r'(\d+\.\d{2})', line)
+#                 if amount_match:
+#                     result["sub_total"] = amount_match.group(1)
+#                     logger.info(f"Subtotal extraído: {result['sub_total']}")
+            
+#             if "IGV" in line.upper() or "IVA" in line.upper():
+#                 amount_match = re.search(r'(\d+\.\d{2})', line)
+#                 if amount_match:
+#                     result["igv"] = amount_match.group(1)
+#                     logger.info(f"IGV extraído: {result['igv']}")
+            
+#             if "TOTAL" in line.upper() and not "SUB" in line.upper():
+#                 amount_match = re.search(r'(\d+\.\d{2})', line)
+#                 if amount_match:
+#                     result["total"] = amount_match.group(1)
+#                     logger.info(f"Total extraído: {result['total']}")
+
+#         # Cálculos de montos
+#         if result["sub_total"] and result["igv"] and not result["total"]:
+#             try:
+#                 total = float(result["sub_total"]) + float(result["igv"])
+#                 result["total"] = f"{total:.2f}"
+#                 logger.info(f"Total calculado: {result['total']}")
+#             except ValueError:
+#                 logger.warning("Error al calcular total desde subtotal e IGV")
+
+#         if result["total"] and result["igv"] and not result["sub_total"]:
+#             try:
+#                 sub_total = float(result["total"]) - float(result["igv"])
+#                 result["sub_total"] = f"{sub_total:.2f}"
+#                 logger.info(f"Subtotal calculado: {result['sub_total']}")
+#             except ValueError:
+#                 logger.warning("Error al calcular subtotal desde total e IGV")
+
+#         return {
+#             "ruc": result["ruc"],
+#             "tipo": result["tipo"],
+#             "serie": result["serie"],
+#             "numero": result["numero"],
+#             "fecha": result["fecha"],
+#             "dni": result["dni"],
+#             "total": result["total"],
+#             "igv": result["igv"],
+#             "sub_total": result["sub_total"]
+#         }
+
+#     except Exception as e:
+#         logger.error(f"Error en el procesamiento: {str(e)}")
+#         raise HTTPException(status_code=500, detail=f"Error al usar Google Vision: {str(e)}")
+
+# @app.post("/extract-ticket/")
+# async def extract_ticket_google(file: UploadFile = File(...)):
+#     if file.content_type not in ['image/jpeg', 'image/png']:
+#         raise HTTPException(status_code=400, detail="Archivo no compatible")
+
+#     try:
+#         # Configuración básica de logging
+#         logging.basicConfig(level=logging.INFO)
+#         logger = logging.getLogger(__name__)
+
+#         image_data = await file.read()
+#         image = vision.Image(content=image_data)
+
+#         response = client.text_detection(image=image)
+#         texts = response.text_annotations
+
+#         if not texts:
+#             logger.info("Google Vision no detectó texto en la imagen")
+#             return {"message": "No se encontró texto"}
+
+#         full_text = texts[0].description
+#         logger.info("\n=== TEXTO COMPLETO DETECTADO POR GOOGLE VISION ===")
+#         logger.info(full_text)
+#         logger.info("==================================================\n")
+
+#         lines = [line.strip() for line in full_text.split("\n") if line.strip()]
+
+#         # Mapeo de tipos de documento con sus variantes
+#         tipo_documento_map = {
+#             "factura": "Factura",
+#             "recibo por honorarios": "Recibo por Honorarios",
+#             "boleta": "Boleta de Venta",
+#             "boleto aéreo": "Boleto Aéreo",
+#             "nota de crédito": "Nota de Crédito",
+#             "nota de débito": "Nota de Débito",
+#             "ticket": "Ticket",
+#             "recibo servicio público": "Recibo Servicio Público",
+#             "débito": "Nota de Débito",
+#             "crédito": "Nota de Crédito",
+#             "honorarios": "Recibo por Honorarios",
+#             "servicio público": "Recibo Servicio Público"
+#         }
+
+#         result = {
+#             "ruc": None,
+#             "tipo": "Boleta de Venta",  # Valor por defecto
+#             "serie": None,
+#             "numero": None,
+#             "fecha": None,
+#             "dni": "00000000",
+#             "total": None,
+#             "igv": None,
+#             "sub_total": None
+#         }
+
+#         # Primera pasada para detectar el tipo de documento
+#         for line in lines:
+#             line_lower = line.lower()
+#             for keyword, doc_type in tipo_documento_map.items():
+#                 if keyword in line_lower:
+#                     result["tipo"] = doc_type
+#                     logger.info(f"Tipo de documento detectado: {result['tipo']}")
+#                     break
+#             if result["tipo"] != "Boleta de Venta":  # Si encontramos algo, salimos
+#                 break
+
+#         # Segunda pasada para el resto de campos
+#         for i, line in enumerate(lines):
+#             logger.info(f"Procesando línea {i+1}: {line}")
+            
+#             # Extraer RUC (formato: RUC 12345678901)
+#             if not result["ruc"] and line.startswith("RUC"):
+#                 ruc_parts = line.split()
+#                 logger.info(f"Posible RUC encontrado: {ruc_parts}")
+#                 if len(ruc_parts) >= 2 and len(ruc_parts[1]) == 11:
+#                     result["ruc"] = ruc_parts[1]
+#                     logger.info(f"RUC extraído: {result['ruc']}")
+
+#             # Extraer serie y número con validación mejorada
+#             if not result["serie"]:
+#                 # Función para validar serie (debe contener al menos un número)
+#                 def is_valid_serie(serie):
+#                     return bool(re.search(r'\d', serie)) and len(serie) in (3, 4)
+
+#                 # Función para validar número (máximo 8 dígitos)
+#                 def is_valid_numero(numero):
+#                     return numero.isdigit() and len(numero) <= 8
+
+#                 # Patrones de búsqueda en orden de prioridad
+#                 patterns = [
+#                     r'([A-Za-z0-9]{3,4})\s*-\s*(\d{4,8})',  # Formato B001-00114050
+#                     r'No\.?\s*([A-Za-z0-9]{3,4})\s*-\s*(\d{4,8})',  # Formato No. B001-00114050
+#                     r'DOCUM\s*:\s*([A-Za-z0-9]{3,4})\s*-\s*(\d{4,8})',  # Formato DOCUM:B001-00114050
+#                     r'([A-Za-z0-9]{3,4})\s+(\d{4,8})'  # Formato B001 00114050
+#                 ]
+
+#                 for pattern in patterns:
+#                     match = re.search(pattern, line, re.IGNORECASE)
+#                     if match:
+#                         serie_candidate = match.group(1).strip().upper()
+#                         numero_candidate = match.group(2).strip()
+                        
+#                         if is_valid_serie(serie_candidate) and is_valid_numero(numero_candidate):
+#                             result["serie"] = serie_candidate
+#                             result["numero"] = numero_candidate.zfill(8)
+#                             logger.info(f"Formato válido detectado: {result['serie']}-{result['numero']}")
+#                             break
+#                         else:
+#                             logger.warning(f"Formato inválido descartado: {serie_candidate}-{numero_candidate}")
+
+#             # Extraer fecha - FORMATOS MEJORADOS
+#             if not result["fecha"]:
+#                 # Formato 1: 2025-04-12 17:03:28
+#                 datetime_match = re.search(r'(\d{4}-\d{2}-\d{2})\s+\d{2}:\d{2}:\d{2}', line)
+#                 if datetime_match:
+#                     result["fecha"] = datetime_match.group(1)
+#                     logger.info(f"Fecha extraída (formato datetime): {result['fecha']}")
+#                 else:
+#                     # Formato 2: FECHA :02-07-2025 (mantenido para compatibilidad)
+#                     if line.startswith("FECHA"):
+#                         date_parts = line.split(":")
+#                         logger.info(f"Posible fecha encontrada: {date_parts}")
+#                         if len(date_parts) >= 2:
+#                             date_str = date_parts[1].strip().split()[0]
+#                             date_match = re.search(r'(\d{2})[-/](\d{2})[-/](\d{4})', date_str)
+#                             if date_match:
+#                                 day, month, year = date_match.groups()
+#                                 result["fecha"] = f"{year}-{month}-{day}"
+#                                 logger.info(f"Fecha extraída (formato FECHA:): {result['fecha']}")
+
+#             # Extraer montos
+#             if "SUB TOTAL" in line.upper():
+#                 amount_match = re.search(r'(\d+\.\d{2})', line)
+#                 if amount_match:
+#                     result["sub_total"] = amount_match.group(1)
+#                     logger.info(f"Subtotal extraído: {result['sub_total']}")
+            
+#             if "IGV" in line.upper() or "IVA" in line.upper():
+#                 amount_match = re.search(r'(\d+\.\d{2})', line)
+#                 if amount_match:
+#                     result["igv"] = amount_match.group(1)
+#                     logger.info(f"IGV extraído: {result['igv']}")
+            
+#             if "TOTAL" in line.upper() and not "SUB" in line.upper():
+#                 amount_match = re.search(r'(\d+\.\d{2})', line)
+#                 if amount_match:
+#                     result["total"] = amount_match.group(1)
+#                     logger.info(f"Total extraído: {result['total']}")
+
+#         # Cálculos de montos
+#         if result["sub_total"] and result["igv"] and not result["total"]:
+#             try:
+#                 total = float(result["sub_total"]) + float(result["igv"])
+#                 result["total"] = f"{total:.2f}"
+#                 logger.info(f"Total calculado: {result['total']}")
+#             except ValueError:
+#                 logger.warning("Error al calcular total desde subtotal e IGV")
+
+#         if result["total"] and result["igv"] and not result["sub_total"]:
+#             try:
+#                 sub_total = float(result["total"]) - float(result["igv"])
+#                 result["sub_total"] = f"{sub_total:.2f}"
+#                 logger.info(f"Subtotal calculado: {result['sub_total']}")
+#             except ValueError:
+#                 logger.warning("Error al calcular subtotal desde total e IGV")
+
+#         return {
+#             "ruc": result["ruc"],
+#             "tipo": result["tipo"],
+#             "serie": result["serie"],
+#             "numero": result["numero"],
+#             "fecha": result["fecha"],
+#             "dni": result["dni"],
+#             "total": result["total"],
+#             "igv": result["igv"],
+#             "sub_total": result["sub_total"]
+#         }
+
+#     except Exception as e:
+#         logger.error(f"Error en el procesamiento: {str(e)}")
+#         raise HTTPException(status_code=500, detail=f"Error al usar Google Vision: {str(e)}")
+
 @app.post("/extract-ticket/")
 async def extract_ticket_google(file: UploadFile = File(...)):
     if file.content_type not in ['image/jpeg', 'image/png']:
         raise HTTPException(status_code=400, detail="Archivo no compatible")
 
     try:
+        # Configuración básica de logging
+        logging.basicConfig(level=logging.INFO)
+        logger = logging.getLogger(__name__)
+
         image_data = await file.read()
         image = vision.Image(content=image_data)
 
@@ -1544,50 +1898,206 @@ async def extract_ticket_google(file: UploadFile = File(...)):
         texts = response.text_annotations
 
         if not texts:
+            logger.info("Google Vision no detectó texto en la imagen")
             return {"message": "No se encontró texto"}
 
         full_text = texts[0].description
+        logger.info("\n=== TEXTO COMPLETO DETECTADO POR GOOGLE VISION ===")
+        logger.info(full_text)
+        logger.info("==================================================\n")
+
         lines = [line.strip() for line in full_text.split("\n") if line.strip()]
+
+        # Mapeo de tipos de documento con sus variantes
+        tipo_documento_map = {
+            "factura": "Factura",
+            "recibo por honorarios": "Recibo por Honorarios",
+            "boleta": "Boleta de Venta",
+            "boleto aéreo": "Boleto Aéreo",
+            "nota de crédito": "Nota de Crédito",
+            "nota de débito": "Nota de Débito",
+            "ticket": "Ticket",
+            "recibo servicio público": "Recibo Servicio Público",
+            "débito": "Nota de Débito",
+            "crédito": "Nota de Crédito",
+            "honorarios": "Recibo por Honorarios",
+            "servicio público": "Recibo Servicio Público"
+        }
 
         result = {
             "ruc": None,
-            "empresa": None,
+            "tipo": "Boleta de Venta",  # Valor por defecto
+            "serie": None,
+            "numero": None,
             "fecha": None,
-            "hora": None,
-            "habitacion": None,
-            "total": None
+            "dni": "00000000",
+            "total": None,
+            "igv": None,
+            "sub_total": None
         }
 
+        # Primera pasada para detectar el tipo de documento
         for line in lines:
-            if not result["ruc"]:
-                match = re.search(r'\b\d{11}\b', line)
-                if match:
-                    result["ruc"] = match.group()
+            line_lower = line.lower()
+            for keyword, doc_type in tipo_documento_map.items():
+                if keyword in line_lower:
+                    result["tipo"] = doc_type
+                    logger.info(f"Tipo de documento detectado: {result['tipo']}")
+                    break
+            if result["tipo"] != "Boleta de Venta":  # Si encontramos algo, salimos
+                break
 
+        # Segunda pasada para el resto de campos
+        for i, line in enumerate(lines):
+            logger.info(f"Procesando línea {i+1}: {line}")
+            
+            # Extraer RUC (formato: RUC 12345678901)
+            if not result["ruc"] and line.startswith("RUC"):
+                ruc_parts = line.split()
+                logger.info(f"Posible RUC encontrado: {ruc_parts}")
+                if len(ruc_parts) >= 2 and len(ruc_parts[1]) == 11:
+                    result["ruc"] = ruc_parts[1]
+                    logger.info(f"RUC extraído: {result['ruc']}")
+
+            # Extraer serie y número con validación mejorada
+            if not result["serie"]:
+                # Función para validar serie (debe contener al menos un número)
+                def is_valid_serie(serie):
+                    return bool(re.search(r'\d', serie)) and len(serie) in (3, 4)
+
+                # Función para validar número (máximo 8 dígitos)
+                def is_valid_numero(numero):
+                    return numero.isdigit() and len(numero) <= 8
+
+                # Patrones de búsqueda en orden de prioridad
+                patterns = [
+                    r'([A-Za-z0-9]{3,4})\s*-\s*(\d{4,8})',  # Formato B001-00114050
+                    r'No\.?\s*([A-Za-z0-9]{3,4})\s*-\s*(\d{4,8})',  # Formato No. B001-00114050
+                    r'DOCUM\s*:\s*([A-Za-z0-9]{3,4})\s*-\s*(\d{4,8})',  # Formato DOCUM:B001-00114050
+                    r'([A-Za-z0-9]{3,4})\s+(\d{4,8})'  # Formato B001 00114050
+                ]
+
+                for pattern in patterns:
+                    match = re.search(pattern, line, re.IGNORECASE)
+                    if match:
+                        serie_candidate = match.group(1).strip().upper()
+                        numero_candidate = match.group(2).strip()
+                        
+                        if is_valid_serie(serie_candidate) and is_valid_numero(numero_candidate):
+                            result["serie"] = serie_candidate
+                            result["numero"] = numero_candidate.zfill(8)
+                            logger.info(f"Formato válido detectado: {result['serie']}-{result['numero']}")
+                            break
+                        else:
+                            logger.warning(f"Formato inválido descartado: {serie_candidate}-{numero_candidate}")
+
+            # Extraer fecha - FORMATOS MEJORADOS
             if not result["fecha"]:
-                match = re.search(r'\d{2}[-/]\d{2}[-/]\d{4}', line)
-                if match:
-                    result["fecha"] = match.group()
+                # Formato 1: 2025-04-12 17:03:28
+                datetime_match = re.search(r'(\d{4}-\d{2}-\d{2})\s+\d{2}:\d{2}:\d{2}', line)
+                if datetime_match:
+                    result["fecha"] = datetime_match.group(1)
+                    logger.info(f"Fecha extraída (formato datetime): {result['fecha']}")
+                else:
+                    # Formato 2: FECHA :02-07-2025 (mantenido para compatibilidad)
+                    if line.startswith("FECHA"):
+                        date_parts = line.split(":")
+                        logger.info(f"Posible fecha encontrada: {date_parts}")
+                        if len(date_parts) >= 2:
+                            date_str = date_parts[1].strip().split()[0]
+                            date_match = re.search(r'(\d{2})[-/](\d{2})[-/](\d{4})', date_str)
+                            if date_match:
+                                day, month, year = date_match.groups()
+                                result["fecha"] = f"{year}-{month}-{day}"
+                                logger.info(f"Fecha extraída (formato FECHA:): {result['fecha']}")
 
-            if not result["hora"]:
-                match = re.search(r'\d{1,2}:\d{2}\s*(am|pm)', line.lower())
-                if match:
-                    result["hora"] = match.group()
+            # Extraer montos - VERSIÓN MEJORADA
+            line_upper = line.upper()
+            
+            # Manejo de TOTAL (incluyendo búsqueda en línea siguiente)
+            if "TOTAL" in line_upper and not "SUB" in line_upper and not result["total"]:
+                # Buscar en la misma línea
+                amount_match = re.search(r'S?\/?\s?\.?\s?(\d+\.\d{2})', line)
+                if amount_match:
+                    result["total"] = amount_match.group(1)
+                    logger.info(f"Total extraído: {result['total']}")
+                # Si no encuentra, buscar en la siguiente línea
+                elif i+1 < len(lines):
+                    next_line = lines[i+1]
+                    amount_match = re.search(r'S?\/?\s?\.?\s?(\d+\.\d{2})', next_line)
+                    if amount_match:
+                        result["total"] = amount_match.group(1)
+                        logger.info(f"Total extraído (línea siguiente): {result['total']}")
+            
+            # Manejo de SUBTOTAL
+            if ("SUB TOTAL" in line_upper or "SUBTOTAL" in line_upper) and not result["sub_total"]:
+                amount_match = re.search(r'S?\/?\s?\.?\s?(\d+\.\d{2})', line)
+                if amount_match:
+                    result["sub_total"] = amount_match.group(1)
+                    logger.info(f"Subtotal extraído: {result['sub_total']}")
+                elif i+1 < len(lines):
+                    next_line = lines[i+1]
+                    amount_match = re.search(r'S?\/?\s?\.?\s?(\d+\.\d{2})', next_line)
+                    if amount_match:
+                        result["sub_total"] = amount_match.group(1)
+                        logger.info(f"Subtotal extraído (línea siguiente): {result['sub_total']}")
+            
+            # Manejo de IGV
+            if ("IGV" in line_upper or "IVA" in line_upper) and not result["igv"]:
+                amount_match = re.search(r'S?\/?\s?\.?\s?(\d+\.\d{2})', line)
+                if amount_match:
+                    result["igv"] = amount_match.group(1)
+                    logger.info(f"IGV extraído: {result['igv']}")
+                elif i+1 < len(lines):
+                    next_line = lines[i+1]
+                    amount_match = re.search(r'S?\/?\s?\.?\s?(\d+\.\d{2})', next_line)
+                    if amount_match:
+                        result["igv"] = amount_match.group(1)
+                        logger.info(f"IGV extraído (línea siguiente): {result['igv']}")
 
-            if not result["total"] and "total" in line.lower():
-                match = re.search(r'(\d+\.\d{2})', line)
-                if match:
-                    result["total"] = match.group()
+        # Cálculos de montos mejorados
+        try:
+            # Si tenemos IGV pero falta subtotal o total
+            if result["igv"]:
+                igv_value = float(result["igv"])
+                
+                # Calcular subtotal si tenemos total
+                if result["total"] and not result["sub_total"]:
+                    total_value = float(result["total"])
+                    sub_total = total_value - igv_value
+                    result["sub_total"] = f"{sub_total:.2f}"
+                    logger.info(f"Subtotal calculado desde total e IGV: {result['sub_total']}")
+                
+                # Calcular total si tenemos subtotal
+                elif result["sub_total"] and not result["total"]:
+                    sub_total_value = float(result["sub_total"])
+                    total = sub_total_value + igv_value
+                    result["total"] = f"{total:.2f}"
+                    logger.info(f"Total calculado desde subtotal e IGV: {result['total']}")
+            
+            # Si tenemos total y subtotal pero no IGV
+            elif result["total"] and result["sub_total"] and not result["igv"]:
+                total_value = float(result["total"])
+                sub_total_value = float(result["sub_total"])
+                igv = total_value - sub_total_value
+                if igv >= 0:  # Validar que no sea negativo
+                    result["igv"] = f"{igv:.2f}"
+                    logger.info(f"IGV calculado desde total y subtotal: {result['igv']}")
+        except ValueError as e:
+            logger.warning(f"Error en cálculos de montos: {str(e)}")
 
-            if not result["empresa"] and "SAC" in line:
-                result["empresa"] = line
-
-            if not result["habitacion"] and "habitacion" in line.lower():
-                match = re.search(r'\b\d+\b', line)
-                if match:
-                    result["habitacion"] = match.group()
-
-        return result
+        return {
+            "ruc": result["ruc"],
+            "tipo": result["tipo"],
+            "serie": result["serie"],
+            "numero": result["numero"],
+            "fecha": result["fecha"],
+            "dni": result["dni"],
+            "total": result["total"],
+            "igv": result["igv"],
+            "sub_total": result["sub_total"]
+        }
 
     except Exception as e:
+        logger.error(f"Error en el procesamiento: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error al usar Google Vision: {str(e)}")
