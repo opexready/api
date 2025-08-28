@@ -1260,7 +1260,7 @@ class DocumentoPDFMovilidad(FPDF):
         # Título de la tabla
         self.set_font('Arial', 'B', 10)
         self.cell(
-            0, 5, 'DETALLE DE GASTOS DE MOVILIDAD (en el lugar habitual del trabajo)', 0, 1, 'C')
+            0, 5, 'DETALLE DE GASTOS DE MOVILIDAD', 0, 1, 'C')
         self.ln(5)
 
         # Cabecera de la tabla
