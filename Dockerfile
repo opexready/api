@@ -1,10 +1,10 @@
 FROM python:3.10-slim
 WORKDIR /app
 
-# Sistema y pip
+# Sistema y pip - Sin wkhtmltopdf
 RUN apt-get update && apt-get install -y \
-    libzbar0 tesseract-ocr libtesseract-dev wkhtmltopdf python3-dev build-essential \
-  && rm -rf /var/lib/apt/lists/*
+    libzbar0 tesseract-ocr libtesseract-dev python3-dev build-essential \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
 RUN pip install --upgrade pip wheel setuptools \
