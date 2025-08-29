@@ -266,12 +266,31 @@ async def decode_qr(file: UploadFile = File(...)):
             if len(monetary_values_sorted) > 2:
                 result["sub_total"] = monetary_values_sorted[2]
 
+        try:
+            if result.get("igv") and float(result["igv"]) > 0:
+                # Calcular afecto (base imponible)
+                afecto = float(result["igv"]) / 0.18
+                result["afecto"] = f"{afecto:.2f}"
+                
+                # Calcular inafecto
+                total = float(result["total"])
+                inafecto = total - (afecto + float(result["igv"]))
+                result["inafecto"] = f"{inafecto:.2f}"
+            else:
+                # Si no hay IGV o es 0, todo es inafecto
+                result["afecto"] = "0.00"
+                result["inafecto"] = result.get("total", "0.00")
+        except (ValueError, TypeError):
+            # Manejar errores de conversión
+            result["afecto"] = "0.00"
+            result["inafecto"] = result.get("total", "0.00")
+
         print("\nResultado final procesado:", result)
         return JSONResponse(content=result)
     except Exception as e:
         print(f"\nError al decodificar QR: {str(e)}")
         raise HTTPException(
-            status_code=500, detail=f"Failed to decode QR code: {str(e)}")
+                status_code=500, detail=f"Failed to decode QR code: {str(e)}")
 
 
 @app.post("/token_mail", response_model=dict)
