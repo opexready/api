@@ -71,7 +71,9 @@ async def get_rendiciones_con_documentos_filtradas(
         for resultado_item in resultados:
             # Buscar documentos relacionados con el nombre de la rendición o solicitud (numero_rendicion)
             documentos_query = await db.execute(
-                select(models.Documento).where(models.Documento.numero_rendicion == resultado_item.nombre)
+                select(models.Documento).where(models.Documento.numero_rendicion == resultado_item.nombre,
+                models.Documento.id_user == resultado_item.id_user                              
+                                               )
             )
             documentos = documentos_query.scalars().all()
 
