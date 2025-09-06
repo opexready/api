@@ -8,6 +8,8 @@ from datetime import date, timedelta, datetime
 from sqlalchemy import distinct
 import shutil
 import json
+import random
+import string
 from google.cloud import vision
 from google.oauth2 import service_account
 import os
@@ -44,7 +46,6 @@ from dotenv import load_dotenv
 import aiosmtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-
 
 
 app = FastAPI()
@@ -103,11 +104,11 @@ async def get_db():
     async with SessionLocal() as session:
         yield session
 #
-#API_SUNAT_URL = "https://api.apis.net.pe/v2/sunat/ruc"
+# API_SUNAT_URL = "https://api.apis.net.pe/v2/sunat/ruc"
 API_SUNAT_URL = "https://api.decolecta.com/v1/sunat/ruc"
-#API_TOKEN = "apis-token-9806.XVdywB8B1e4rdsDlPuTSZZ6D9RLx2sBX"
+# API_TOKEN = "apis-token-9806.XVdywB8B1e4rdsDlPuTSZZ6D9RLx2sBX"
 API_TOKEN = "sk_9349.bCNB5O799On3PVMKt6vddCENXopOSVT5"
-#API_URL = "https://api.apis.net.pe/v2/sunat/tipo-cambio"
+# API_URL = "https://api.apis.net.pe/v2/sunat/tipo-cambio"
 API_URL = "https://api.decolecta.com/v1/tipo-cambio/sunat"
 
 
@@ -162,7 +163,8 @@ async def obtener_tipo_cambio(fecha: str):
             return {
                 "precioCompra": float(data["buy_price"]),
                 "precioVenta": float(data["sell_price"]),
-                "moneda": data["quote_currency"],  # o "base_currency", según lo que necesites
+                # o "base_currency", según lo que necesites
+                "moneda": data["quote_currency"],
                 "fecha": data["date"]
             }
         else:
@@ -170,6 +172,7 @@ async def obtener_tipo_cambio(fecha: str):
                 status_code=response.status_code,
                 detail="Error al consultar el tipo de cambio"
             )
+
 
 def preprocess_image(image):
     gray_image = ImageOps.grayscale(image)
@@ -271,7 +274,7 @@ async def decode_qr(file: UploadFile = File(...)):
                 # Calcular afecto (base imponible)
                 afecto = float(result["igv"]) / 0.18
                 result["afecto"] = f"{afecto:.2f}"
-                
+
                 # Calcular inafecto
                 total = float(result["total"])
                 inafecto = total - (afecto + float(result["igv"]))
@@ -687,7 +690,7 @@ class PDF(FPDF):
 
     def add_table(self, header, data):
         self.set_font('Arial', 'B', 8)
-        
+
         # Definir anchos personalizados para cada columna
         column_widths = {
             "Item": 10,          # Más estrecho (antes era ~27.5)
@@ -704,31 +707,33 @@ class PDF(FPDF):
             "Inafecto": 15,
             "Total": 15
         }
-        
+
         # Calcular el ancho total asignado
         total_width = sum(column_widths.values())
-        
+
         # Ajustar los anchos proporcionalmente para que quepan en la página (ancho actual ~280)
         scale_factor = (self.w - 20) / total_width
-        scaled_widths = {col: width * scale_factor for col, width in column_widths.items()}
-        
+        scaled_widths = {col: width * scale_factor for col,
+            width in column_widths.items()}
+
         # Cabecera de la tabla
         row_height = self.font_size * 1.5
         self.set_fill_color(0, 0, 139)
         self.set_text_color(255, 255, 255)
-        
+
         for col in header:
             self.cell(scaled_widths[col], row_height, col, border=1, fill=True)
         self.ln(row_height)
-        
+
         # Datos de la tabla
         self.set_font('Arial', '', 8)
         self.set_text_color(0, 0, 0)
-        
+
         for row in data:
             for i, item in enumerate(row):
                 col_name = header[i]
-                self.cell(scaled_widths[col_name], row_height, str(item), border=1)
+                self.cell(scaled_widths[col_name],
+                          row_height, str(item), border=1)
             self.ln(row_height)
 
     def add_firmas(self, total_anticipo, total_gasto, reembolso, nombre_solicitante, nombre_aprobador, nombre_contador):
@@ -1078,6 +1083,7 @@ async def create_documento_con_pdf_custom(
     await db.refresh(db_documento)
     return db_documento
 
+
 async def get_db():
     async with SessionLocal() as session:
         yield session
@@ -1098,19 +1104,26 @@ class DocumentoPDFLocal(FPDF):
         self.cell(0, 10, 'Solicitud de Anticipo - Gasto Local', 0, 1, 'C')
         self.ln(10)
 
+    def generate_random_code(self):
+            """Genera un código aleatorio con formato S + 5 dígitos"""
+            random_digits = ''.join(random.choices(string.digits, k=5))
+            return f"S{random_digits}"
+
     def add_document_details(self, documento: schemas.DocumentoCreate):
         self.set_font('Arial', '', 10)
 
         # Configuración del ancho de las celdas
         ancho_celda1 = 40  # Ancho de la primera columna
         ancho_celda2 = 50  # Ancho de la segunda columna
+        random_code = self.generate_random_code()
 
         # Cabecera del documento
         self.cell(ancho_celda1, 10, 'ANTICIPO', 1)
-        self.cell(ancho_celda2, 10, '1', 1)
-        self.cell(0, 10, 'OPEX READY SAC', 0, 1, 'R')
+        self.cell(ancho_celda2, 10, random_code, 1)
+        self.set_font('Arial', 'B', 14)
+        self.cell(0, 10, documento.empresa, 0, 1, 'R')
         self.ln(10)
-
+        self.set_font('Arial', '', 10)
         # Información del documento
         self.cell(ancho_celda1, 10, 'DNI:', 1)
         self.cell(ancho_celda2, 10, documento.dni if documento.dni else 'N/A', 1)
@@ -1130,6 +1143,7 @@ class DocumentoPDFLocal(FPDF):
         self.cell(ancho_celda1, 10, 'Área:', 1)
         self.cell(ancho_celda2, 10,
                   documento.area if documento.area else 'N/A', 1)
+        
         self.cell(ancho_celda1, 10, 'CeCo:', 1)
         self.cell(ancho_celda2, 10,
                   documento.ceco if documento.ceco else 'N/A', 1)
@@ -1138,14 +1152,21 @@ class DocumentoPDFLocal(FPDF):
         self.cell(ancho_celda1, 10, 'Breve motivo:', 1)
         self.cell(ancho_celda2, 10,
                   documento.motivo if documento.motivo else 'N/A', 1)
-        self.cell(ancho_celda1, 10, 'Banco y N° de Cuenta:', 1)
+        
+        # MODIFICACIÓN: Separar Banco y N° de Cuenta en casillas distintas
+        self.cell(ancho_celda1, 10, 'Banco:', 1)
         self.cell(ancho_celda2, 10,
-                  documento.numero_cuenta if documento.numero_cuenta else 'N/A', 1)
+                  documento.banco if documento.banco else 'N/A', 1)
         self.ln(10)
 
+        self.cell(ancho_celda1, 10, 'N° de Cuenta:', 1)
+        self.cell(ancho_celda2, 10,
+                  documento.numero_cuenta if documento.numero_cuenta else 'N/A', 1)
+        
         self.cell(ancho_celda1, 10, 'Moneda:', 1)
         self.cell(ancho_celda2, 10,
                   documento.moneda if documento.moneda else 'N/A', 1)
+        self.ln(10)
         self.cell(ancho_celda1, 10, 'Presupuesto:', 1)
         self.cell(ancho_celda2, 10,
                   f"{documento.total:.2f}" if documento.total else "0.00", 1)
@@ -1162,7 +1183,7 @@ class DocumentoPDFLocal(FPDF):
         self.cell(ancho_celda2, 10, '', 1)
         self.ln(10)
 
-        self.cell(ancho_celda1, 10, 'Administracion / Contabilidad:', 1)
+        self.cell(ancho_celda1, 10, 'Adm./Cont.:', 1)
         self.cell(ancho_celda2, 10, '', 1)
         self.cell(ancho_celda1, 10, 'Ejecutado por:', 1)
         self.cell(ancho_celda2, 10, '', 1)
