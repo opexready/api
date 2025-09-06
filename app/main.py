@@ -991,7 +991,7 @@ class DocumentoPDFCustom(FPDF):
         self.cell(ancho_celda2, 10, '', 1)
         self.ln(10)
 
-        self.cell(ancho_celda1, 10, 'Administracion / Contabilidad:', 1)
+        self.cell(ancho_celda1, 10, 'Adm./Cont.:', 1)
         self.cell(ancho_celda2, 10, '', 1)
         self.cell(ancho_celda1, 10, 'Ejecutado por:', 1)
         self.cell(ancho_celda2, 10, '', 1)
