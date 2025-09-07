@@ -527,9 +527,10 @@ async def get_rendiciones_con_documentos_filtradas(
 ###################
 
 ###################################################
+
 @router.get("/rendiciones-solicitudes/con-documentos/", response_model=List[dict])
 async def get_rendiciones_y_solicitudes_con_documentos(
-    tipo: Optional[str] = Query(None, description="Filtrar por tipo"),
+    tipo_solicitud: Optional[str] = Query(None, description="Filtrar por tipo"),
     estado: Optional[str] = Query(None, description="Filtrar por estado"),
     fecha_registro_from: Optional[date] = Query(None, description="Filtrar desde esta fecha de registro"),
     fecha_registro_to: Optional[date] = Query(None, description="Filtrar hasta esta fecha de registro"),
@@ -558,8 +559,8 @@ async def get_rendiciones_y_solicitudes_con_documentos(
             q_rend = q_rend.where(models.Rendicion.id_user == id_user)
         if id_empresa:
             q_rend = q_rend.where(models.Rendicion.id_empresa == id_empresa)
-        if tipo:
-            q_rend = q_rend.where(models.Rendicion.tipo == tipo)
+        if tipo_solicitud:
+            q_rend = q_rend.where(models.Rendicion.tipo == tipo_solicitud)
 
         rendiciones = (await db.execute(q_rend)).all()
 
@@ -581,8 +582,8 @@ async def get_rendiciones_y_solicitudes_con_documentos(
             q_sol = q_sol.where(models.Solicitud.id_user == id_user)
         if id_empresa:
             q_sol = q_sol.where(models.Solicitud.id_empresa == id_empresa)
-        if tipo:
-            q_sol = q_sol.where(models.Solicitud.tipo == tipo)
+        if tipo_solicitud:
+            q_sol = q_sol.where(models.Solicitud.tipo == tipo_solicitud)
 
         solicitudes = (await db.execute(q_sol)).all()
 
