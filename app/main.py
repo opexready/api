@@ -270,9 +270,7 @@ async def decode_qr(file: UploadFile = File(...)):
                 result["sub_total"] = monetary_values_sorted[2]
 
         try:
-            if result.get("igv") is not None:
-            #if result.get("igv") and float(result["igv"]) > 0:
-                # Calcular afecto (base imponible)
+            if "igv" in result and "total" in result:
                 afecto = float(result["igv"]) / 0.18
                 result["afecto"] = f"{afecto:.2f}"
 
