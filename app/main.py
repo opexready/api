@@ -107,7 +107,7 @@ async def get_db():
 # API_SUNAT_URL = "https://api.apis.net.pe/v2/sunat/ruc"
 API_SUNAT_URL = "https://api.decolecta.com/v1/sunat/ruc"
 # API_TOKEN = "apis-token-9806.XVdywB8B1e4rdsDlPuTSZZ6D9RLx2sBX"
-API_TOKEN = "sk_9349.bCNB5O799On3PVMKt6vddCENXopOSVT5"
+API_TOKEN = "sk_5148.LyOBusE4XjWowNkeIT1QzT1Kw5v04pX3"
 # API_URL = "https://api.apis.net.pe/v2/sunat/tipo-cambio"
 API_URL = "https://api.decolecta.com/v1/tipo-cambio/sunat"
 
