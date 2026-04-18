@@ -67,6 +67,7 @@ app.add_middleware(
         "http://localhost:3000",  # Añade esta línea para desarrollo
         "https://www.arendirperu.pe",
         "https://arendirperu.pe",
+        "https://judiciary-expire-surely.ngrok-free.dev" #Desarrollo
     ],
     allow_credentials=True,
     allow_methods=["*"],
